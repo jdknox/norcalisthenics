@@ -1,0 +1,3355 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>workout_recorder_procedural</title>
+<style>
+/* ============================================================
+   Blender-dark theme · mono labels & numbers · sans body
+   ============================================================ */
+:root{
+  --bg:#1e1e1e;
+  --panel:#272727;
+  --panel2:#303030;
+  --panel3:#383838;
+  --line:#3d3d3d;
+  --line2:#4b4b4b;
+  --text:#e6e3de;
+  --muted:#9c9892;
+  --faint:#6f6c66;
+  --orange:#f5871f;
+  --orange-hi:#ff9d3c;
+  --orange-ink:#1b1206;
+  --blue:#5b8dc9;
+  --green:#8db862;
+  --amber:#e0b13c;
+  --red:#d15750;
+  --mono:ui-monospace,"Cascadia Code","JetBrains Mono","Fira Code",Menlo,Consolas,"Liberation Mono",monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --r:6px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg);color:var(--text);
+  font-family:var(--sans);font-size:15px;line-height:1.45;
+  padding-bottom:calc(84px + env(safe-area-inset-bottom,0px));
+}
+button{font:inherit;color:inherit;background:none;border:none;padding:0;cursor:pointer;touch-action:manipulation}
+input,textarea,select{font:inherit;color:var(--text);background:var(--panel2);border:1px solid var(--line2);border-radius:4px;padding:7px 9px;outline:none}
+input:focus,textarea:focus,select:focus{border-color:var(--orange)}
+:focus-visible{outline:2px solid var(--orange);outline-offset:1px}
+::placeholder{color:var(--faint)}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* topbar */
+.topbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:10px;
+  padding:10px 14px;background:rgba(30,30,30,.92);backdrop-filter:blur(6px);
+  border-bottom:1px solid var(--line)}
+.brand{font-family:var(--mono);font-size:14px;letter-spacing:.04em;color:var(--text)}
+.brand .dot{color:var(--orange)}
+.topbar .spacer{flex:1}
+.iconbtn{font-family:var(--mono);font-size:12px;color:var(--muted);border:1px solid var(--line);
+  border-radius:4px;padding:6px 10px;background:var(--panel)}
+.iconbtn:hover{color:var(--text);border-color:var(--line2)}
+
+main{max-width:680px;margin:0 auto;padding:16px 14px 24px}
+
+/* type helpers */
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
+.mono{font-family:var(--mono)}
+h1.page{font-family:var(--mono);font-size:20px;font-weight:600;margin:6px 0 2px;letter-spacing:.01em}
+.sub{color:var(--muted);font-size:13.5px;margin:0 0 16px}
+
+/* buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;
+  font-family:var(--mono);font-size:13px;letter-spacing:.02em;
+  background:var(--panel2);border:1px solid var(--line2);border-radius:var(--r);
+  padding:10px 14px;color:var(--text);min-height:40px}
+.btn:hover{background:var(--panel3)}
+.btn:active{transform:translateY(1px)}
+.btn.primary{background:var(--orange);border-color:var(--orange);color:var(--orange-ink);font-weight:700}
+.btn.primary:hover{background:var(--orange-hi);border-color:var(--orange-hi)}
+.btn.danger{color:var(--red);border-color:#5a3230}
+.btn.ghost{background:none;border-color:transparent;color:var(--muted)}
+.btn.ghost:hover{color:var(--text);background:var(--panel)}
+.btn.small{padding:6px 10px;min-height:32px;font-size:12px}
+.btnrow{display:flex;gap:8px;flex-wrap:wrap}
+
+/* home list */
+.wlist{display:flex;flex-direction:column;gap:8px;margin-top:14px}
+.witem{display:flex;align-items:center;gap:12px;background:var(--panel);border:1px solid var(--line);
+  border-radius:var(--r);padding:12px 14px;text-align:left;width:100%}
+.witem:hover{border-color:var(--line2);background:#2b2b2b}
+.witem .wdate{font-family:var(--mono);font-size:12px;color:var(--orange);min-width:86px}
+.witem .wname{font-weight:600}
+.witem .wsum{color:var(--muted);font-size:12.5px;font-family:var(--mono)}
+.witem .flex{flex:1;min-width:0}
+.witem .tag-live{font-family:var(--mono);font-size:10px;color:var(--green);border:1px solid #3c4f2e;
+  border-radius:3px;padding:2px 6px;letter-spacing:.1em}
+.empty{border:1px dashed var(--line2);border-radius:var(--r);padding:26px 18px;color:var(--muted);
+  text-align:center;margin-top:16px;font-size:14px}
+.empty a{color:var(--blue);cursor:pointer;text-decoration:underline}
+
+/* home tabs */
+.hometabs{display:flex;gap:0;border:1px solid var(--line2);border-radius:6px;overflow:hidden;width:fit-content;margin:14px 0 4px}
+.hometabs button{font-family:var(--mono);font-size:12.5px;letter-spacing:.03em;padding:8px 16px;color:var(--muted);background:var(--panel)}
+.hometabs button + button{border-left:1px solid var(--line2)}
+.hometabs button.on{background:var(--orange);color:var(--orange-ink);font-weight:700}
+
+/* calendar */
+.cal{margin-top:14px}
+.cal-h{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.cal-h .mo{font-family:var(--mono);font-size:16px;font-weight:600;letter-spacing:.02em;min-width:150px;text-align:center}
+.cal-h .nav{font-family:var(--mono);font-size:16px;color:var(--muted);border:1px solid var(--line);
+  border-radius:4px;width:38px;height:38px;background:var(--panel)}
+.cal-h .nav:hover{color:var(--text);border-color:var(--line2)}
+.cal-h .stat{flex:1;text-align:right;font-family:var(--mono);font-size:11px;color:var(--faint);letter-spacing:.05em}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+.cal-dow{font-family:var(--mono);font-size:10px;letter-spacing:.08em;color:var(--faint);text-align:center;
+  padding:2px 0 4px;text-transform:uppercase}
+.cal-cell{aspect-ratio:1/1;border:1px solid var(--line);border-radius:5px;background:var(--panel);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;position:relative;
+  font-family:var(--mono);font-size:14px;color:var(--muted)}
+.cal-cell.blank{border-color:transparent;background:none}
+.cal-cell.today{border-color:var(--line2);color:var(--text)}
+.cal-cell.today::after{content:"today";position:absolute;bottom:3px;font-size:7px;letter-spacing:.06em;color:var(--faint)}
+.cal-cell.has{color:var(--text);cursor:pointer;border-color:#4a3a24;background:#2a2419}
+.cal-cell.has:hover{border-color:var(--orange)}
+.cal-cell.sel{border-color:var(--orange);background:#33291a;color:var(--orange-hi)}
+.cal-cell .dot{width:5px;height:5px;border-radius:50%;background:var(--orange)}
+.cal-cell .cnt{position:absolute;top:3px;right:5px;font-size:8px;color:var(--faint)}
+.cal-day-panel{margin-top:14px;border:1px solid var(--line);border-radius:6px;background:var(--panel);padding:12px 14px}
+.cal-day-panel .pd{font-family:var(--mono);font-size:12px;color:var(--orange);letter-spacing:.04em;margin-bottom:8px}
+.cal-day-panel .rest{color:var(--faint)}
+
+/* workout header */
+.whead{display:flex;align-items:center;gap:10px;margin:2px 0 14px;flex-wrap:wrap}
+.whead input.wname{background:none;border:none;border-bottom:1px dashed var(--line2);border-radius:0;
+  font-family:var(--mono);font-size:18px;font-weight:600;padding:2px 2px;flex:1;min-width:150px}
+.whead input.wname:focus{border-bottom-color:var(--orange)}
+.whead input.wdate-input{background:var(--panel);border:1px solid var(--line);border-radius:4px;
+  font-family:var(--mono);font-size:12px;color:var(--muted);padding:6px 8px;color-scheme:dark}
+.whead input.wdate-input:focus{border-color:var(--orange);color:var(--text)}
+.whead .wdate{font-family:var(--mono);font-size:12px;color:var(--muted)}
+
+/* exercise card */
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);margin-bottom:12px;overflow:hidden}
+.card.stopped{opacity:.75}
+.card-h{display:flex;align-items:flex-start;gap:8px;padding:12px 12px 0}
+.card-h .exname{font-family:var(--mono);font-size:15px;font-weight:700;letter-spacing:.01em;flex:1;line-height:1.3}
+.card-h .exname .modechip{font-size:10px;font-weight:400;color:var(--faint);letter-spacing:.12em;
+  text-transform:uppercase;margin-left:8px}
+.setupline{font-family:var(--mono);font-size:12px;color:var(--muted);padding:3px 12px 0;white-space:pre-wrap;word-break:break-word}
+.restline{font-family:var(--mono);font-size:11px;color:var(--faint);padding:2px 12px 0;letter-spacing:.05em}
+.nextline{font-family:var(--mono);font-size:11.5px;padding:6px 12px 0}
+.nextline .k{color:var(--faint)}
+.nextline .v{color:var(--blue)}
+.nextline .warn{color:var(--red)}
+.ringline{font-family:var(--mono);font-size:12px;color:var(--orange);padding:3px 12px 0;letter-spacing:.03em}
+.ringline.bad{color:var(--red)}
+.ringline.faint{color:var(--faint)}
+.ring-readout{font-family:var(--mono);font-size:13px;color:var(--orange);background:#2a2419;border:1px solid #4a3a24;
+  border-radius:4px;padding:8px 10px;margin-top:8px;letter-spacing:.02em}
+.ring-readout.bad{color:var(--red);background:#2c2020;border-color:#5a3230}
+.ringsec{border-top:1px solid var(--line);padding-top:12px;margin-top:4px}
+.calib{border:1px solid var(--line);border-radius:6px;background:#242424;padding:12px;margin-top:6px}
+.calib-h{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin-bottom:6px}
+.calib .btn{margin-top:8px}
+.card-body{padding:8px 8px 4px}
+.card-f{display:flex;gap:6px;flex-wrap:wrap;padding:6px 8px 10px}
+.painbar{margin:8px;border:1px solid #5a3230;background:#2c2020;border-radius:4px;padding:9px 10px;font-size:13px}
+.painbar .btnrow{margin-top:8px}
+.stoppedline{font-family:var(--mono);font-size:11px;color:var(--red);padding:6px 12px;letter-spacing:.08em}
+
+/* ladder blocks */
+.ladder{border:1px solid var(--line);border-radius:4px;margin:6px 4px;background:#242424}
+.ladder-h{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;color:var(--faint);
+  letter-spacing:.12em;text-transform:uppercase;padding:7px 10px 2px}
+.ladder-h .fill{flex:1}
+.ladder .addrung{margin:2px 8px 8px}
+
+/* set rows */
+.set{display:flex;align-items:center;gap:8px;padding:6px 6px;border-radius:4px;flex-wrap:wrap}
+.set .actions{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-left:auto}
+.set + .set{border-top:1px solid #2e2e2e}
+.set .idx{font-family:var(--mono);font-size:11px;color:var(--faint);width:26px;text-align:right;flex:none}
+.set .val{font-family:var(--mono);font-size:16px;font-weight:700;background:var(--panel2);
+  border:1px solid var(--line2);border-radius:4px;padding:8px 10px;min-width:64px;text-align:center}
+.set .val .u{font-size:11px;font-weight:400;color:var(--muted)}
+.set .val:hover{border-color:var(--orange)}
+.set.planned .val{color:var(--muted);font-weight:600;border-style:dashed}
+.set .stp{font-family:var(--mono);font-size:16px;color:var(--muted);border:1px solid var(--line);
+  border-radius:4px;width:34px;height:38px;flex:none;background:var(--panel)}
+.set .stp:hover{color:var(--text);border-color:var(--line2)}
+.set .grow{flex:1}
+.set .done-btn{font-family:var(--mono);font-weight:700;font-size:13px;letter-spacing:.05em;
+  background:var(--orange);color:var(--orange-ink);border-radius:5px;padding:10px 16px;min-height:40px}
+.set .done-btn:hover{background:var(--orange-hi)}
+.set .minor{font-family:var(--mono);font-size:10px;color:var(--faint);border:1px solid var(--line);
+  border-radius:3px;padding:5px 7px;letter-spacing:.06em}
+.set .minor:hover{color:var(--muted);border-color:var(--line2)}
+.chips{display:flex;gap:4px}
+.chip{font-family:var(--mono);font-size:11px;letter-spacing:.04em;border:1px solid var(--line);
+  border-radius:3px;padding:6px 8px;color:var(--faint);min-height:32px}
+.chip.on-clean{color:var(--green);border-color:#40532f;background:#232a1d}
+.chip.on-ugly{color:var(--amber);border-color:#5d4a1e;background:#2b2519}
+.chip.on-pain{color:var(--red);border-color:#5a3230;background:#2c2020}
+.set .note-ind{font-size:11px;color:var(--blue)}
+.status-word{font-family:var(--mono);font-size:11px;letter-spacing:.08em}
+.status-word.failed{color:var(--red)}
+.status-word.skipped{color:var(--faint)}
+
+/* set editor */
+.setedit{background:#242424;border:1px solid var(--line);border-radius:4px;margin:2px 6px 8px;padding:10px}
+.setedit .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+.setedit label{font-family:var(--mono);font-size:11px;color:var(--faint);letter-spacing:.08em;text-transform:uppercase}
+.setedit input[type=text],.setedit input[type=number]{width:86px;text-align:center;font-family:var(--mono)}
+.setedit input.notein{width:100%;text-align:left;font-family:var(--sans)}
+.setedit select{font-family:var(--mono)}
+
+/* card menu */
+.menu{background:#242424;border:1px solid var(--line);border-radius:4px;margin:6px 8px;padding:6px;
+  display:flex;flex-wrap:wrap;gap:6px}
+
+/* notes */
+.exnotes{margin:6px 8px}
+.exnotes textarea{width:100%;min-height:60px;font-family:var(--sans);font-size:13.5px}
+
+/* add exercise / overlays */
+.overlay{position:fixed;inset:0;z-index:40;background:rgba(12,12,12,.66);display:flex;
+  align-items:flex-end;justify-content:center;padding:0}
+.sheet{background:var(--panel);border:1px solid var(--line2);border-bottom:none;
+  border-radius:10px 10px 0 0;width:100%;max-width:680px;max-height:88vh;overflow:auto;
+  padding:16px 16px calc(20px + env(safe-area-inset-bottom,0px))}
+.sheet h2{font-family:var(--mono);font-size:15px;margin:0 0 12px;letter-spacing:.03em}
+.sheet .frow{margin-bottom:12px}
+.sheet label.lab{display:block;font-family:var(--mono);font-size:11px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--faint);margin-bottom:5px}
+.sheet label.lab sub{text-transform:lowercase;font-size:.78em;letter-spacing:0}
+.exname-wrap{position:relative}
+.exlist{display:none;position:absolute;left:0;right:0;top:100%;z-index:5;margin-top:4px;
+  max-height:210px;overflow:auto;background:var(--panel3);border:1px solid var(--line2);border-radius:6px;
+  box-shadow:0 8px 24px rgba(0,0,0,.4)}
+.exlist.open{display:block}
+.exitem{display:block;width:100%;text-align:left;font-family:var(--mono);font-size:13px;
+  padding:9px 11px;color:var(--text);border-bottom:1px solid var(--line)}
+.exitem:last-child{border-bottom:none}
+.exitem:hover{background:var(--orange);color:var(--orange-ink)}
+.exitem .mt{color:var(--orange)}
+.exitem:hover .mt{color:var(--orange-ink);font-weight:700}
+.sheet input[type=text],.sheet textarea{width:100%}
+.sheet textarea{min-height:64px}
+.seg{display:flex;gap:0;border:1px solid var(--line2);border-radius:5px;overflow:hidden;width:fit-content;max-width:100%;flex-wrap:wrap}
+.seg button{font-family:var(--mono);font-size:12.5px;padding:9px 13px;color:var(--muted);background:var(--panel2)}
+.seg button + button{border-left:1px solid var(--line2)}
+.seg button.on{background:var(--orange);color:var(--orange-ink);font-weight:700}
+.hint{font-size:12px;color:var(--faint);margin-top:4px;font-family:var(--mono)}
+.inline2{display:flex;gap:10px;flex-wrap:wrap}
+.inline2 .frow{flex:1;min-width:130px}
+.sheet .foot{display:flex;gap:8px;justify-content:flex-end;margin-top:6px;flex-wrap:wrap}
+
+/* export */
+.exp-tabs{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+.exp-out{width:100%;min-height:240px;font-family:var(--mono);font-size:12.5px;line-height:1.5;
+  background:#1a1a1a;border-color:var(--line);white-space:pre;overflow:auto}
+
+/* clone preview */
+.clone-prev{border:1px solid var(--line);border-radius:4px;background:#242424;padding:10px 12px;margin-bottom:12px}
+.clone-prev .pl{display:flex;gap:10px;font-family:var(--mono);font-size:12.5px;padding:3px 0;flex-wrap:wrap}
+.clone-prev .pn{color:var(--text);min-width:150px}
+.clone-prev .pt{color:var(--blue)}
+.clone-prev .pr{color:var(--faint);font-size:11px}
+.clone-prev .pw{color:var(--red);font-size:11px}
+.togglerow{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.togglerow input{width:auto}
+
+/* timer bar — signature element */
+.timerbar{position:fixed;left:0;right:0;bottom:0;z-index:30;
+  background:#232323;border-top:1px solid var(--line2);
+  padding:0 0 env(safe-area-inset-bottom,0px)}
+.timerbar .fillwrap{position:relative;height:64px;max-width:680px;margin:0 auto;overflow:hidden}
+.timerbar .fill{position:absolute;inset:0;width:0%;background:linear-gradient(90deg,#7a4410,#a95c12);
+  transition:width .25s linear}
+.timerbar.over .fill{background:linear-gradient(90deg,#8a6a1d,#b98a22);width:100%!important;animation:pulse 1.2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.85}50%{opacity:.55}}
+.timerbar .content{position:relative;display:flex;align-items:center;gap:12px;height:64px;padding:0 14px}
+.timerbar .tlab{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#cbb59a;max-width:38%;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.timerbar .tmain{font-family:var(--mono);font-size:26px;font-weight:700;letter-spacing:.02em}
+.timerbar.over .tmain{color:#ffd88a}
+.timerbar .ttarget{font-family:var(--mono);font-size:12px;color:#cbb59a}
+.timerbar .fillsp{flex:1}
+.timerbar .tstop{font-family:var(--mono);font-size:12px;border:1px solid #6a5030;border-radius:4px;
+  padding:8px 12px;color:#e8d5b8;background:rgba(0,0,0,.25)}
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand"><span class="dot">●</span> workout_recorder</div>
+  <div class="spacer"></div>
+  <button class="iconbtn" data-a="settings-open" title="rigging & profile" aria-label="rigging and profile settings">⚙ setup</button>
+  <button class="iconbtn" id="soundbtn" data-a="sound-toggle" title="timer sound">♪ on</button>
+</header>
+
+<main id="app"></main>
+
+<div id="timerbar" class="timerbar hidden" role="timer" aria-live="off">
+  <div class="fillwrap">
+    <div class="fill" id="tfill"></div>
+    <div class="content">
+      <div class="tlab" id="tlab">rest</div>
+      <div class="tmain" id="tmain">0:00</div>
+      <div class="ttarget" id="ttarget">/ 2:30</div>
+      <div class="fillsp"></div>
+      <button class="tstop" data-a="timer-stop">stop</button>
+    </div>
+  </div>
+</div>
+
+<div id="overlay" class="overlay hidden"></div>
+
+<script>
+'use strict';
+/* ======== pure helpers ======== */
+/* Procedural helpers: explicit loops, direct data flow, no hidden pipelines.
+   Style target: snake_case variables, camelCase functions, old-school syntax.
+*/
+let month_names = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+function uid()
+{
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+}
+
+function esc(value)
+{
+  let text = String(value == null ? '' : value);
+  let out = '';
+  let i;
+  let ch;
+
+  for (i = 0; i < text.length; ++i)
+  {
+    ch = text.charAt(i);
+
+    switch (ch)
+    {
+      case '&':
+        out += '&amp;';
+        break;
+
+      case '<':
+        out += '&lt;';
+        break;
+
+      case '>':
+        out += '&gt;';
+        break;
+
+      case '"':
+        out += '&quot;';
+        break;
+
+      case "'":
+        out += '&#39;';
+        break;
+
+      default:
+        out += ch;
+        break;
+    }
+  }
+
+  return out;
+}
+
+function fmtRest(sec)
+{
+  let whole = Math.max(0, Math.round(sec || 0));
+  let mins = Math.floor(whole/60);
+  let secs = whole % 60;
+
+  return mins + ':' + String(secs).padStart(2, '0');
+}
+
+function parseRest(value)
+{
+  let text;
+  let parts;
+  let mins;
+  let secs;
+  let num;
+
+  if (value == null)
+  {
+    return null;
+  }
+
+  text = String(value).trim();
+  if (!text)
+  {
+    return null;
+  }
+
+  if (text.indexOf(':') >= 0)
+  {
+    parts = text.split(':');
+    mins = parseInt(parts[0], 10) || 0;
+    secs = parseInt(parts[1], 10) || 0;
+    return mins*60 + secs;
+  }
+
+  num = parseFloat(text);
+  if (isNaN(num))
+  {
+    return null;
+  }
+
+  return Math.round(num);
+}
+
+/* "8/8/8", "8, 8, 8", "15x8, 10x12" -> [{ reps, load? }] */
+function parseTargets(value)
+{
+  let items;
+  let out = [];
+  let i;
+  let text;
+  let match;
+  let reps;
+
+  if (!value)
+  {
+    return out;
+  }
+
+  items = String(value).split(/[\/,]+/);
+
+  for (i = 0; i < items.length; ++i)
+  {
+    text = items[i].trim();
+    if (!text)
+    {
+      continue;
+    }
+
+    match = text.match(/^(\d+(?:\.\d+)?)\s*[x×]\s*(\d+)$/i);
+    if (match)
+    {
+      out.push({
+        reps: parseInt(match[2], 10),
+        load: parseFloat(match[1])
+      });
+      continue;
+    }
+
+    reps = parseInt(text, 10);
+    if (!isNaN(reps))
+    {
+      out.push({ reps: reps });
+    }
+  }
+
+  return out;
+}
+
+/* "3 3 2" or "3/3/2" -> [3, 3, 2] */
+function parseTops(value)
+{
+  let items;
+  let out = [];
+  let i;
+  let num;
+
+  if (!value)
+  {
+    return out;
+  }
+
+  items = String(value).split(/[\s\/,]+/);
+
+  for (i = 0; i < items.length; ++i)
+  {
+    num = parseInt(items[i], 10);
+    if (num > 0)
+    {
+      out.push(num);
+    }
+  }
+
+  return out;
+}
+
+function dateHeading(iso)
+{
+  return iso;
+}
+
+function todayISO()
+{
+  let d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
+function isoOf(year, month, day)
+{
+  return year + '-' + String(month + 1).padStart(2, '0') + '-' + String(day).padStart(2, '0');
+}
+
+function monthName(month)
+{
+  return month_names[month];
+}
+
+function monthCells(year, month)
+{
+  let start_offset = new Date(year, month, 1).getDay();
+  let days_in_month = new Date(year, month + 1, 0).getDate();
+  let cells = [];
+  let i;
+  let day;
+
+  for (i = 0; i < start_offset; ++i)
+  {
+    cells.push(null);
+  }
+
+  for (day = 1; day <= days_in_month; ++day)
+  {
+    cells.push(day);
+  }
+
+  while (cells.length % 7)
+  {
+    cells.push(null);
+  }
+
+  return cells;
+}
+
+function workoutsByDate(workouts)
+{
+  let map = {};
+  let i;
+  let workout;
+
+  for (i = 0; i < workouts.length; ++i)
+  {
+    workout = workouts[i];
+    if (!map[workout.date])
+    {
+      map[workout.date] = [];
+    }
+    map[workout.date].push(workout);
+  }
+
+  return map;
+}
+
+function workoutSummary(workout)
+{
+  let set_count = 0;
+  let i;
+  let j;
+
+  for (i = 0; i < workout.exercises.length; ++i)
+  {
+    for (j = 0; j < workout.exercises[i].sets.length; ++j)
+    {
+      if (isDone(workout.exercises[i].sets[j]))
+      {
+        ++set_count;
+      }
+    }
+  }
+
+  return workout.exercises.length + (workout.exercises.length == 1 ? ' exercise' : ' exercises') +
+    ' · ' + set_count + (set_count == 1 ? ' set' : ' sets');
+}
+
+function isDone(set)
+{
+  return set.status == 'done_clean' || set.status == 'done_ugly' || set.status == 'pain';
+}
+
+function isPerformed(set)
+{
+  return isDone(set) || set.status == 'failed' || set.status == 'skipped';
+}
+
+function laddersOf(ex)
+{
+  let map = {};
+  let keys;
+  let ladders = [];
+  let i;
+  let ladderIndex;
+  let key;
+
+  for (i = 0; i < ex.sets.length; ++i)
+  {
+    ladderIndex = ex.sets[i].ladderIndex || 1;
+    if (!map[ladderIndex])
+    {
+      map[ladderIndex] = [];
+    }
+    map[ladderIndex].push(ex.sets[i]);
+  }
+
+  keys = Object.keys(map);
+  keys.sort(function(a, b)
+  {
+    return Number(a) - Number(b);
+  });
+
+  for (i = 0; i < keys.length; ++i)
+  {
+    key = keys[i];
+    map[key].sort(function(a, b)
+    {
+      return (a.rungIndex || 0) - (b.rungIndex || 0);
+    });
+    ladders.push({
+      idx: Number(key),
+      sets: map[key]
+    });
+  }
+
+  return ladders;
+}
+
+function topsOf(ex)
+{
+  let ladders = laddersOf(ex);
+  let tops = [];
+  let i;
+  let j;
+  let top;
+  let value;
+
+  for (i = 0; i < ladders.length; ++i)
+  {
+    top = 0;
+    for (j = 0; j < ladders[i].sets.length; ++j)
+    {
+      value = ladders[i].sets[j].target || ladders[i].sets[j].reps || 0;
+      if (value > top)
+      {
+        top = value;
+      }
+    }
+    tops.push(top);
+  }
+
+  return tops;
+}
+
+function performedSetsOf(ex)
+{
+  let out = [];
+  let i;
+
+  for (i = 0; i < ex.sets.length; ++i)
+  {
+    if (isPerformed(ex.sets[i]))
+    {
+      out.push(ex.sets[i]);
+    }
+  }
+
+  return out;
+}
+
+/* progression suggestions — transparent rules from the design doc */
+function suggestForExercise(ex)
+{
+  let performed = performedSetsOf(ex);
+  let any_pain = !!ex.stopped;
+  let any_ugly = false;
+  let any_fail = false;
+  let i;
+  let tops;
+  let complete;
+  let next;
+  let bumped;
+  let base_sets;
+  let targets = [];
+  let all_clean;
+
+  for (i = 0; i < performed.length; ++i)
+  {
+    if (performed[i].status == 'pain')
+    {
+      any_pain = true;
+    }
+    else if (performed[i].status == 'done_ugly')
+    {
+      any_ugly = true;
+    }
+    else if (performed[i].status == 'failed' || performed[i].status == 'skipped')
+    {
+      any_fail = true;
+    }
+  }
+
+  if (ex.mode == 'ladder')
+  {
+    tops = topsOf(ex);
+    if (!tops.length)
+    {
+      tops = [1];
+    }
+
+    if (any_pain)
+    {
+      return { kind: 'ladder', tops: tops, reason: 'pain — do not progress; consider an easier variation', warn: true };
+    }
+
+    complete = performed.length > 0;
+    for (i = 0; i < ex.sets.length && complete; ++i)
+    {
+      if (ex.sets[i].status != 'done_clean')
+      {
+        complete = false;
+      }
+    }
+
+    if (!complete)
+    {
+      return {
+        kind: 'ladder',
+        tops: tops,
+        reason: performed.length
+          ? 'repeat — ' + (any_fail ? 'failed/skipped rung' : any_ugly ? 'ugly reps' : 'partial ladder')
+          : 'no data yet — same target'
+      };
+    }
+
+    next = tops.slice();
+    bumped = false;
+
+    for (i = 1; i < next.length; ++i)
+    {
+      if (next[i] < next[0])
+      {
+        ++next[i];
+        bumped = true;
+        break;
+      }
+    }
+
+    if (!bumped)
+    {
+      ++next[0];
+    }
+
+    return { kind: 'ladder', tops: next, reason: 'all rungs clean — +1 rung' };
+  }
+
+  base_sets = performed.length ? performed : ex.sets;
+  for (i = 0; i < base_sets.length; ++i)
+  {
+    targets.push({
+      reps: (base_sets[i].target != null ? base_sets[i].target : base_sets[i].reps) || 0,
+      load: base_sets[i].load
+    });
+  }
+
+  if (!targets.length)
+  {
+    targets.push({ reps: 0 });
+  }
+
+  if (any_pain)
+  {
+    return { kind: 'sets', targets: targets, reason: 'pain — do not progress; consider an easier variation or less volume', warn: true };
+  }
+
+  if (any_ugly || any_fail)
+  {
+    return {
+      kind: 'sets',
+      targets: targets,
+      reason: 'repeat same target — ' + (any_ugly ? 'ugly reps last time' : 'failed/skipped set')
+    };
+  }
+
+  all_clean = performed.length > 0;
+  for (i = 0; i < performed.length && all_clean; ++i)
+  {
+    if (performed[i].status != 'done_clean' || (performed[i].reps || 0) < (performed[i].target || 0))
+    {
+      all_clean = false;
+    }
+  }
+
+  if (all_clean)
+  {
+    targets = targets.slice();
+    targets[0] = { reps: targets[0].reps + 1, load: targets[0].load };
+    return { kind: 'sets', targets: targets, reason: 'all sets clean — +1 rep on first set' };
+  }
+
+  return { kind: 'sets', targets: targets, reason: performed.length ? 'repeat same target' : 'no data yet — same target' };
+}
+
+function targetsLabel(suggestion)
+{
+  let parts = [];
+  let i;
+
+  if (suggestion.kind == 'ladder')
+  {
+    return 'ladders ' + suggestion.tops.join(' / ');
+  }
+
+  for (i = 0; i < suggestion.targets.length; ++i)
+  {
+    parts.push((suggestion.targets[i].load != null ? suggestion.targets[i].load + 'x' : '') + suggestion.targets[i].reps);
+  }
+
+  return parts.join(' / ');
+}
+
+/* ---------- exports ---------- */
+function setLineText(ex, set)
+{
+  let tag = '';
+  let reps = set.reps != null ? set.reps : set.target || 0;
+
+  switch (set.status)
+  {
+    case 'done_ugly':
+      tag = ' ugly';
+      break;
+
+    case 'pain':
+      tag = ' pain';
+      break;
+
+    case 'failed':
+      tag = ' failed';
+      break;
+
+    case 'skipped':
+      tag = ' skipped';
+      break;
+  }
+
+  if (ex.mode == 'timed')
+  {
+    return reps + ' sec' + tag;
+  }
+  if (set.load != null)
+  {
+    return set.load + ' ' + (set.unit || 'kg') + ' x ' + reps + ' reps' + tag;
+  }
+
+  return reps + ' reps' + tag;
+}
+
+function buildPlain(workout, rig, profile)
+{
+  let out = ['Workout - ' + workout.date, ''];
+  let i;
+  let j;
+  let ex;
+  let performed;
+  let ri;
+  let ladders;
+  let ladder;
+  let rung_texts;
+  let set;
+  let rung_text;
+
+  for (i = 0; i < workout.exercises.length; ++i)
+  {
+    ex = workout.exercises[i];
+    performed = performedSetsOf(ex);
+    if (!performed.length)
+    {
+      continue;
+    }
+
+    out.push(ex.name);
+
+    if (ex.setup)
+    {
+      out.push('Setup: ' + ex.setup.replace(/\n+/g, '; '));
+    }
+
+    ri = ringInfo(ex, rig, profile);
+    if (ri && ri.deg != null)
+    {
+      out.push('Rings: ' + ri.deg.toFixed(1) + '° (Rr ' + ri.Rr + ', H ' + (ri.H >= 0 ? '+' : '') + ri.H + ' cm)');
+    }
+
+    if (ex.mode == 'ladder')
+    {
+      ladders = laddersOf(ex);
+      for (j = 0; j < ladders.length; ++j)
+      {
+        ladder = ladders[j];
+        rung_texts = [];
+
+        for (let k = 0; k < ladder.sets.length; ++k)
+        {
+          set = ladder.sets[k];
+          if (!isPerformed(set))
+          {
+            continue;
+          }
+
+          rung_text = String(set.reps != null ? set.reps : set.target);
+          if (set.status == 'done_ugly')
+          {
+            rung_text += ' ugly';
+          }
+          else if (set.status == 'pain')
+          {
+            rung_text += ' pain';
+          }
+          else if (set.status == 'failed')
+          {
+            rung_text += ' failed';
+          }
+          else if (set.status == 'skipped')
+          {
+            rung_text += ' skip';
+          }
+
+          rung_texts.push(rung_text);
+        }
+
+        if (rung_texts.length)
+        {
+          out.push('Ladder ' + ladder.idx + ': ' + rung_texts.join(' / '));
+        }
+      }
+    }
+    else 
+    {
+      for (j = 0; j < performed.length; ++j)
+      {
+        out.push(setLineText(ex, performed[j]));
+      }
+    }
+
+    if (ex.notes)
+    {
+      out.push('Note: ' + ex.notes.replace(/\n+/g, '; '));
+    }
+
+    out.push('');
+  }
+
+  if (workout.notes)
+  {
+    out.push('Notes: ' + workout.notes);
+  }
+
+  return out.join('\n').replace(/\n+$/, '') + '\n';
+}
+
+function buildCompact(workout, rig, profile)
+{
+  let out = [];
+  let i;
+  let j;
+  let ex;
+  let performed;
+  let body_parts;
+  let ladder_parts;
+  let ladders;
+  let set;
+  let tag;
+  let reps;
+  let uses_load;
+
+  for (i = 0; i < workout.exercises.length; ++i)
+  {
+    ex = workout.exercises[i];
+    performed = performedSetsOf(ex);
+    if (!performed.length)
+    {
+      continue;
+    }
+
+    body_parts = [];
+
+    if (ex.mode == 'ladder')
+    {
+      ladders = laddersOf(ex);
+      for (j = 0; j < ladders.length; ++j)
+      {
+        ladder_parts = [];
+
+        for (let k = 0; k < ladders[j].sets.length; ++k)
+        {
+          set = ladders[j].sets[k];
+          if (!isPerformed(set))
+          {
+            continue;
+          }
+
+          tag = '';
+          if (set.status == 'done_ugly')
+          {
+            tag = 'u';
+          }
+          else if (set.status == 'pain')
+          {
+            tag = '!';
+          }
+          else if (set.status == 'failed')
+          {
+            tag = 'x';
+          }
+          else if (set.status == 'skipped')
+          {
+            tag = '-';
+          }
+
+          ladder_parts.push((set.reps != null ? set.reps : set.target) + tag);
+        }
+
+        if (ladder_parts.length)
+        {
+          body_parts.push(ladder_parts.join('.'));
+        }
+      }
+    }
+    else 
+    {
+      uses_load = false;
+      for (j = 0; j < ex.sets.length; ++j)
+      {
+        if (ex.sets[j].load != null)
+        {
+          uses_load = true;
+          break;
+        }
+      }
+
+      for (j = 0; j < performed.length; ++j)
+      {
+        set = performed[j];
+        reps = set.reps != null ? set.reps : set.target || 0;
+        tag = '';
+
+        if (set.status == 'done_ugly')
+        {
+          tag = ' ugly';
+        }
+        else if (set.status == 'pain')
+        {
+          tag = ' pain';
+        }
+        else if (set.status == 'failed')
+        {
+          tag = ' failed';
+        }
+        else if (set.status == 'skipped')
+        {
+          tag = ' skipped';
+        }
+
+        if (ex.mode == 'timed')
+        {
+          body_parts.push(reps + 's' + tag);
+        }
+        else if (set.load != null)
+        {
+          body_parts.push(set.load + ' ' + (set.unit || 'kg') + ' x ' + reps + tag);
+        }
+        else 
+        {
+          body_parts.push(reps + tag);
+        }
+      }
+
+      if (uses_load)
+      {
+        out.push(ex.name + ': ' + body_parts.join(', '));
+        continue;
+      }
+    }
+
+    out.push(ex.name + ': ' + body_parts.join(' / '));
+  }
+
+  return out.join('\n') + '\n';
+}
+
+function csvCell(value)
+{
+  let text = value == null ? '' : String(value);
+
+  if (/[",\n]/.test(text))
+  {
+    return '"' + text.replace(/"/g, '""') + '"';
+  }
+
+  return text;
+}
+
+function buildCSV(workout, rig, profile)
+{
+  let head = ['date', 'workout', 'exercise', 'mode', 'set_index', 'ladder_index', 'rung_index', 'reps', 'load', 'unit', 'clean_status', 'pain', 'setup', 'notes'];
+  let rows = [head.join(',')];
+  let i;
+  let j;
+  let ex;
+  let set_index;
+  let first;
+  let ri;
+  let setup_cell;
+  let set;
+  let status;
+  let note;
+  let row;
+
+  for (i = 0; i < workout.exercises.length; ++i)
+  {
+    ex = workout.exercises[i];
+    set_index = 0;
+    first = true;
+    ri = ringInfo(ex, rig, profile);
+    setup_cell = ex.setup || '';
+
+    if (ri && ri.deg != null)
+    {
+      setup_cell = (setup_cell ? setup_cell + ' | ' : '') + 'rings ' + ri.deg.toFixed(1) + '° (Rr ' + ri.Rr + ', H ' + (ri.H >= 0 ? '+' : '') + ri.H + ')';
+    }
+
+    for (j = 0; j < ex.sets.length; ++j)
+    {
+      set = ex.sets[j];
+      if (!isPerformed(set))
+      {
+        continue;
+      }
+
+      ++set_index;
+
+      if (set.status == 'done_clean')
+      {
+        status = 'clean';
+      }
+      else if (set.status == 'done_ugly')
+      {
+        status = 'ugly';
+      }
+      else if (set.status == 'pain')
+      {
+        status = '';
+      }
+      else 
+      {
+        status = set.status;
+      }
+
+      note = set.note || '';
+      if (first && ex.notes)
+      {
+        note = (note ? note + ' | ' : '') + 'ex: ' + ex.notes;
+      }
+      first = false;
+
+      row = [
+        workout.date,
+        workout.name || '',
+        ex.name,
+        ex.mode,
+        set_index,
+        ex.mode == 'ladder' ? (set.ladderIndex || 1) : '',
+        ex.mode == 'ladder' ? (set.rungIndex || '') : '',
+        set.reps != null ? set.reps : '',
+        set.load != null ? set.load : '',
+        set.load != null ? (set.unit || 'kg') : '',
+        status,
+        set.status == 'pain' ? 'yes' : '',
+        setup_cell,
+        note
+      ];
+
+      for (let k = 0; k < row.length; ++k)
+      {
+        row[k] = csvCell(row[k]);
+      }
+
+      rows.push(row.join(','));
+    }
+  }
+
+  return rows.join('\n') + '\n';
+}
+
+/* ---------- ring pushup geometry (approximation: shoulder ≈ ring) ---------- */
+function ringAngle(anchorHeight, shoulder, ringRestHeight, toeDistance)
+{
+  let strapLength;
+  let k;
+  let denom;
+  let cosValue;
+
+  if (anchorHeight == null || shoulder == null || ringRestHeight == null || toeDistance == null)
+  {
+    return null;
+  }
+  if (!(anchorHeight > 0) || !(shoulder > 0))
+  {
+    return null;
+  }
+
+  strapLength = anchorHeight - ringRestHeight;
+  k = (strapLength*strapLength - anchorHeight*anchorHeight - toeDistance*toeDistance - shoulder*shoulder)/2;
+  denom = shoulder*Math.sqrt(toeDistance*toeDistance + anchorHeight*anchorHeight);
+
+  if (denom == 0)
+  {
+    return { impossible: true };
+  }
+
+  cosValue = k/denom;
+  if (cosValue < -1 || cosValue > 1)
+  {
+    return { impossible: true };
+  }
+
+  return {
+    deg: (Math.atan2(-anchorHeight, toeDistance) + Math.acos(cosValue))*180/Math.PI
+  };
+}
+
+function calibrateAnchor(x1, y1, ringRestHeight)
+{
+  let denom;
+
+  if (x1 == null || y1 == null || ringRestHeight == null)
+  {
+    return null;
+  }
+  if (isNaN(x1) || isNaN(y1) || isNaN(ringRestHeight))
+  {
+    return null;
+  }
+
+  denom = 2*(y1 - ringRestHeight);
+  if (denom == 0)
+  {
+    return null;
+  }
+
+  return (x1*x1 + y1*y1 - ringRestHeight*ringRestHeight)/denom;
+}
+
+/* resolve a geometry-enabled exercise to a display line, given global rig + profile. */
+function ringType(ex)
+{
+  return ex.ring && ex.ring.type ? ex.ring.type : 'none';
+}
+
+function ringInfo(ex, rig, profile)
+{
+  let type = ringType(ex);
+  let ringRestHeight;
+  let toeDistance;
+  let anchorHeight;
+  let shoulder;
+  let result;
+  let signed_toe_distance;
+
+  switch (type)
+  {
+    case 'none':
+      return null;
+
+    case 'pushup':
+      break;
+
+    default:
+      return null;
+  }
+
+  ringRestHeight = ex.ring.Rr;
+  toeDistance = ex.ring.H;
+
+  if (ringRestHeight == null || toeDistance == null)
+  {
+    return { incomplete: true, text: 'ring pushup — enter ring height + toe distance' };
+  }
+
+  anchorHeight = rig ? rig.anchorHeight : null;
+  shoulder = profile ? profile.shoulder : null;
+  if (anchorHeight == null || shoulder == null)
+  {
+    return { incomplete: true, text: 'ring pushup — set anchor height + shoulder in setup' };
+  }
+
+  result = ringAngle(anchorHeight, shoulder, ringRestHeight, toeDistance);
+  if (!result)
+  {
+    return { incomplete: true, text: 'ring pushup — incomplete' };
+  }
+
+  signed_toe_distance = (toeDistance >= 0 ? '+' : '') + toeDistance;
+  if (result.impossible)
+  {
+    return {
+      impossible: true,
+      Rr: ringRestHeight,
+      H: toeDistance,
+      text: 'ring pushup — impossible configuration (can\'t reach) · Rr ' + ringRestHeight + ' · H ' + signed_toe_distance
+    };
+  }
+
+  return {
+    deg: result.deg,
+    Rr: ringRestHeight,
+    H: toeDistance,
+    text: '∠ ' + result.deg.toFixed(1) + '° · Rr ' + ringRestHeight + ' · H ' + signed_toe_distance + ' cm'
+  };
+}
+
+/* ======== storage (artifact window.storage → localStorage fallback) ======== */
+let storage_key = 'wr:data:v1';
+let store = {
+  load: function()
+  {
+    function readLocal()
+    {
+      try 
+      {
+        let stored_value = localStorage.getItem(storage_key);
+        return stored_value ? JSON.parse(stored_value) : null;
+      }
+      catch (e)
+      {
+        return null;
+      }
+    }
+
+    if (window.storage && window.storage.get)
+    {
+      return window.storage.get(storage_key).then(function(result)
+      {
+        if (result && result.value)
+        {
+          return JSON.parse(result.value);
+        }
+
+        return null;
+      }, function()
+      {
+        return readLocal();
+      });
+    }
+
+    return Promise.resolve(readLocal());
+  },
+  _t:null,
+  save: function(data)
+  {
+    clearTimeout(this._t);
+    let self_ref = this;
+    this._t = setTimeout(function()
+    {
+      self_ref.flush(data); 
+    }, 400);
+    this._pending = data;
+  },
+  flush: function(data)
+  {
+    function writeLocal(json_text)
+    {
+      try 
+      {
+        localStorage.setItem(storage_key, json_text);
+      }
+      catch (e)
+      {}
+      return Promise.resolve();
+    }
+
+    data = data || this._pending;
+    if (!data) return Promise.resolve();
+
+    let json_text;
+    try 
+    {
+      json_text = JSON.stringify(data); 
+    }
+    catch(e)
+    {
+      return Promise.resolve(); 
+    }
+
+    if (window.storage && window.storage.set)
+    {
+      return window.storage.set(storage_key, json_text).then(function()
+      {
+        return null;
+      }, function()
+      {
+        return writeLocal(json_text);
+      });
+    }
+
+    return writeLocal(json_text);
+  }
+};
+document.addEventListener('visibilitychange', function()
+{
+  if (document.visibilityState=='hidden') store.flush(); 
+});
+window.addEventListener('pagehide', function()
+{
+  store.flush(); 
+});
+
+/* ======== state ======== */
+let state = { workouts: [], presets: {}, settings: { sound:true }, rig: { anchorHeight:null, calX:null, calY:null, calRr:null }, profile: { shoulder:null }, activeId: null };
+let ui = {
+  view: 'home',            // home | workout
+  homeTab: 'list',         // list | calendar
+  calY: new Date().getFullYear(),
+  calM: new Date().getMonth(),
+  calSel: null,            // selected iso date in calendar
+  overlay: null,           // {type:'addex'|'export'|'clone', ...}
+  editSetId: null,
+  menuExId: null,
+  notesExId: null,
+  painExId: null,
+  expFmt: 'plain'
+};
+
+function save()
+{
+  store.save(state); 
+}
+function findWorkout(id)
+{
+  return state.workouts.find(function(w)
+  {
+    return w.id==id; 
+  }); 
+}
+function activeWorkout()
+{
+  return findWorkout(state.activeId); 
+}
+function findEx(w, exId)
+{
+  return w && w.exercises.find(function(e)
+  {
+    return e.id==exId; 
+  }); 
+}
+function findSet(w, setId)
+{
+  if (!w) return null;
+  for (let i=0; i<w.exercises.length; ++i)
+  {
+    let ex = w.exercises[i];
+    let s = ex.sets.find(function(x)
+    {
+      return x.id==setId; 
+    });
+    if (s) return { ex:ex, set:s };
+  }
+  return null;
+}
+
+/* preset upkeep: remember setup, rests, last targets per exercise name */
+function touchPreset(ex)
+{
+  let k = ex.name.trim().toLowerCase(); if (!k) return;
+  state.presets[k] = {
+    name: ex.name.trim(), mode: ex.mode,
+    restSet: ex.restSet, restRung: ex.restRung,
+    setup: ex.setup || '',
+    lastTargets: ex.mode=='ladder' ? null : ex.sets.map(function(s)
+    {
+      return { reps: s.target!=null?s.target:s.reps, load: s.load }; 
+    }),
+    lastTops: ex.mode=='ladder' ? topsOf(ex) : null,
+    unit: (ex.sets.find(function(s)
+    {
+      return s.unit; 
+    })||{}).unit || 'kg',
+    ring: ringType(ex) != 'none' ? { type:ex.ring.type, Rr:ex.ring.Rr, H:ex.ring.H } : null
+  };
+}
+
+/* ======== builders ======== */
+function makeSet(o)
+{
+  return Object.assign({ id: uid(), ladderIndex:null, rungIndex:null, target:null, reps:null,
+    load:null, unit:null, status:'planned', restTarget:null, restActual:null, note:'' }, o||{});
+}
+function makeExercise(o)
+{
+  let ex = Object.assign({ id: uid(), name:'', mode:'straight', setup:'', notes:'',
+    restSet:150, restRung:20, stopped:false, ring:{ type:'none', Rr:null, H:null }, sets:[] }, o||{});
+  if (!ex.ring) ex.ring = { type:'none', Rr:null, H:null };
+  if (ex.ring.type == null) ex.ring.type = ex.ring.enabled ? 'pushup' : 'none';  // migrate old shape
+  return ex;
+}
+function buildSetsFromTargets(targets, unit)
+{
+  return targets.map(function(t)
+  {
+    return makeSet({ target:t.reps, load: t.load!=null ? t.load : null, unit: t.load!=null ? (unit||'kg') : null });
+  });
+}
+function buildLadderSets(tops)
+{
+  let sets = [];
+  tops.forEach(function(top, li)
+  {
+    for (let r=1; r<=top; ++r) sets.push(makeSet({ ladderIndex: li+1, rungIndex: r, target: r }));
+  });
+  return sets;
+}
+function newWorkout(name)
+{
+  let w = { id: uid(), date: todayISO(), name: name || 'Workout', notes:'', exercises: [], finished:false };
+  state.workouts.unshift(w);
+  state.activeId = w.id;
+  return w;
+}
+
+/* ======== rest timer ======== */
+let timer = null; /* { since, target, label, setId } */
+let tick_handle = null, beeped = false, audio_ctx = null;
+function beep()
+{
+  if (!state.settings.sound) return;
+  try
+  {
+    audio_ctx = audio_ctx || new (window.AudioContext || window.webkitAudioContext)();
+    let oscillator = audio_ctx.createOscillator();
+    let gain = audio_ctx.createGain();
+    oscillator.type = 'square'; oscillator.frequency.value = 880;
+    gain.gain.setValueAtTime(0.08, audio_ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.0001, audio_ctx.currentTime + 0.35);
+    oscillator.connect(gain); gain.connect(audio_ctx.destination);
+    oscillator.start(); oscillator.stop(audio_ctx.currentTime + 0.36);
+  }
+  catch(e)
+  {}
+  if (navigator.vibrate) 
+  {
+    try
+    {
+      navigator.vibrate(200); 
+    }
+    catch(e)
+    {} 
+  }
+}
+function recordRestActual()
+{
+  if (!timer) return;
+  let w = activeWorkout(); if (!w) return;
+  let hit = findSet(w, timer.setId);
+  if (hit) hit.set.restActual = Math.round((Date.now() - timer.since)/1000);
+}
+function startTimer(target, label, setId)
+{
+  recordRestActual();
+  timer = { since: Date.now(), target: target, label: label, setId: setId };
+  beeped = false;
+  document.getElementById('timerbar').classList.remove('hidden');
+  if (!tick_handle) tick_handle = setInterval(tick, 250);
+  tick();
+}
+function stopTimer()
+{
+  recordRestActual();
+  timer = null;
+  document.getElementById('timerbar').classList.add('hidden');
+  if (tick_handle)
+  {
+    clearInterval(tick_handle); tick_handle = null; 
+  }
+  save();
+}
+function tick()
+{
+  if (!timer) return;
+  let el = Math.floor((Date.now() - timer.since)/1000);
+  let bar = document.getElementById('timerbar');
+  let over = el >= timer.target;
+  bar.classList.toggle('over', over);
+  document.getElementById('tlab').textContent = timer.label;
+  document.getElementById('tmain').textContent = over ? '+' + fmtRest(el - timer.target) : fmtRest(el);
+  document.getElementById('ttarget').textContent = over ? 'rested ' + fmtRest(timer.target) : '/ ' + fmtRest(timer.target);
+  document.getElementById('tfill').style.width = Math.min(100, (el/Math.max(1,timer.target))*100) + '%';
+  if (over && !beeped)
+  {
+    beeped = true; beep(); 
+  }
+}
+
+/* ======== actions on sets ======== */
+function completeSet(setId)
+{
+  let w = activeWorkout(); let hit = findSet(w, setId); if (!hit) return;
+  let ex = hit.ex, s = hit.set;
+  if (s.reps == null) s.reps = s.target != null ? s.target : 0;
+  s.status = 'done_clean';
+  let isRung = ex.mode=='ladder';
+  let target = ex.restSet, label = ex.name + ' · set rest';
+  if (isRung)
+  {
+    let more = ex.sets.some(function(x)
+    {
+      return x.ladderIndex==s.ladderIndex && (x.rungIndex||0) > (s.rungIndex||0) && x.status=='planned'; 
+    });
+    if (more)
+    {
+      target = ex.restRung; label = ex.name + ' · rung rest'; s.restTarget = ex.restRung; 
+    }
+    else 
+    {
+      target = ex.restSet; label = ex.name + ' · ladder rest'; s.restTarget = ex.restSet; 
+    }
+  }
+  else 
+  {
+    s.restTarget = ex.restSet;
+  }
+  startTimer(target, label, s.id);
+  touchPreset(ex);
+  save(); render();
+}
+function setStatus(setId, status)
+{
+  let w = activeWorkout(); let hit = findSet(w, setId); if (!hit) return;
+  let s = hit.set;
+  if (!isDone(s) && (status=='done_ugly' || status=='pain'))
+  {
+    if (s.reps==null) s.reps = s.target||0; 
+  }
+  s.status = status;
+  if (status=='pain')
+  {
+    ui.painExId = hit.ex.id; 
+  }
+  if (status=='failed' || status=='skipped')
+  {
+    if (s.reps==null) s.reps = 0; 
+  }
+  save(); render();
+}
+
+/* ======== rendering ======== */
+function render()
+{
+  let app = document.getElementById('app');
+  app.innerHTML = ui.view=='workout' && activeWorkout() ? renderWorkout(activeWorkout()) : renderHome();
+  renderOverlay();
+  document.getElementById('soundbtn').textContent = state.settings.sound ? '♪ on' : '♪ off';
+}
+
+function renderHome()
+{
+  let h = '';
+  h += '<div class="eyebrow">// local · no account · export anytime</div>';
+  h += '<h1 class="page">Workouts</h1>';
+  h += '<p class="sub">One tap per set. Timers start themselves. Ladders are first class.</p>';
+  h += '<div class="btnrow">';
+  h += '<button class="btn primary" data-a="new-workout">+ New workout</button>';
+  if (state.workouts.length) h += '<button class="btn" data-a="clone-open">⟳ Clone last workout</button>';
+  h += '</div>';
+
+  if (!state.workouts.length)
+  {
+    h += '<div class="empty">No workouts yet.<br>Start a new one, or <a data-a="sample">load a sample session</a> to see how it works.</div>';
+    return h;
+  }
+
+  h += '<div class="hometabs">'
+     + '<button class="'+(ui.homeTab=='list'?'on':'')+'" data-a="home-tab" data-t="list">list</button>'
+     + '<button class="'+(ui.homeTab=='calendar'?'on':'')+'" data-a="home-tab" data-t="calendar">calendar</button>'
+     + '</div>';
+
+  if (ui.homeTab == 'calendar') return h + renderCalendar();
+
+  h += '<div class="wlist">';
+  state.workouts.forEach(function(w)
+  {
+    h += '<button class="witem" data-a="open-workout" data-id="'+w.id+'">'
+      + '<span class="wdate">'+esc(w.date)+'</span>'
+      + '<span class="flex"><span class="wname">'+esc(w.name)+'</span><br><span class="wsum">'
+      + esc(workoutSummary(w))+'</span></span>'
+      + (!w.finished ? '<span class="tag-live">OPEN</span>' : '')
+      + '</button>';
+  });
+  h += '</div>';
+  return h;
+}
+
+function renderCalendar()
+{
+  let byDate = workoutsByDate(state.workouts);
+  let cells = monthCells(ui.calY, ui.calM);
+  let today = todayISO();
+  let month_count = state.workouts.filter(function(w)
+  {
+    let d = w.date.split('-'); return parseInt(d[0],10)==ui.calY && parseInt(d[1],10)-1==ui.calM;
+  }).length;
+
+  let h = '<div class="cal">';
+  h += '<div class="cal-h">'
+     + '<button class="nav" data-a="cal-prev" aria-label="previous month">‹</button>'
+     + '<div class="mo">'+esc(monthName(ui.calM)+' '+ui.calY)+'</div>'
+     + '<button class="nav" data-a="cal-next" aria-label="next month">›</button>'
+     + '<div class="stat">'+month_count+(month_count==1?' workout':' workouts')+'</div>'
+     + '</div>';
+
+  h += '<div class="cal-grid">';
+  ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].forEach(function(d)
+  {
+    h += '<div class="cal-dow">'+d+'</div>'; 
+  });
+  cells.forEach(function(d)
+  {
+    if (d == null)
+    {
+      h += '<div class="cal-cell blank"></div>'; return; 
+    }
+    let iso = isoOf(ui.calY, ui.calM, d);
+    let list = byDate[iso] || [];
+    let cls = 'cal-cell';
+    if (list.length) cls += ' has';
+    if (iso == today) cls += ' today';
+    if (iso == ui.calSel) cls += ' sel';
+    h += '<'+(list.length ? 'button' : 'div')+' class="'+cls+'"'
+       + (list.length ? ' data-a="cal-day" data-d="'+iso+'"' : '')+'>'
+       + (list.length>1 ? '<span class="cnt">'+list.length+'</span>' : '')
+       + '<span>'+d+'</span>'
+       + (list.length ? '<span class="dot"></span>' : '')
+       + '</'+(list.length ? 'button' : 'div')+'>';
+  });
+  h += '</div>';
+
+  if (ui.calSel && byDate[ui.calSel])
+  {
+    h += '<div class="cal-day-panel">';
+    h += '<div class="pd">'+esc(ui.calSel)+'</div>';
+    h += '<div class="wlist">';
+    byDate[ui.calSel].forEach(function(w)
+    {
+      h += '<button class="witem" data-a="open-workout" data-id="'+w.id+'">'
+        + '<span class="flex"><span class="wname">'+esc(w.name)+'</span><br><span class="wsum">'
+        + esc(workoutSummary(w))+'</span></span>'
+        + (!w.finished ? '<span class="tag-live">OPEN</span>' : '')
+        + '</button>';
+    });
+    h += '</div></div>';
+  }
+  h += '</div>';
+  return h;
+}
+
+function renderWorkout(w)
+{
+  let h = '';
+  h += '<div class="whead">'
+    + '<button class="btn small ghost" data-a="nav-home">← back</button>'
+    + '<input class="wname" data-field="wname" value="'+esc(w.name)+'" aria-label="workout name">'
+    + '<input class="wdate-input" type="date" data-field="wdate" value="'+esc(w.date)+'" aria-label="workout date">'
+    + '</div>';
+  h += '<div class="btnrow" style="margin-bottom:14px">'
+    + '<button class="btn small" data-a="export-open">⇪ Export</button>'
+    + '<button class="btn small" data-a="addex-open">+ Add exercise</button>'
+    + (!w.finished ? '<button class="btn small" data-a="finish-workout">✓ Finish</button>' : '<button class="btn small ghost" data-a="reopen-workout">reopen</button>')
+    + '</div>';
+  if (!w.exercises.length)
+  {
+    h += '<div class="empty">Add your first exercise.<br><span class="mono" style="font-size:12px;color:var(--faint)">Tap Done as each set happens — the rest timer starts itself.</span></div>';
+  }
+  w.exercises.forEach(function(ex)
+  {
+    h += renderCard(w, ex); 
+  });
+  return h;
+}
+
+function renderCard(w, ex)
+{
+  let h = '<section class="card'+(ex.stopped?' stopped':'')+'">';
+  h += '<div class="card-h"><div class="exname">'+esc(ex.name)
+     + '<span class="modechip">'+esc(ex.mode)+'</span></div>'
+     + '<button class="iconbtn" data-a="ex-menu" data-ex="'+ex.id+'" aria-label="exercise menu">⋯</button></div>';
+  if (ex.setup) h += '<div class="setupline">setup: '+esc(ex.setup)+'</div>';
+  let ri = ringInfo(ex, state.rig, state.profile);
+  if (ri) h += '<div class="ringline'+(ri.impossible?' bad':ri.incomplete?' faint':'')+'">'+esc(ri.text)+'</div>';
+  h += '<div class="restline">rest '+fmtRest(ex.restSet)+(ex.mode=='ladder' ? ' · rung '+fmtRest(ex.restRung) : '')+'</div>';
+
+  let perf = ex.sets.filter(isPerformed);
+  if (perf.length)
+  {
+    let sug = suggestForExercise(ex);
+    h += '<div class="nextline"><span class="k">next time → </span><span class="'+(sug.warn?'warn':'v')+'">'
+       + esc(targetsLabel(sug)) + '</span> <span class="k">· '+esc(sug.reason)+'</span></div>';
+  }
+  if (ex.stopped) h += '<div class="stoppedline">■ stopped'+(ex.stopReason ? ' — '+esc(ex.stopReason) : '')+'</div>';
+
+  if (ui.menuExId == ex.id) h += renderMenu(w, ex);
+  if (ui.painExId == ex.id && !ex.stopped)
+  {
+    h += '<div class="painbar">Pain marked on this exercise.'
+      + '<div class="btnrow"><button class="btn small danger" data-a="stop-ex" data-ex="'+ex.id+'">Stop exercise</button>'
+      + '<button class="btn small" data-a="backoff" data-ex="'+ex.id+'">Add backoff exercise</button>'
+      + '<button class="btn small ghost" data-a="pain-dismiss">Continue</button></div></div>';
+  }
+
+  h += '<div class="card-body">';
+  if (ex.mode == 'ladder')
+  {
+    laddersOf(ex).forEach(function(L)
+    {
+      h += '<div class="ladder"><div class="ladder-h">Ladder '+L.idx+'<span class="fill"></span></div>';
+      L.sets.forEach(function(s)
+      {
+        h += renderSetRow(ex, s); if (ui.editSetId==s.id) h += renderSetEdit(ex, s); 
+      });
+      if (!ex.stopped) h += '<button class="btn small ghost addrung" data-a="add-rung" data-ex="'+ex.id+'" data-l="'+L.idx+'">+ rung</button>';
+      h += '</div>';
+    });
+  }
+  else 
+  {
+    ex.sets.forEach(function(s)
+    {
+      h += renderSetRow(ex, s); if (ui.editSetId==s.id) h += renderSetEdit(ex, s); 
+    });
+  }
+  h += '</div>';
+
+  if (ui.notesExId == ex.id)
+  {
+    h += '<div class="exnotes"><textarea data-field="exnotes" data-ex="'+ex.id+'" placeholder="exercise notes…">'+esc(ex.notes)+'</textarea></div>';
+  }
+
+  h += '<div class="card-f">';
+  if (!ex.stopped)
+  {
+    if (ex.mode == 'ladder')
+    {
+      h += '<button class="btn small" data-a="add-ladder" data-ex="'+ex.id+'">+ ladder</button>';
+    }
+    else 
+    {
+      h += '<button class="btn small" data-a="add-set" data-ex="'+ex.id+'">+ set</button>';
+      let last_done = ex.sets.filter(isDone).slice(-1)[0];
+      if (last_done) h += '<button class="btn small" data-a="repeat" data-ex="'+ex.id+'">↻ repeat '+ (ex.mode=='timed' ? last_done.reps+'s' : (last_done.load!=null? last_done.load+'×':'')+last_done.reps) +'</button>';
+    }
+  }
+  h += '<button class="btn small ghost" data-a="notes-toggle" data-ex="'+ex.id+'">notes'+(ex.notes?' •':'')+'</button>';
+  h += '</div></section>';
+  return h;
+}
+
+function renderSetRow(ex, s)
+{
+  let label = ex.mode=='ladder' ? 'r'+(s.rungIndex||'') : '#'+(ex.sets.indexOf(s)+1);
+  let planned = s.status == 'planned';
+  let h = '<div class="set '+(planned?'planned':'')+'">';
+  h += '<span class="idx">'+esc(label)+'</span>';
+  if (planned && !ex.stopped) h += '<button class="stp" data-a="tgt-dec" data-set="'+s.id+'" aria-label="decrease target">−</button>';
+  let valTxt;
+  if (planned) valTxt = (s.load!=null ? '<span class="u">'+esc(s.load)+(s.unit||'kg')+'×</span>' : '') + (s.target!=null?s.target:'?') + (ex.mode=='timed'?'<span class="u">s</span>':'');
+  else valTxt = (s.load!=null ? '<span class="u">'+esc(s.load)+(s.unit||'kg')+'×</span>' : '') + (s.reps!=null?s.reps:'—') + (ex.mode=='timed'?'<span class="u">s</span>':'');
+  h += '<button class="val" data-a="set-edit" data-set="'+s.id+'" title="edit">'+valTxt+'</button>';
+  if (planned && !ex.stopped) h += '<button class="stp" data-a="tgt-inc" data-set="'+s.id+'" aria-label="increase target">+</button>';
+  if (s.note) h += '<span class="note-ind" title="'+esc(s.note)+'">✎</span>';
+  h += '<div class="actions">';
+  if (planned)
+  {
+    if (!ex.stopped)
+    {
+      h += '<button class="minor" data-a="set-fail" data-set="'+s.id+'">fail</button>';
+      h += '<button class="minor" data-a="set-skip" data-set="'+s.id+'">skip</button>';
+      h += '<button class="done-btn" data-a="set-done" data-set="'+s.id+'">DONE</button>';
+    }
+    else 
+    {
+      h += '<span class="status-word skipped">—</span>';
+    }
+  }
+  else if (isDone(s))
+  {
+    h += '<div class="chips">'
+      + '<button class="chip '+(s.status=='done_clean'?'on-clean':'')+'" data-a="set-status" data-set="'+s.id+'" data-st="done_clean">clean</button>'
+      + '<button class="chip '+(s.status=='done_ugly'?'on-ugly':'')+'" data-a="set-status" data-set="'+s.id+'" data-st="done_ugly">ugly</button>'
+      + '<button class="chip '+(s.status=='pain'?'on-pain':'')+'" data-a="set-status" data-set="'+s.id+'" data-st="pain">pain</button>'
+      + '</div>';
+  }
+  else 
+  {
+    h += '<span class="status-word '+esc(s.status)+'">'+esc(s.status)+'</span>'
+      + '<button class="minor" data-a="set-unmark" data-set="'+s.id+'">undo</button>';
+  }
+  h += '</div></div>';
+  return h;
+}
+
+function renderSetEdit(ex, s)
+{
+  let planned = s.status=='planned';
+  let h = '<div class="setedit">';
+  h += '<div class="row"><label>'+(planned?'target':'reps')+(ex.mode=='timed'?' (sec)':'')+'</label>'
+     + '<button class="stp" data-a="ed-dec" data-set="'+s.id+'">−</button>'
+     + '<input type="text" inputmode="numeric" data-field="ed-reps" data-set="'+s.id+'" value="'+esc(planned ? (s.target!=null?s.target:'') : (s.reps!=null?s.reps:''))+'">'
+     + '<button class="stp" data-a="ed-inc" data-set="'+s.id+'">+</button></div>';
+  if (ex.mode=='weighted' || s.load!=null)
+  {
+    h += '<div class="row"><label>load</label>'
+       + '<input type="text" inputmode="decimal" data-field="ed-load" data-set="'+s.id+'" value="'+esc(s.load!=null?s.load:'')+'">'
+       + '<select data-field="ed-unit" data-set="'+s.id+'">'
+       + '<option value="kg"'+((s.unit||'kg')=='kg'?' selected':'')+'>kg</option>'
+       + '<option value="lb"'+(s.unit=='lb'?' selected':'')+'>lb</option></select></div>';
+  }
+  h += '<div class="row" style="flex-wrap:nowrap"><label>note</label>'
+     + '<input class="notein" type="text" data-field="ed-note" data-set="'+s.id+'" value="'+esc(s.note||'')+'" placeholder="short note…"></div>';
+  h += '<div class="btnrow">';
+  if (!planned) h += '<button class="btn small" data-a="set-unmark" data-set="'+s.id+'">mark not done</button>';
+  h += '<button class="btn small danger" data-a="set-delete" data-set="'+s.id+'">delete set</button>';
+  h += '<button class="btn small primary" data-a="set-edit-close">done</button>';
+  h += '</div></div>';
+  return h;
+}
+
+function renderMenu(w, ex)
+{
+  let i = w.exercises.indexOf(ex);
+  let h = '<div class="menu">';
+  h += '<button class="btn small" data-a="ex-edit" data-ex="'+ex.id+'">edit setup / rest</button>';
+  if (ex.mode!='ladder') h += '<button class="btn small" data-a="convert-ladder" data-ex="'+ex.id+'">→ convert to ladder</button>';
+  else h += '<button class="btn small" data-a="convert-straight" data-ex="'+ex.id+'">→ convert to straight</button>';
+  h += '<button class="btn small" data-a="backoff" data-ex="'+ex.id+'">add backoff</button>';
+  if (!ex.stopped) h += '<button class="btn small danger" data-a="stop-ex" data-ex="'+ex.id+'">stop (pain)</button>';
+  else h += '<button class="btn small" data-a="unstop-ex" data-ex="'+ex.id+'">resume exercise</button>';
+  if (i>0) h += '<button class="btn small ghost" data-a="ex-up" data-ex="'+ex.id+'">▲ up</button>';
+  if (i<w.exercises.length-1) h += '<button class="btn small ghost" data-a="ex-down" data-ex="'+ex.id+'">▼ down</button>';
+  h += '<button class="btn small danger" data-a="ex-delete" data-ex="'+ex.id+'">delete</button>';
+  h += '<button class="btn small ghost" data-a="ex-menu-close">close</button>';
+  h += '</div>';
+  return h;
+}
+
+/* ---------- overlays ---------- */
+function renderOverlay()
+{
+  let el = document.getElementById('overlay');
+  if (!ui.overlay)
+  {
+    el.classList.add('hidden');
+    el.innerHTML = '';
+    return;
+  }
+
+  el.classList.remove('hidden');
+  let o = ui.overlay;
+  let h = '<div class="sheet">';
+
+  switch (o.type)
+  {
+    case 'addex':
+      h += sheetAddEx(o);
+      break;
+
+    case 'settings':
+      h += sheetSettings();
+      break;
+
+    case 'export':
+      h += sheetExport(o);
+      break;
+
+    case 'clone':
+      h += sheetClone(o);
+      break;
+  }
+
+  h += '</div>';
+  el.innerHTML = h;
+  if (o.type == 'export')
+  {
+    let w = activeWorkout() || findWorkout(o.wid);
+    let out = document.getElementById('expout');
+
+    if (out && w)
+    {
+      switch (ui.expFmt)
+      {
+        case 'csv':
+          out.value = buildCSV(w, state.rig, state.profile);
+          break;
+
+        case 'compact':
+          out.value = buildCompact(w, state.rig, state.profile);
+          break;
+
+        default:
+          out.value = buildPlain(w, state.rig, state.profile);
+          break;
+      }
+    }
+  }
+}
+
+function sheetAddEx(o)
+{
+  let d = o.draft;
+  let presetNames = Object.keys(state.presets).map(function(k)
+  {
+    return state.presets[k].name; 
+  });
+  let h = '<h2>'+(o.editExId ? '// edit exercise' : '// add exercise')+'</h2>';
+  h += '<div class="frow exname-wrap"><label class="lab">exercise</label>'
+     + '<input type="text" data-field="ax-name" value="'+esc(d.name)+'" placeholder="ring row" autocomplete="off">'
+     + (presetNames.length ? '<div class="exlist" id="exList">'+presetNames.map(function(n)
+     {
+       return '<button type="button" class="exitem" data-a="ex-pick" data-name="'+esc(n)+'">'+esc(n)+'</button>';
+     }).join('')+'</div>' : '')
+     + '</div>';
+  h += '<div class="frow"><label class="lab">mode</label><div class="seg">'
+     + ['straight','ladder','weighted','timed'].map(function(m)
+     {
+       return '<button data-a="ax-mode" data-m="'+m+'" class="'+(d.mode==m?'on':'')+'">'+m+'</button>';
+     }).join('') + '</div></div>';
+  if (d.mode=='ladder')
+  {
+    h += '<div class="frow"><label class="lab">rungs per ladder</label>'
+       + '<input type="text" inputmode="numeric" data-field="ax-tops" value="'+esc(d.tops)+'" placeholder="3 3 2">'
+       + '<div class="hint">e.g. "3 3 2" → ladders 1·2·3 / 1·2·3 / 1·2</div></div>';
+  }
+  else 
+  {
+    h += '<div class="frow"><label class="lab">target sets</label>'
+       + '<input type="text" data-field="ax-targets" value="'+esc(d.targets)+'" placeholder="'+(d.mode=='weighted'?'15x8, 10x12, 10x10':d.mode=='timed'?'30 / 30 / 30':'8 / 8 / 8')+'">'
+       + '<div class="hint">'+(d.mode=='weighted'?'loadxreps, comma separated — or plain reps':'reps, separated by /')+(d.mode=='timed'?' · numbers are seconds':'')+'</div></div>';
+  }
+  h += '<div class="inline2">'
+     + '<div class="frow"><label class="lab">'+(d.mode=='ladder'?'ladder rest':'set rest')+'</label><input type="text" data-field="ax-rest" value="'+esc(d.rest)+'" placeholder="2:30"></div>'
+     + (d.mode=='ladder' ? '<div class="frow"><label class="lab">rung rest</label><input type="text" data-field="ax-rrest" value="'+esc(d.rrest)+'" placeholder="0:20"></div>' : '')
+     + '</div>';
+  h += '<div class="frow"><label class="lab">setup (optional)</label>'
+     + '<textarea data-field="ax-setup" placeholder="ring height 25 cm · heel-anchor 80 cm · body ~45° · feet floor">'+esc(d.setup)+'</textarea>'
+     + '<div class="hint">free form — angle, ring height + anchor distance, band load/position… saved as a preset for this exercise</div></div>';
+  h += '<div class="frow ringsec"><label class="lab">geometry (optional)</label>'
+     + '<select data-field="ax-ring-type">'
+     + '<option value="none"'+(d.ringType=='none'?' selected':'')+'>none — no angle calculation</option>'
+     + '<option value="pushup"'+(d.ringType=='pushup'?' selected':'')+'>ring pushup — body angle (shoulder ≈ ring)</option>'
+     + '</select>'
+     + '<div class="hint">only pick a formula for exercises it applies to. Ring rows use a different derivation — coming later.</div>';
+  if (d.ringType=='pushup')
+  {
+    let mA = state.rig.anchorHeight==null, mS = state.profile.shoulder==null;
+    h += '<div class="inline2">'
+       + '<div class="frow"><label class="lab">ring rest height R<sub>r</sub> (cm)</label><input type="text" inputmode="decimal" data-field="ax-ring-rr" value="'+esc(d.ringRr)+'" placeholder="20"></div>'
+       + '<div class="frow"><label class="lab">toe distance H (cm, signed)</label><input type="text" inputmode="text" data-field="ax-ring-h" value="'+esc(d.ringH)+'" placeholder="+80"></div>'
+       + '</div>'
+       + '<div class="hint">R<sub>r</sub> and H are both measured from the <b>plumb line</b> — the spot on the floor directly under the anchor, where the resting ring hangs. H is how far your toes sit from that spot: enter it <b>positive</b> for the more upright, easier setup, and <b>negative</b> once your toes pass the plumb line into the flatter, harder zone. Unsure of the sign? Watch the live angle below — larger = more upright.</div>';
+    if (mA || mS) h += '<div class="ring-readout bad">set '+[mA?'anchor height':null, mS?'shoulder':null].filter(Boolean).join(' &amp; ')+' in ⚙ setup first</div>';
+    else h += '<div class="ring-readout" id="ring_readout">'+esc(ringReadoutText(d))+'</div>';
+  }
+  h += '</div>';
+  h += '<div class="foot"><button class="btn ghost" data-a="overlay-close">cancel</button>'
+     + '<button class="btn primary" data-a="ax-save">'+(o.editExId?'save':'add & go')+'</button></div>';
+  return h;
+}
+
+function updateExList(q)
+{
+  let l = document.getElementById('exList'); if (!l) return;
+  q = (q||'').trim().toLowerCase();
+  let items = Array.prototype.slice.call(l.querySelectorAll('.exitem'));
+  items.forEach(function(el,i)
+  {
+    if (el.dataset.orig==null) el.dataset.orig = String(i); 
+  });
+  function score(el)
+  {
+    let n = el.dataset.name.toLowerCase();
+    if (!q) return 0;
+    if (n.indexOf(q)==0) return 0;   // prefix match first
+    if (n.indexOf(q)>=0) return 1;    // substring match next
+    return 2;                          // everything else still shown, below
+  }
+  items.sort(function(a,b)
+  {
+    let sa=score(a), sb=score(b);
+    if (sa!=sb) return sa-sb;
+    return (+a.dataset.orig)-(+b.dataset.orig);
+  });
+  items.forEach(function(el)
+  {
+    let name = el.dataset.name, idx = q ? name.toLowerCase().indexOf(q) : -1;
+    if (idx>=0) el.innerHTML = esc(name.slice(0,idx))+'<span class="mt">'+esc(name.slice(idx,idx+q.length))+'</span>'+esc(name.slice(idx+q.length));
+    else el.textContent = name;
+    l.appendChild(el);
+  });
+}
+function ringReadoutText(d)
+{
+  let A = state.rig.anchorHeight, S = state.profile.shoulder;
+  let Rr = parseFloat(d.ringRr), H = parseFloat(d.ringH);
+  if (isNaN(Rr) || isNaN(H)) return 'enter Rr and H to see the angle';
+  let r = ringAngle(A, S, Rr, H);
+  if (!r) return 'set anchor height & shoulder in setup';
+  if (r.impossible) return 'impossible configuration — ring can\'t reach';
+  return 'body angle ≈ ' + r.deg.toFixed(1) + '°';
+}
+function calReadoutText()
+{
+  let rg = state.rig;
+  let A = calibrateAnchor(rg.calX, rg.calY, rg.calRr);
+  if (A==null || isNaN(A)) return 'enter x₁, y₁, Rr';
+  if (A<=0) return 'check inputs — non-physical result';
+  return 'computed A ≈ ' + A.toFixed(1) + ' cm';
+}
+function sheetSettings()
+{
+  let rg = state.rig, pr = state.profile;
+  let h = '<h2>// rigging &amp; profile</h2>';
+  h += '<div class="frow"><label class="lab">shoulder S — toe-to-shoulder (cm)</label>'
+     + '<input type="text" inputmode="decimal" data-field="set-shoulder" value="'+esc(pr.shoulder==null?'':pr.shoulder)+'" placeholder="160">'
+     + '<div class="hint">≈ your standing shoulder height; cleanest measured lying in a plank. Per-athlete — survives a re-rig.</div></div>';
+  h += '<div class="frow"><label class="lab">anchor height A (cm)</label>'
+     + '<input type="text" inputmode="decimal" data-field="set-anchor" value="'+esc(rg.anchorHeight==null?'':rg.anchorHeight)+'" placeholder="400">'
+     + '<div class="hint">height of the anchor above the floor. Usually too high to tape-measure — use the helper below, or enter directly. Fixed per rig.</div></div>';
+  h += '<div class="calib"><div class="calib-h">calibration helper — derive A from floor measurements</div>'
+     + '<div class="hint">Pull the resting ring out to a measured floor offset x₁, then measure its height y₁ (both reachable at ground level). Rr is the free-hanging ring height.</div>'
+     + '<div class="inline2">'
+     + '<div class="frow"><label class="lab">x₁ (cm)</label><input type="text" inputmode="decimal" data-field="cal-x" value="'+esc(rg.calX==null?'':rg.calX)+'" placeholder="200"></div>'
+     + '<div class="frow"><label class="lab">y₁ (cm)</label><input type="text" inputmode="decimal" data-field="cal-y" value="'+esc(rg.calY==null?'':rg.calY)+'" placeholder="77"></div>'
+     + '<div class="frow"><label class="lab">Rr (cm)</label><input type="text" inputmode="decimal" data-field="cal-rr" value="'+esc(rg.calRr==null?'':rg.calRr)+'" placeholder="20"></div>'
+     + '</div>'
+     + '<div class="ring-readout" id="cal_readout">'+esc(calReadoutText())+'</div>'
+     + '<button class="btn small primary" data-a="cal-apply">use as anchor height</button></div>';
+  h += '<div class="foot"><button class="btn primary" data-a="overlay-close">done</button></div>';
+  return h;
+}
+
+function sheetExport(o)
+{
+  let h = '<h2>// export</h2>';
+  h += '<div class="exp-tabs">'
+     + '<button class="btn small'+(ui.expFmt=='plain'?' primary':'')+'" data-a="exp-fmt" data-f="plain">FitNotes text</button>'
+     + '<button class="btn small'+(ui.expFmt=='compact'?' primary':'')+'" data-a="exp-fmt" data-f="compact">compact</button>'
+     + '<button class="btn small'+(ui.expFmt=='csv'?' primary':'')+'" data-a="exp-fmt" data-f="csv">CSV</button></div>';
+  h += '<textarea class="exp-out" id="expout" readonly spellcheck="false"></textarea>';
+  h += '<div class="foot"><span class="hint" id="copymsg"></span>'
+     + '<button class="btn" data-a="exp-download">download</button>'
+     + '<button class="btn primary" data-a="exp-copy">copy</button>'
+     + '<button class="btn ghost" data-a="overlay-close">close</button></div>';
+  return h;
+}
+
+function sheetClone(o)
+{
+  let src = findWorkout(o.srcId) || state.workouts[0];
+  let h = '<h2>// clone workout</h2>';
+  if (!src) return h + '<p class="sub">Nothing to clone yet.</p><div class="foot"><button class="btn ghost" data-a="overlay-close">close</button></div>';
+  if (state.workouts.length > 1)
+  {
+    h += '<div class="frow"><label class="lab">source</label><select data-field="clone-src">'
+       + state.workouts.map(function(w)
+       {
+         return '<option value="'+w.id+'"'+(w.id==src.id?' selected':'')+'>'+esc(w.date+' — '+w.name)+'</option>'; 
+       }).join('')
+       + '</select></div>';
+  }
+  h += '<div class="togglerow"><input type="checkbox" id="progchk" data-field="clone-prog"'+(o.prog?' checked':'')+'>'
+     + '<label for="progchk">Apply suggested progressions</label></div>';
+  h += '<div class="clone-prev">';
+  src.exercises.forEach(function(ex)
+  {
+    let sug = suggestForExercise(ex);
+    let shown = o.prog ? targetsLabel(sug)
+      : (ex.mode=='ladder' ? 'ladders '+topsOf(ex).join(' / ')
+        : ex.sets.map(function(s)
+        {
+          return (s.load!=null?s.load+'x':'')+(s.target!=null?s.target:s.reps); 
+        }).join(' / '));
+    h += '<div class="pl"><span class="pn">'+esc(ex.name)+'</span><span class="pt">'+esc(shown)+'</span>'
+       + (o.prog ? '<span class="'+(sug.warn?'pw':'pr')+'">'+esc(sug.reason)+'</span>' : '')+'</div>';
+  });
+  h += '</div>';
+  h += '<div class="foot"><button class="btn ghost" data-a="overlay-close">cancel</button>'
+     + '<button class="btn primary" data-a="clone-start" data-src="'+src.id+'">Start workout</button></div>';
+  return h;
+}
+
+/* ======== clone / sample ======== */
+function cloneWorkout(srcId, applyProg)
+{
+  let src = findWorkout(srcId); if (!src) return;
+  let w = newWorkout(src.name);
+  src.exercises.forEach(function(sx)
+  {
+    let ex = makeExercise({ name:sx.name, mode:sx.mode, setup:sx.setup, restSet:sx.restSet, restRung:sx.restRung,
+      ring: sx.ring ? { type:(sx.ring.type||(sx.ring.enabled?'pushup':'none')), Rr:sx.ring.Rr, H:sx.ring.H } : { type:'none', Rr:null, H:null } });
+    let sug = suggestForExercise(sx);
+    if (sx.mode=='ladder')
+    {
+      ex.sets = buildLadderSets(applyProg ? sug.tops : (topsOf(sx).length ? topsOf(sx) : [1]));
+    }
+    else 
+    {
+      let unit = (sx.sets.find(function(s)
+      {
+        return s.unit;
+      })||{}).unit || 'kg';
+      let targets = applyProg ? sug.targets
+        : sx.sets.map(function(s)
+        {
+          return { reps: s.target!=null?s.target:(s.reps||0), load: s.load }; 
+        });
+      if (!targets.length) targets = [{reps:0}];
+      ex.sets = buildSetsFromTargets(targets, unit);
+    }
+    if (applyProg && sug.warn) ex.notes = '⚠ ' + sug.reason;
+    w.exercises.push(ex);
+  });
+  ui.view = 'workout'; ui.overlay = null;
+  save(); render(); window.scrollTo(0,0);
+}
+function loadSample()
+{
+  let w = newWorkout('Friday Upper');
+  let e1 = makeExercise({ name:'Ring Inclined Pushups', mode:'straight', setup:'rings lower shin, body ~45°, feet floor', restSet:150 });
+  e1.sets = buildSetsFromTargets([{reps:12},{reps:12},{reps:12}]);
+  let e2 = makeExercise({ name:'Ring Row', mode:'straight', setup:'body ~45° · grip neutral · range chest to rings', restSet:150 });
+  e2.sets = buildSetsFromTargets([{reps:8},{reps:8},{reps:8}]);
+  let e3 = makeExercise({ name:'Handle Full Pushups', mode:'ladder', restSet:150, restRung:20 });
+  e3.sets = buildLadderSets([3,3,2]);
+  let e4 = makeExercise({ name:'Hanging Knee Raise', mode:'straight', restSet:120 });
+  e4.sets = buildSetsFromTargets([{reps:6},{reps:6},{reps:6}]);
+  let e5 = makeExercise({ name:'Banded Hip Bridges', mode:'weighted', setup:'band at hips · anchor floor · lying', restSet:120 });
+  e5.sets = buildSetsFromTargets([{reps:8,load:15},{reps:12,load:10},{reps:10,load:10}],'kg');
+  w.exercises = [e1,e2,e3,e4,e5];
+  w.exercises.forEach(touchPreset);
+  ui.view = 'workout';
+  save(); render(); window.scrollTo(0,0);
+}
+
+/* ======== add-exercise helpers ======== */
+function openAddEx(editExId, prefillName)
+{
+  let w = activeWorkout();
+  let d = { name: prefillName||'', mode:'straight', targets:'8 / 8 / 8', tops:'3 3 2', rest:'2:30', rrest:'0:20', setup:'', ringType:'none', ringRr:'', ringH:'' };
+  if (editExId && w)
+  {
+    let ex = findEx(w, editExId);
+    if (ex)
+    {
+      d.name = ex.name; d.mode = ex.mode; d.setup = ex.setup;
+      d.rest = fmtRest(ex.restSet); d.rrest = fmtRest(ex.restRung);
+      d.ringType = (ex.ring && ex.ring.type) ? ex.ring.type : (ex.ring && ex.ring.enabled ? 'pushup' : 'none');
+      d.ringRr = ex.ring && ex.ring.Rr!=null ? String(ex.ring.Rr) : '';
+      d.ringH = ex.ring && ex.ring.H!=null ? String(ex.ring.H) : '';
+      if (ex.mode=='ladder') d.tops = topsOf(ex).join(' ');
+      else d.targets = ex.sets.map(function(s)
+      {
+        return (s.load!=null? s.load+'x':'')+(s.target!=null?s.target:(s.reps||0)); 
+      }).join(' / ');
+    }
+  }
+  ui.overlay = { type:'addex', editExId: editExId||null, draft: d, afterExId: null };
+  render();
+}
+function applyPresetToDraft(d)
+{
+  let p = state.presets[(d.name||'').trim().toLowerCase()];
+  if (!p) return;
+  d.mode = p.mode || d.mode;
+  d.setup = p.setup || d.setup;
+  if (p.restSet!=null) d.rest = fmtRest(p.restSet);
+  if (p.restRung!=null) d.rrest = fmtRest(p.restRung);
+  if (p.mode=='ladder' && p.lastTops && p.lastTops.length) d.tops = p.lastTops.join(' ');
+  else if (p.lastTargets && p.lastTargets.length)
+  {
+    d.targets = p.lastTargets.map(function(t)
+    {
+      return (t.load!=null? t.load+'x':'')+t.reps; 
+    }).join(' / ');
+  }
+  if (p.ring)
+  {
+    d.ringType = p.ring.type || 'pushup'; d.ringRr = p.ring.Rr!=null?String(p.ring.Rr):''; d.ringH = p.ring.H!=null?String(p.ring.H):''; 
+  }
+}
+function draftRing(d)
+{
+  let Rr = parseFloat(d.ringRr), H = parseFloat(d.ringH);
+  return { type: d.ringType || 'none', Rr: isNaN(Rr) ? null : Rr, H: isNaN(H) ? null : H };
+}
+function saveAddEx()
+{
+  let o = ui.overlay; if (!o || o.type!='addex') return;
+  let w = activeWorkout(); if (!w)
+  {
+    w = newWorkout('Workout'); ui.view='workout'; 
+  }
+  let d = o.draft;
+  let name = (d.name||'').trim(); if (!name) return;
+  let restSet = parseRest(d.rest); if (restSet==null) restSet = 150;
+  let restRung = parseRest(d.rrest); if (restRung==null) restRung = 20;
+
+  if (o.editExId)
+  {
+    let ex = findEx(w, o.editExId); if (!ex) return;
+    ex.name = name; ex.setup = d.setup; ex.restSet = restSet; ex.restRung = restRung;
+    ex.ring = draftRing(d);
+    /* keep performed sets, rebuild the planned remainder from the edited targets */
+    let performed = ex.sets.filter(isPerformed);
+    {
+      ex.mode = d.mode;
+      let fresh;
+      if (d.mode=='ladder')
+      {
+        let tops = parseTops(d.tops); if (!tops.length) tops=[1];
+        fresh = buildLadderSets(tops).filter(function(ns)
+        {
+          return !performed.some(function(ps)
+          {
+            return ps.ladderIndex==ns.ladderIndex && ps.rungIndex==ns.rungIndex; 
+          });
+        });
+      }
+      else 
+      {
+        let tg = parseTargets(d.targets); if (!tg.length) tg=[{reps:0}];
+        fresh = buildSetsFromTargets(tg.slice(performed.length), 'kg');
+        if (d.mode!='weighted') fresh.forEach(function(s)
+        {
+          if (!performed.length) 
+          {
+            s.load=null; s.unit=null; 
+          } 
+        });
+      }
+      ex.sets = performed.concat(fresh);
+    }
+    touchPreset(ex);
+  }
+  else 
+  {
+    let nx = makeExercise({ name:name, mode:d.mode, setup:d.setup, restSet:restSet, restRung:restRung, ring:draftRing(d) });
+    if (d.mode=='ladder')
+    {
+      let tp = parseTops(d.tops); if (!tp.length) tp=[1];
+      nx.sets = buildLadderSets(tp);
+    }
+    else 
+    {
+      let tt = parseTargets(d.targets); if (!tt.length) tt=[{reps: d.mode=='timed'?30:8}];
+      nx.sets = buildSetsFromTargets(tt, 'kg');
+    }
+    if (o.afterExId)
+    {
+      let i = w.exercises.findIndex(function(e)
+      {
+        return e.id==o.afterExId; 
+      });
+      w.exercises.splice(i+1, 0, nx);
+    }
+    else w.exercises.push(nx);
+    touchPreset(nx);
+  }
+  ui.overlay = null; ui.painExId = null;
+  save(); render();
+}
+
+/* ======== event wiring ======== */
+function closeOverlay()
+{
+  ui.overlay = null;
+}
+
+function openWorkoutById(id)
+{
+  state.activeId = id;
+  ui.view = 'workout';
+  save();
+  render();
+  window.scrollTo(0, 0);
+}
+
+function shiftCalendarMonth(delta)
+{
+  ui.calM += delta;
+
+  if (ui.calM < 0)
+  {
+    ui.calM = 11;
+    --ui.calY;
+  }
+  else if (ui.calM > 11)
+  {
+    ui.calM = 0;
+    ++ui.calY;
+  }
+
+  ui.calSel = null;
+  render();
+}
+
+function lastDoneSetOf(ex)
+{
+  let i;
+
+  for (i = ex.sets.length - 1; i >= 0; --i)
+  {
+    if (isDone(ex.sets[i]))
+    {
+      return ex.sets[i];
+    }
+  }
+
+  return null;
+}
+
+function deleteExerciseFromWorkout(workout, exId)
+{
+  let keep = [];
+  let i;
+
+  for (i = 0; i < workout.exercises.length; ++i)
+  {
+    if (workout.exercises[i].id != exId)
+    {
+      keep.push(workout.exercises[i]);
+    }
+  }
+
+  workout.exercises = keep;
+}
+
+function moveExercise(workout, exId, delta)
+{
+  let i;
+  let j;
+  let tmp;
+
+  for (i = 0; i < workout.exercises.length; ++i)
+  {
+    if (workout.exercises[i].id != exId)
+    {
+      continue;
+    }
+
+    j = i + delta;
+    if (j < 0 || j >= workout.exercises.length)
+    {
+      return;
+    }
+
+    tmp = workout.exercises[i];
+    workout.exercises[i] = workout.exercises[j];
+    workout.exercises[j] = tmp;
+    return;
+  }
+}
+
+function copyExportText()
+{
+  let out = document.getElementById('expout');
+  let msg = document.getElementById('copymsg');
+
+  function ok()
+  {
+    if (msg)
+    {
+      msg.textContent = 'copied ✓';
+    }
+  }
+
+  function fail()
+  {
+    if (!out)
+    {
+      return;
+    }
+
+    out.focus();
+    out.select();
+
+    try 
+    {
+      document.execCommand('copy');
+      ok();
+    }
+    catch (e)
+    {
+      if (msg)
+      {
+        msg.textContent = 'select & copy manually';
+      }
+    }
+  }
+
+  if (!out)
+  {
+    return;
+  }
+
+  if (navigator.clipboard && navigator.clipboard.writeText)
+  {
+    navigator.clipboard.writeText(out.value).then(ok, fail);
+    return;
+  }
+
+  fail();
+}
+
+function downloadExportText(workout)
+{
+  let out = document.getElementById('expout');
+  let ext;
+  let blob;
+  let link;
+
+  if (!out || !workout)
+  {
+    return;
+  }
+
+  ext = ui.expFmt == 'csv' ? 'csv' : 'txt';
+  blob = new Blob([out.value], {
+    type: ext == 'csv' ? 'text/csv' : 'text/plain'
+  });
+
+  link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = 'workout-' + workout.date + '.' + ext;
+
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+
+  setTimeout(function()
+  {
+    URL.revokeObjectURL(link.href);
+  }, 4000);
+}
+
+document.addEventListener('click', function(ev)
+{
+  let target = ev.target.closest('[data-a]');
+  let action;
+  let workout = activeWorkout();
+  let draft;
+  let ex;
+  let hit;
+  let i;
+  let rungIndex;
+  let top;
+  let ladders;
+  let next_ladder;
+  let rest_anchor;
+
+  if (!target)
+  {
+    if (ev.target.id == 'overlay')
+    {
+      closeOverlay();
+      render();
+    }
+    return;
+  }
+
+  action = target.dataset.a;
+
+  switch (action)
+  {
+    case 'sound-toggle':
+      state.settings.sound = !state.settings.sound;
+      save();
+      render();
+      return;
+
+    case 'settings-open':
+      ui.overlay = { type: 'settings' };
+      render();
+      return;
+
+    case 'ex-pick':
+      if (!ui.overlay || ui.overlay.type != 'addex')
+      {
+        return;
+      }
+      draft = ui.overlay.draft;
+      draft.name = target.dataset.name;
+      if (!ui.overlay.editExId)
+      {
+        applyPresetToDraft(draft);
+      }
+      render();
+      return;
+
+    case 'cal-apply':
+      rest_anchor = calibrateAnchor(state.rig.calX, state.rig.calY, state.rig.calRr);
+      if (rest_anchor != null && !isNaN(rest_anchor) && rest_anchor > 0)
+      {
+        state.rig.anchorHeight = Math.round(rest_anchor*10)/10;
+        save();
+        render();
+      }
+      return;
+
+    case 'nav-home':
+      ui.view = 'home';
+      ui.menuExId = null;
+      ui.editSetId = null;
+      render();
+      return;
+
+    case 'new-workout':
+      newWorkout('Workout');
+      ui.view = 'workout';
+      save();
+      render();
+      return;
+
+    case 'sample':
+      loadSample();
+      return;
+
+    case 'open-workout':
+      openWorkoutById(target.dataset.id);
+      return;
+
+    case 'home-tab':
+      ui.homeTab = target.dataset.t;
+      render();
+      return;
+
+    case 'cal-prev':
+      shiftCalendarMonth(-1);
+      return;
+
+    case 'cal-next':
+      shiftCalendarMonth(1);
+      return;
+
+    case 'cal-day':
+      ui.calSel = ui.calSel == target.dataset.d ? null : target.dataset.d;
+      render();
+      return;
+
+    case 'finish-workout':
+      if (workout)
+      {
+        workout.finished = true;
+        stopTimer();
+        ui.view = 'home';
+        save();
+        render();
+      }
+      return;
+
+    case 'reopen-workout':
+      if (workout)
+      {
+        workout.finished = false;
+        save();
+        render();
+      }
+      return;
+
+    case 'clone-open':
+      ui.overlay = { type: 'clone', srcId: state.workouts[0] && state.workouts[0].id, prog: true };
+      render();
+      return;
+
+    case 'clone-start':
+      cloneWorkout(target.dataset.src, ui.overlay && ui.overlay.prog);
+      return;
+
+    case 'export-open':
+      ui.overlay = { type: 'export', wid: workout && workout.id };
+      render();
+      return;
+
+    case 'exp-fmt':
+      ui.expFmt = target.dataset.f;
+      render();
+      return;
+
+    case 'exp-copy':
+      copyExportText();
+      return;
+
+    case 'exp-download':
+      downloadExportText(workout);
+      return;
+
+    case 'addex-open':
+      openAddEx(null);
+      return;
+
+    case 'ax-mode':
+      if (ui.overlay)
+      {
+        ui.overlay.draft.mode = target.dataset.m;
+        render();
+      }
+      return;
+
+    case 'ax-save':
+      saveAddEx();
+      return;
+
+    case 'overlay-close':
+      closeOverlay();
+      render();
+      return;
+
+    case 'ex-menu':
+      ui.menuExId = ui.menuExId == target.dataset.ex ? null : target.dataset.ex;
+      render();
+      return;
+
+    case 'ex-menu-close':
+      ui.menuExId = null;
+      render();
+      return;
+
+    case 'ex-edit':
+      ui.menuExId = null;
+      openAddEx(target.dataset.ex);
+      return;
+
+    case 'ex-delete':
+      if (workout && confirm('Delete this exercise and its sets?'))
+      {
+        deleteExerciseFromWorkout(workout, target.dataset.ex);
+        ui.menuExId = null;
+        save();
+        render();
+      }
+      return;
+
+    case 'ex-up':
+      if (workout)
+      {
+        moveExercise(workout, target.dataset.ex, -1);
+        save();
+        render();
+      }
+      return;
+
+    case 'ex-down':
+      if (workout)
+      {
+        moveExercise(workout, target.dataset.ex, 1);
+        save();
+        render();
+      }
+      return;
+
+    case 'convert-ladder':
+      ex = findEx(workout, target.dataset.ex);
+      if (ex)
+      {
+        ex.mode = 'ladder';
+        rungIndex = 1;
+        for (i = 0; i < ex.sets.length; ++i)
+        {
+          if (ex.sets[i].ladderIndex == null)
+          {
+            ex.sets[i].ladderIndex = 1;
+            ex.sets[i].rungIndex = rungIndex;
+            ++rungIndex;
+          }
+        }
+        ui.menuExId = null;
+        save();
+        render();
+      }
+      return;
+
+    case 'convert-straight':
+      ex = findEx(workout, target.dataset.ex);
+      if (ex)
+      {
+        ex.mode = 'straight';
+        for (i = 0; i < ex.sets.length; ++i)
+        {
+          ex.sets[i].ladderIndex = null;
+          ex.sets[i].rungIndex = null;
+        }
+        ui.menuExId = null;
+        save();
+        render();
+      }
+      return;
+
+    case 'stop-ex':
+      ex = findEx(workout, target.dataset.ex);
+      if (ex)
+      {
+        ex.stopped = true;
+        ex.stopReason = 'pain';
+        ui.painExId = ex.id;
+        ui.menuExId = null;
+        save();
+        render();
+      }
+      return;
+
+    case 'unstop-ex':
+      ex = findEx(workout, target.dataset.ex);
+      if (ex)
+      {
+        ex.stopped = false;
+        ex.stopReason = null;
+        ui.painExId = null;
+        ui.menuExId = null;
+        save();
+        render();
+      }
+      return;
+
+    case 'backoff':
+      ex = findEx(workout, target.dataset.ex);
+      if (ex)
+      {
+        ui.menuExId = null;
+        ui.painExId = null;
+        openAddEx(null, '');
+        ui.overlay.afterExId = ex.id;
+        ui.overlay.draft.setup = 'backoff of ' + ex.name;
+        ui.overlay.draft.mode = ex.mode == 'ladder' ? 'straight' : ex.mode;
+        render();
+      }
+      return;
+
+    case 'pain-dismiss':
+      ui.painExId = null;
+      render();
+      return;
+
+    case 'notes-toggle':
+      ui.notesExId = ui.notesExId == target.dataset.ex ? null : target.dataset.ex;
+      render();
+      return;
+
+    case 'add-set':
+      ex = findEx(workout, target.dataset.ex);
+      if (ex)
+      {
+        let last = ex.sets[ex.sets.length - 1];
+        ex.sets.push(makeSet({
+          target: last ? (last.target != null ? last.target : last.reps) : 8,
+          load: last ? last.load : null,
+          unit: last ? last.unit : null
+        }));
+        save();
+        render();
+      }
+      return;
+
+    case 'repeat':
+      ex = findEx(workout, target.dataset.ex);
+      if (ex)
+      {
+        let last_done = lastDoneSetOf(ex);
+        if (last_done)
+        {
+          let repeated = makeSet({
+            target: last_done.reps,
+            reps: last_done.reps,
+            load: last_done.load,
+            unit: last_done.unit,
+            status: 'done_clean'
+          });
+          ex.sets.push(repeated);
+          repeated.restTarget = ex.restSet;
+          startTimer(ex.restSet, ex.name + ' · set rest', repeated.id);
+          save();
+          render();
+        }
+      }
+      return;
+
+    case 'add-rung':
+      ex = findEx(workout, target.dataset.ex);
+      if (ex)
+      {
+        rungIndex = parseInt(target.dataset.l, 10);
+        top = 0;
+
+        for (i = 0; i < ex.sets.length; ++i)
+        {
+          if (ex.sets[i].ladderIndex == rungIndex && (ex.sets[i].rungIndex || 0) > top)
+          {
+            top = ex.sets[i].rungIndex || 0;
+          }
+        }
+
+        ex.sets.push(makeSet({
+          ladderIndex: rungIndex,
+          rungIndex: top + 1,
+          target: top + 1
+        }));
+        save();
+        render();
+      }
+      return;
+
+    case 'add-ladder':
+      ex = findEx(workout, target.dataset.ex);
+      if (ex)
+      {
+        ladders = laddersOf(ex);
+        next_ladder = (ladders.length ? ladders[ladders.length - 1].idx : 0) + 1;
+        top = 3;
+
+        if (ladders.length)
+        {
+          top = 0;
+          for (i = 0; i < ladders[ladders.length - 1].sets.length; ++i)
+          {
+            if ((ladders[ladders.length - 1].sets[i].rungIndex || 1) > top)
+            {
+              top = ladders[ladders.length - 1].sets[i].rungIndex || 1;
+            }
+          }
+        }
+
+        for (i = 1; i <= top; ++i)
+        {
+          ex.sets.push(makeSet({
+            ladderIndex: next_ladder,
+            rungIndex: i,
+            target: i
+          }));
+        }
+
+        save();
+        render();
+      }
+      return;
+
+    case 'set-done':
+      completeSet(target.dataset.set);
+      return;
+
+    case 'set-status':
+      setStatus(target.dataset.set, target.dataset.st);
+      return;
+
+    case 'set-fail':
+      setStatus(target.dataset.set, 'failed');
+      return;
+
+    case 'set-skip':
+      setStatus(target.dataset.set, 'skipped');
+      return;
+
+    case 'set-unmark':
+      hit = findSet(workout, target.dataset.set);
+      if (hit)
+      {
+        hit.set.status = 'planned';
+        hit.set.reps = null;
+        hit.set.restActual = null;
+        ui.editSetId = null;
+        save();
+        render();
+      }
+      return;
+
+    case 'set-edit':
+      ui.editSetId = ui.editSetId == target.dataset.set ? null : target.dataset.set;
+      render();
+      return;
+
+    case 'set-edit-close':
+      ui.editSetId = null;
+      save();
+      render();
+      return;
+
+    case 'set-delete':
+      hit = findSet(workout, target.dataset.set);
+      if (hit)
+      {
+        hit.ex.sets = hit.ex.sets.filter(function(set)
+        {
+          return set.id != target.dataset.set;
+        });
+        ui.editSetId = null;
+        save();
+        render();
+      }
+      return;
+
+    case 'tgt-inc':
+    case 'ed-inc':
+    case 'tgt-dec':
+    case 'ed-dec':
+      hit = findSet(workout, target.dataset.set);
+      if (hit)
+      {
+        let delta = action == 'tgt-inc' || action == 'ed-inc' ? 1 : -1;
+        if (hit.set.status == 'planned')
+        {
+          hit.set.target = Math.max(0, (hit.set.target || 0) + delta);
+        }
+        else 
+        {
+          hit.set.reps = Math.max(0, (hit.set.reps || 0) + delta);
+        }
+        save();
+        render();
+      }
+      return;
+
+    case 'timer-stop':
+      stopTimer();
+      render();
+      return;
+  }
+});
+
+/* inputs (change + input events) */
+document.addEventListener('input', function(ev)
+{
+  let target = ev.target;
+  let field = target.dataset && target.dataset.field;
+  let workout = activeWorkout();
+  let ex;
+  let draft;
+  let ring_readout;
+  let cal_readout;
+  let hit;
+  let num;
+
+  function parseMaybeNumber(value)
+  {
+    let parsed = parseFloat(value);
+    return isNaN(parsed) ? null : parsed;
+  }
+
+  if (!field)
+  {
+    return;
+  }
+
+  switch (field)
+  {
+    case 'wname':
+      if (workout)
+      {
+        workout.name = target.value;
+        save();
+      }
+      return;
+
+    case 'exnotes':
+      if (workout)
+      {
+        ex = findEx(workout, target.dataset.ex);
+        if (ex)
+        {
+          ex.notes = target.value;
+          save();
+        }
+      }
+      return;
+  }
+
+  if (ui.overlay)
+  {
+    switch (ui.overlay.type)
+    {
+      case 'addex':
+        draft = ui.overlay.draft;
+
+        switch (field)
+        {
+          case 'ax-name':
+            draft.name = target.value;
+            ring_readout = document.getElementById('exList');
+            if (ring_readout)
+            {
+              ring_readout.classList.add('open');
+              updateExList(target.value);
+            }
+            return;
+
+          case 'ax-targets':
+            draft.targets = target.value;
+            return;
+
+          case 'ax-tops':
+            draft.tops = target.value;
+            return;
+
+          case 'ax-rest':
+            draft.rest = target.value;
+            return;
+
+          case 'ax-rrest':
+            draft.rrest = target.value;
+            return;
+
+          case 'ax-setup':
+            draft.setup = target.value;
+            return;
+
+          case 'ax-ring-rr':
+          case 'ax-ring-h':
+            if (field == 'ax-ring-rr')
+            {
+              draft.ringRr = target.value;
+            }
+            else
+            {
+              draft.ringH = target.value;
+            }
+
+            ring_readout = document.getElementById('ring_readout');
+            if (ring_readout)
+            {
+              ring_readout.textContent = ringReadoutText(draft);
+            }
+            return;
+        }
+        break;
+
+      case 'settings':
+        switch (field)
+        {
+          case 'set-shoulder':
+            state.profile.shoulder = parseMaybeNumber(target.value);
+            save();
+            return;
+
+          case 'set-anchor':
+            state.rig.anchorHeight = parseMaybeNumber(target.value);
+            save();
+            return;
+
+          case 'cal-x':
+          case 'cal-y':
+          case 'cal-rr':
+            num = parseMaybeNumber(target.value);
+
+            switch (field)
+            {
+              case 'cal-x':
+                state.rig.calX = num;
+                break;
+
+              case 'cal-y':
+                state.rig.calY = num;
+                break;
+
+              case 'cal-rr':
+                state.rig.calRr = num;
+                break;
+            }
+
+            cal_readout = document.getElementById('cal_readout');
+            if (cal_readout)
+            {
+              cal_readout.textContent = calReadoutText();
+            }
+            save();
+            return;
+        }
+        break;
+    }
+  }
+
+  switch (field)
+  {
+    case 'ed-reps':
+    case 'ed-load':
+    case 'ed-note':
+      hit = findSet(workout, target.dataset.set);
+      if (!hit)
+      {
+        return;
+      }
+
+      switch (field)
+      {
+        case 'ed-note':
+          hit.set.note = target.value;
+          break;
+
+        case 'ed-load':
+          hit.set.load = parseMaybeNumber(target.value);
+          if (hit.set.load != null && !hit.set.unit)
+          {
+            hit.set.unit = 'kg';
+          }
+          break;
+
+        case 'ed-reps':
+          num = parseInt(target.value, 10);
+          if (hit.set.status == 'planned')
+          {
+            hit.set.target = isNaN(num) ? null : num;
+          }
+          else
+          {
+            hit.set.reps = isNaN(num) ? null : num;
+          }
+          break;
+      }
+
+      save();
+      return;
+  }
+});
+
+document.addEventListener('change', function(ev)
+{
+  let target = ev.target;
+  let field = target.dataset && target.dataset.field;
+  let workout = activeWorkout();
+  let hit;
+
+  if (!field)
+  {
+    return;
+  }
+
+  switch (field)
+  {
+    case 'ed-unit':
+      hit = findSet(workout, target.dataset.set);
+      if (hit)
+      {
+        hit.set.unit = target.value;
+        save();
+        render();
+      }
+      return;
+
+    case 'wdate':
+      if (workout && target.value)
+      {
+        workout.date = target.value;
+        save();
+        render();
+      }
+      return;
+
+    case 'clone-src':
+      if (ui.overlay)
+      {
+        ui.overlay.srcId = target.value;
+        render();
+      }
+      return;
+
+    case 'clone-prog':
+      if (ui.overlay)
+      {
+        ui.overlay.prog = target.checked;
+        render();
+      }
+      return;
+
+    case 'ax-ring-type':
+      if (ui.overlay && ui.overlay.type == 'addex')
+      {
+        ui.overlay.draft.ringType = target.value;
+        render();
+      }
+      return;
+
+    case 'ed-reps':
+    case 'ed-load':
+    case 'ed-note':
+      render();
+      return;
+  }
+});
+
+document.addEventListener('focusin', function(ev)
+{
+  let target = ev.target;
+  let list;
+
+  if (target && target.dataset && target.dataset.field == 'ax-name')
+  {
+    list = document.getElementById('exList');
+    if (list)
+    {
+      list.classList.add('open');
+      updateExList(target.value);
+    }
+  }
+});
+
+document.addEventListener('focusout', function(ev)
+{
+  let target = ev.target;
+
+  if (target && target.dataset && target.dataset.field == 'ax-name')
+  {
+    setTimeout(function()
+    {
+      let list = document.getElementById('exList');
+      if (list)
+      {
+        list.classList.remove('open');
+      }
+    }, 160);
+  }
+});
+
+/* ======== boot ======== */
+function boot()
+{
+  store.load().then(function(loaded)
+  {
+    let active_workout;
+
+    if (loaded && loaded.workouts)
+    {
+      state = Object.assign(state, loaded); 
+    }
+    if (!state.settings) state.settings = { sound:true };
+    if (!state.rig) state.rig = { anchorHeight:null, calX:null, calY:null, calRr:null };
+    if (!state.profile) state.profile = { shoulder:null };
+
+    state.workouts.forEach(function(w)
+    {
+      w.exercises.forEach(function(ex)
+      {
+        if (!ex.ring) ex.ring = { type:'none', Rr:null, H:null };
+        if (ex.ring.type == null) ex.ring.type = ex.ring.enabled ? 'pushup' : 'none';
+      });
+    });
+
+    active_workout = activeWorkout();
+    if (active_workout && !active_workout.finished) ui.view = 'workout';
+    render();
+  });
+}
+
+boot();
+</script>
+</body>
+</html>
