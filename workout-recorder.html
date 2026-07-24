@@ -157,6 +157,10 @@ h1.page{font-family:var(--mono);font-size:20px;font-weight:600;margin:6px 0 2px;
 .calib{border:1px solid var(--line);border-radius:6px;background:#242424;padding:12px;margin-top:6px}
 .calib-h{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin-bottom:6px}
 .calib .btn{margin-top:8px}
+.import-sec{border-top:1px solid var(--line);margin-top:16px;padding-top:12px}
+.import-msg{margin-top:8px;padding:8px 10px;border-radius:4px;font-family:var(--mono);font-size:12px}
+.import-msg.ok{color:var(--green);background:#232a1d;border:1px solid #40532f}
+.import-msg.bad{color:var(--red);background:#2c2020;border:1px solid #5a3230}
 .card-body{padding:8px 8px 4px}
 .card-f{display:flex;gap:6px;flex-wrap:wrap;padding:6px 8px 10px}
 .painbar{margin:8px;border:1px solid #5a3230;background:#2c2020;border-radius:4px;padding:9px 10px;font-size:13px}
@@ -208,6 +212,10 @@ h1.page{font-family:var(--mono);font-size:20px;font-weight:600;margin:6px 0 2px;
 .setedit input[type=text],.setedit input[type=number]{width:86px;text-align:center;font-family:var(--mono)}
 .setedit input.notein{width:100%;text-align:left;font-family:var(--sans)}
 .setedit select{font-family:var(--mono)}
+.setedit .timing{font-family:var(--mono);font-size:11.5px;color:var(--blue);margin:-2px 0 9px;line-height:1.5}
+.setedit .timing.off{color:var(--faint)}
+.setedit .timing .k{color:var(--faint)}
+.setedit .timing b{color:#8fb4de}
 
 /* card menu */
 .menu{background:#242424;border:1px solid var(--line);border-radius:4px;margin:6px 8px;padding:6px;
@@ -1076,6 +1084,105 @@ function targetsLabel(suggestion)
   return parts.join(' / ');
 }
 
+/* ---------- derived timings ----------
+
+   doneAt is the only raw fact we record: the moment DONE was tapped. everything
+   else follows by subtraction, so nothing is cached and a corrected timestamp
+   re-derives cleanly.
+
+     cycle(N)  = doneAt(N+1) - doneAt(N)      the whole gap between two taps
+     work(N+1) = cycle(N) - restTarget(N)     what is left after the intended rest
+
+   note WHICH set each belongs to: the rest that follows set N is restTarget(N),
+   so subtracting it from that gap leaves the work of set N+1, not of set N. the
+   first performed set has no predecessor and therefore no derived work.
+
+   this leans on rest_actual ~= rest_target — i.e. that you start moving at the
+   beep. two ways that breaks, each reported distinctly rather than as a number:
+   'early' (you went before the beep, so work comes out <= 0) and 'lingered' (you
+   rested well past it, so the surplus inflates work past any real set). a TIMED
+   set needs none of this — its duration is the logged value, so work is exact
+   and rest becomes the exact remainder. */
+/* a single set that ran longer than this is not a set — it means the rest-target
+   assumption broke, not that you held a five-minute rep */
+const MAX_SET_SECONDS = 180;
+
+function setTimings(ex)
+{
+  let ordered = orderedSetsOf(ex);
+  let out = {};
+  let prev = null;
+  let set;
+  let cycle;
+  let work;
+  let exact;
+  let status;
+  let i;
+
+  for (i = 0; i < ordered.length; ++i)
+  {
+    set = ordered[i].set;
+
+    if (!isPerformed(set) || set.doneAt == null)
+    {
+      continue;
+    }
+
+    if (prev != null)
+    {
+      cycle = Math.round((set.doneAt - prev.doneAt)/1000);
+
+      /* a timed set already RECORDS its duration — no need to infer one, and no
+         assumption to break. rest is then the exact remainder. */
+      exact = ex.mode == 'timed' && set.reps != null;
+      work = exact ? set.reps : cycle - (prev.restTarget || 0);
+
+      if (exact)
+      {
+        status = 'exact';
+      }
+      else if (work <= 0)
+      {
+        status = 'early';        /* started before the beep — rested less than target */
+      }
+      else if (work > MAX_SET_SECONDS)
+      {
+        status = 'lingered';     /* rested well past the beep; the surplus is not work */
+      }
+      else
+      {
+        status = 'estimate';
+      }
+
+      out[set.id] = {
+        cycle: cycle,
+        work: work,
+        rest: exact ? cycle - work : (prev.restTarget || 0),
+        rest_target: prev.restTarget || 0,
+        status: status
+      };
+    }
+
+    prev = set;
+  }
+
+  return out;
+}
+
+/* short durations read better as seconds than as 0:14 */
+function fmtDur(sec)
+{
+  if (sec == null)
+  {
+    return '';
+  }
+  if (sec < 60)
+  {
+    return sec + 's';
+  }
+
+  return fmtRest(sec);
+}
 /* ---------- exports ---------- */
 function setLineText(ex, set)
 {
@@ -1360,12 +1467,13 @@ function csvCell(value)
 
 function buildCSV(workout, rig, profile)
 {
-  let head = ['date', 'workout', 'exercise', 'mode', 'set_index', 'ladder_index', 'rung_index', 'reps', 'load', 'unit', 'clean_status', 'pain', 'setup', 'notes'];
+  let head = ['date', 'workout', 'exercise', 'mode', 'set_index', 'ladder_index', 'rung_index', 'reps', 'load', 'unit', 'clean_status', 'pain', 'rest_target', 'cycle_sec', 'work_sec', 'work_quality', 'setup', 'notes'];
   let rows = [head.join(',')];
   let i;
   let j;
   let ex;
   let ordered;
+  let timings;
   let entry;
   let set_index;
   let first;
@@ -1382,6 +1490,7 @@ function buildCSV(workout, rig, profile)
     /* walk logical order, not raw insertion order — otherwise set_index counts
        the array as it happens to be stored and looks scrambled next to reps */
     ordered = orderedSetsOf(ex);
+    timings = setTimings(ex);
     set_index = 0;
     first = true;
     ri = ringInfo(ex, rig, profile);
@@ -1440,6 +1549,10 @@ function buildCSV(workout, rig, profile)
         set.load != null ? (set.unit || 'kg') : '',
         status,
         set.status == 'pain' ? 'yes' : '',
+        set.restTarget != null ? set.restTarget : '',
+        timings[set.id] ? timings[set.id].cycle : '',
+        timings[set.id] && (timings[set.id].status == 'exact' || timings[set.id].status == 'estimate') ? timings[set.id].work : '',
+        timings[set.id] ? timings[set.id].status : '',
         setup_cell,
         note
       ];
@@ -1454,6 +1567,405 @@ function buildCSV(workout, rig, profile)
   }
 
   return rows.join('\n') + '\n';
+}
+
+/* ---------- chunked backup: complete, lossless, tab-delimited ----------
+
+   the file is a header line, then typed sections. one section per record type,
+   each with its own header row so columns are read by name (adding a field later
+   does not break old backups). the file is FLAT and relational — exercises point
+   at a workout id, sets at an exercise id — and import re-nests by joining on
+   those ids. this is the round-trip pair: buildBackup and parseBackup must stay
+   exact inverses, which the fuzz test asserts.
+
+   tab-delimited so notes/setup can hold commas without quoting. a literal tab or
+   newline inside a field would break a row, so bkCell strips them on the way out
+   and we assert column counts on the way in — a malformed line crashes loudly at
+   its line number rather than importing partial data. */
+
+const BACKUP_VERSION = 'workout_recorder_backup 1';
+
+function bkCell(value)
+{
+  if (value == null)
+  {
+    return '-';
+  }
+
+  let text = String(value);
+  if (text == '')
+  {
+    return '-';
+  }
+
+  /* tabs and newlines are the delimiters; a field cannot contain them */
+  return text.replace(/\t/g, ' ').replace(/\r?\n/g, ' ');
+}
+
+function bkBool(value)
+{
+  return value ? 'yes' : 'no';
+}
+
+function buildBackup(state)
+{
+  let lines = [];
+  let w;
+  let ex;
+  let ordered;
+  let entry;
+  let s;
+  let i;
+  let j;
+  let k;
+
+  lines.push(BACKUP_VERSION);
+  lines.push('');
+
+  lines.push('[globals]');
+  lines.push(['sound', 'countdown', 'active', 'anchor', 'cal_x', 'cal_y', 'cal_rr', 'toe_shoulder', 'heel_shoulder', 'arm'].join('\t'));
+  lines.push([
+    bkBool(state.settings.sound),
+    bkBool(state.settings.countdown),
+    bkCell(state.activeId),
+    bkCell(state.rig.anchorHeight),
+    bkCell(state.rig.calX),
+    bkCell(state.rig.calY),
+    bkCell(state.rig.calRr),
+    bkCell(state.profile.shoulderPushup),
+    bkCell(state.profile.shoulderRow),
+    bkCell(state.profile.arm)
+  ].join('\t'));
+  lines.push('');
+
+  lines.push('[workouts]');
+  lines.push(['id', 'date', 'name', 'finished', 'notes'].join('\t'));
+  for (i = 0; i < state.workouts.length; ++i)
+  {
+    w = state.workouts[i];
+    lines.push([bkCell(w.id), bkCell(w.date), bkCell(w.name), bkBool(w.finished), bkCell(w.notes)].join('\t'));
+  }
+  lines.push('');
+
+  lines.push('[exercises]');
+  lines.push(['id', 'workout', 'name', 'mode', 'rest_set', 'rest_rung', 'stop_reason', 'setup', 'notes', 'ring_type', 'ring_rr', 'foot_dist'].join('\t'));
+  for (i = 0; i < state.workouts.length; ++i)
+  {
+    w = state.workouts[i];
+    for (j = 0; j < w.exercises.length; ++j)
+    {
+      ex = w.exercises[j];
+      /* stop_reason does double duty: '-' means not stopped. a stopped exercise
+         always carries a reason (stopExercise writes one), so the flag is
+         redundant with the reason and would only be a chance to disagree. */
+      lines.push([
+        bkCell(ex.id),
+        bkCell(w.id),
+        bkCell(ex.name),
+        bkCell(ex.mode),
+        bkCell(ex.restSet),
+        bkCell(ex.restRung),
+        bkCell(ex.stopped ? (ex.stopReason || 'stopped') : null),
+        bkCell(ex.setup),
+        bkCell(ex.notes),
+        bkCell(ex.ring.type),
+        bkCell(ex.ring.Rr),
+        bkCell(ex.ring.H)
+      ].join('\t'));
+    }
+  }
+  lines.push('');
+
+  lines.push('[sets]');
+  lines.push(['exercise', 'ladder', 'rung', 'target', 'reps', 'load', 'unit', 'status', 'rest_target', 'done_at', 'note'].join('\t'));
+  for (i = 0; i < state.workouts.length; ++i)
+  {
+    w = state.workouts[i];
+    for (j = 0; j < w.exercises.length; ++j)
+    {
+      ex = w.exercises[j];
+      /* emit in logical order so a hand-read file makes sense; import does not
+         depend on order (rungIndex/ladderIndex carry position) */
+      ordered = orderedSetsOf(ex);
+      for (k = 0; k < ordered.length; ++k)
+      {
+        entry = ordered[k];
+        s = entry.set;
+        lines.push([
+          bkCell(ex.id),
+          bkCell(s.ladderIndex),
+          bkCell(s.rungIndex),
+          bkCell(s.target),
+          bkCell(s.reps),
+          bkCell(s.load),
+          bkCell(s.unit),
+          bkCell(s.status),
+          bkCell(s.restTarget),
+          bkCell(s.doneAt),
+          bkCell(s.note)
+        ].join('\t'));
+      }
+    }
+  }
+  lines.push('');
+
+  return lines.join('\n');
+}
+
+/* '-' means null/empty on the way back in */
+function bkNum(text)
+{
+  if (text == '-' || text == '')
+  {
+    return null;
+  }
+
+  let n = parseFloat(text);
+  if (isNaN(n))
+  {
+    throw new Error('expected a number, got "' + text + '"');
+  }
+
+  return n;
+}
+
+function bkInt(text)
+{
+  if (text == '-' || text == '')
+  {
+    return null;
+  }
+
+  let n = parseInt(text, 10);
+  if (isNaN(n))
+  {
+    throw new Error('expected an integer, got "' + text + '"');
+  }
+
+  return n;
+}
+
+function bkStr(text)
+{
+  return text == '-' ? '' : text;
+}
+
+function bkStrOrNull(text)
+{
+  return text == '-' ? null : text;
+}
+
+/* header row -> { column_name: index }, so rows are read by name not position */
+function bkColumns(header_line)
+{
+  let names = header_line.split('\t');
+  let cols = {};
+  let i;
+
+  for (i = 0; i < names.length; ++i)
+  {
+    cols[names[i]] = i;
+  }
+
+  return cols;
+}
+
+/* parse the whole file into flat section arrays, asserting shape as we go.
+   returns { globals, workouts, exercises, sets } as plain records. */
+function parseBackup(text)
+{
+  let raw_lines = text.split(/\r?\n/);
+  let lines = [];
+  let section = null;
+  let cols = null;
+  let out = { globals: null, workouts: [], exercises: [], sets: [] };
+  let line;
+  let fields;
+  let i;
+
+  /* drop blank lines but keep the version check on line 0 of the real content */
+  for (i = 0; i < raw_lines.length; ++i)
+  {
+    if (raw_lines[i].trim() != '')
+    {
+      lines.push(raw_lines[i]);
+    }
+  }
+
+  if (!lines.length || lines[0] != BACKUP_VERSION)
+  {
+    throw new Error('not a workout_recorder backup (first line is "' + (lines[0] || '') + '", expected "' + BACKUP_VERSION + '")');
+  }
+
+  for (i = 1; i < lines.length; ++i)
+  {
+    line = lines[i];
+
+    if (line.charAt(0) == '[')
+    {
+      section = line;
+      cols = null;   /* next line in this section is its header */
+      continue;
+    }
+
+    if (!section)
+    {
+      throw new Error('line ' + (i + 1) + ': data outside any [section]');
+    }
+
+    if (!cols)
+    {
+      cols = bkColumns(line);
+      continue;
+    }
+
+    fields = line.split('\t');
+
+    switch (section)
+    {
+      case '[globals]':
+        out.globals = {
+          sound: fields[cols.sound] == 'yes',
+          countdown: fields[cols.countdown] == 'yes',
+          activeId: bkStrOrNull(fields[cols.active]),
+          anchorHeight: bkNum(fields[cols.anchor]),
+          calX: bkNum(fields[cols.cal_x]),
+          calY: bkNum(fields[cols.cal_y]),
+          calRr: bkNum(fields[cols.cal_rr]),
+          shoulderPushup: bkNum(fields[cols.toe_shoulder]),
+          shoulderRow: bkNum(fields[cols.heel_shoulder]),
+          arm: bkNum(fields[cols.arm])
+        };
+        break;
+
+      case '[workouts]':
+        out.workouts.push({
+          id: fields[cols.id],
+          date: fields[cols.date],
+          name: bkStr(fields[cols.name]),
+          finished: fields[cols.finished] == 'yes',
+          notes: bkStr(fields[cols.notes])
+        });
+        break;
+
+      case '[exercises]':
+        out.exercises.push({
+          id: fields[cols.id],
+          workout: fields[cols.workout],
+          name: bkStr(fields[cols.name]),
+          mode: fields[cols.mode],
+          restSet: bkInt(fields[cols.rest_set]),
+          restRung: bkInt(fields[cols.rest_rung]),
+          /* '-' reason means not stopped; any reason implies stopped */
+          stopped: fields[cols.stop_reason] != '-',
+          stopReason: bkStrOrNull(fields[cols.stop_reason]),
+          setup: bkStr(fields[cols.setup]),
+          notes: bkStr(fields[cols.notes]),
+          ringType: fields[cols.ring_type],
+          ringRr: bkNum(fields[cols.ring_rr]),
+          ringH: bkNum(fields[cols.foot_dist])
+        });
+        break;
+
+      case '[sets]':
+        out.sets.push({
+          exercise: fields[cols.exercise],
+          ladderIndex: bkInt(fields[cols.ladder]),
+          rungIndex: bkInt(fields[cols.rung]),
+          target: bkInt(fields[cols.target]),
+          reps: bkInt(fields[cols.reps]),
+          load: bkNum(fields[cols.load]),
+          unit: bkStrOrNull(fields[cols.unit]),
+          status: fields[cols.status],
+          restTarget: bkInt(fields[cols.rest_target]),
+          doneAt: bkNum(fields[cols.done_at]),
+          note: bkStr(fields[cols.note])
+        });
+        break;
+
+      default:
+        throw new Error('line ' + (i + 1) + ': unknown section ' + section);
+    }
+  }
+
+  return out;
+}
+
+/* re-nest the flat sections into workout objects by joining on id.
+   returns an array of fully-formed workouts (ready to merge into state). */
+function rebuildWorkouts(parsed)
+{
+  let workouts = [];
+  let by_id = {};
+  let ex_by_id = {};
+  let rec;
+  let w;
+  let ex;
+  let s;
+  let i;
+
+  for (i = 0; i < parsed.workouts.length; ++i)
+  {
+    rec = parsed.workouts[i];
+    w = { id: rec.id, date: rec.date, name: rec.name, notes: rec.notes, exercises: [], finished: rec.finished };
+    workouts.push(w);
+    by_id[w.id] = w;
+  }
+
+  for (i = 0; i < parsed.exercises.length; ++i)
+  {
+    rec = parsed.exercises[i];
+    w = by_id[rec.workout];
+    if (!w)
+    {
+      throw new Error('exercise "' + rec.name + '" points at missing workout ' + rec.workout);
+    }
+
+    ex = makeExercise({
+      id: rec.id,
+      name: rec.name,
+      mode: rec.mode,
+      setup: rec.setup,
+      notes: rec.notes,
+      restSet: rec.restSet,
+      restRung: rec.restRung,
+      stopped: rec.stopped,
+      ring: { type: rec.ringType, Rr: rec.ringRr, H: rec.ringH }
+    });
+    ex.stopReason = rec.stopReason;
+    w.exercises.push(ex);
+    if (ex_by_id[ex.id])
+    {
+      throw new Error('duplicate exercise id ' + ex.id + ' — every exercise id must be unique');
+    }
+    ex_by_id[ex.id] = ex;
+  }
+
+  for (i = 0; i < parsed.sets.length; ++i)
+  {
+    rec = parsed.sets[i];
+    ex = ex_by_id[rec.exercise];
+    if (!ex)
+    {
+      throw new Error('a set points at missing exercise ' + rec.exercise);
+    }
+
+    s = makeSet({
+      ladderIndex: rec.ladderIndex,
+      rungIndex: rec.rungIndex,
+      target: rec.target,
+      reps: rec.reps,
+      load: rec.load,
+      unit: rec.unit,
+      status: rec.status,
+      restTarget: rec.restTarget,
+      doneAt: rec.doneAt,
+      note: rec.note
+    });
+    ex.sets.push(s);
+  }
+
+  return workouts;
 }
 
 /* ---------- ring geometry: ONE solver for pushup and row ----------
@@ -1818,7 +2330,8 @@ let ui = {
   menuExId: null,
   notesExId: null,
   painExId: null,
-  expFmt: 'plain'
+  expFmt: 'plain',
+  importMsg: null
 };
 
 function save()
@@ -1883,7 +2396,7 @@ function touchPreset(ex)
 function makeSet(o)
 {
   return Object.assign({ id: uid(), ladderIndex:null, rungIndex:null, target:null, reps:null,
-    load:null, unit:null, status:'planned', restTarget:null, restActual:null, note:'' }, o||{});
+    load:null, unit:null, status:'planned', restTarget:null, doneAt:null, note:'' }, o||{});
 }
 function makeExercise(o)
 {
@@ -1988,6 +2501,73 @@ function newWorkout(name)
   return w;
 }
 
+/* import a backup, MERGING into current data (not replacing). a workout whose id
+   already exists is overwritten by the imported copy; new ids are added. globals
+   (rig, profile, sound) are only filled where the current value is unset, so an
+   import never clobbers settings you already tuned on this device.
+
+   returns a summary { added, replaced } for the confirmation message. throws on a
+   malformed file — the caller shows the message and nothing is changed, because
+   the parse happens before any mutation. */
+function applyBackup(text)
+{
+  let parsed = parseBackup(text);
+  let incoming = rebuildWorkouts(parsed);
+  let g = parsed.globals;
+  let existing_ids = {};
+  let added = 0;
+  let replaced = 0;
+  let w;
+  let i;
+
+  for (i = 0; i < state.workouts.length; ++i)
+  {
+    existing_ids[state.workouts[i].id] = i;
+  }
+
+  for (i = 0; i < incoming.length; ++i)
+  {
+    w = incoming[i];
+    if (existing_ids[w.id] != null)
+    {
+      state.workouts[existing_ids[w.id]] = w;
+      ++replaced;
+    }
+    else
+    {
+      state.workouts.push(w);
+      ++added;
+    }
+  }
+
+  /* keep newest first, matching how newWorkout unshifts */
+  state.workouts.sort(function(a, b)
+  {
+    if (a.date < b.date) return 1;
+    if (a.date > b.date) return -1;
+    return 0;
+  });
+
+  if (g)
+  {
+    if (state.rig.anchorHeight == null) state.rig.anchorHeight = g.anchorHeight;
+    if (state.rig.calX == null) state.rig.calX = g.calX;
+    if (state.rig.calY == null) state.rig.calY = g.calY;
+    if (state.rig.calRr == null) state.rig.calRr = g.calRr;
+    if (state.profile.shoulderPushup == null) state.profile.shoulderPushup = g.shoulderPushup;
+    if (state.profile.shoulderRow == null) state.profile.shoulderRow = g.shoulderRow;
+    if (state.profile.arm == null) state.profile.arm = g.arm;
+  }
+
+  /* presets are derived — rebuild them from the merged set of workouts */
+  for (i = 0; i < state.workouts.length; ++i)
+  {
+    state.workouts[i].exercises.forEach(touchPreset);
+  }
+
+  return { added: added, replaced: replaced };
+}
+
 /* ======== rest timer ======== */
 let timer = null; /* { since, target, label, setId } */
 let tick_handle = null, beeped = false, audio_ctx = null;
@@ -2017,16 +2597,8 @@ function beep()
     {} 
   }
 }
-function recordRestActual()
-{
-  if (!timer) return;
-  let w = activeWorkout(); if (!w) return;
-  let hit = findSet(w, timer.setId);
-  if (hit) hit.set.restActual = Math.round((Date.now() - timer.since)/1000);
-}
 function startTimer(target, label, setId)
 {
-  recordRestActual();
   timer = { since: Date.now(), target: target, label: label, setId: setId };
   beeped = false;
   document.getElementById('timerbar').classList.remove('hidden');
@@ -2035,7 +2607,6 @@ function startTimer(target, label, setId)
 }
 function stopTimer()
 {
-  recordRestActual();
   timer = null;
   document.getElementById('timerbar').classList.add('hidden');
   if (tick_handle)
@@ -2048,13 +2619,28 @@ function tick()
 {
   if (!timer) return;
   let el = Math.floor((Date.now() - timer.since)/1000);
+  let remaining = timer.target - el;
   let bar = document.getElementById('timerbar');
   let over = el >= timer.target;
+  let frac = Math.min(100, (el/Math.max(1, timer.target))*100);
   bar.classList.toggle('over', over);
   document.getElementById('tlab').textContent = timer.label;
-  document.getElementById('tmain').textContent = over ? '+' + fmtRest(el - timer.target) : fmtRest(el);
-  document.getElementById('ttarget').textContent = over ? 'rested ' + fmtRest(timer.target) : '/ ' + fmtRest(timer.target);
-  document.getElementById('tfill').style.width = Math.min(100, (el/Math.max(1,timer.target))*100) + '%';
+
+  if (state.settings.countdown)
+  {
+    /* remaining time, then overtime once it passes zero */
+    document.getElementById('tmain').textContent = over ? '+' + fmtRest(-remaining) : fmtRest(remaining);
+    document.getElementById('ttarget').textContent = over ? 'over ' + fmtRest(timer.target) : 'of ' + fmtRest(timer.target);
+    /* the bar drains toward empty, matching the countdown */
+    document.getElementById('tfill').style.width = (100 - frac) + '%';
+  }
+  else
+  {
+    document.getElementById('tmain').textContent = over ? '+' + fmtRest(el - timer.target) : fmtRest(el);
+    document.getElementById('ttarget').textContent = over ? 'rested ' + fmtRest(timer.target) : '/ ' + fmtRest(timer.target);
+    document.getElementById('tfill').style.width = frac + '%';
+  }
+
   if (over && !beeped)
   {
     beeped = true; beep(); 
@@ -2068,6 +2654,7 @@ function completeSet(setId)
   let ex = hit.ex, s = hit.set;
   if (s.reps == null) s.reps = s.target != null ? s.target : 0;
   s.status = 'done_clean';
+  s.doneAt = Date.now();   /* the raw fact; cycle and work are derived from it */
   let isRung = ex.mode=='ladder';
   let target = ex.restSet, label = ex.name + ' · set rest';
   if (isRung)
@@ -2102,6 +2689,12 @@ function setStatus(setId, status)
     if (s.reps==null) s.reps = s.target||0; 
   }
   s.status = status;
+  /* stamp the first transition into a performed state; re-tagging clean->ugly
+     later must not move the timestamp, or the derived cycle would shift */
+  if (isPerformed(s) && s.doneAt == null)
+  {
+    s.doneAt = Date.now();
+  }
   if (status=='pain')
   {
     ui.painExId = hit.ex.id; 
@@ -2370,7 +2963,35 @@ function renderSetRow(ex, s)
 function renderSetEdit(ex, s)
 {
   let planned = s.status=='planned';
+  let timings = setTimings(ex);
+  let t = timings[s.id];
   let h = '<div class="setedit">';
+
+  if (t)
+  {
+    switch (t.status)
+    {
+      case 'exact':
+        h += '<div class="timing"><b>'+esc(fmtDur(t.work))+'</b> held'
+           + ' <span class="k">· '+esc(fmtDur(t.rest))+' actual rest before it, from a '+esc(fmtDur(t.cycle))+' gap</span></div>';
+        break;
+
+      case 'estimate':
+        h += '<div class="timing">≈ <b>'+esc(fmtDur(t.work))+'</b> under tension'
+           + ' <span class="k">· '+esc(fmtDur(t.cycle))+' gap less the '+esc(fmtRest(t.rest_target))+' rest target</span></div>';
+        break;
+
+      case 'early':
+        h += '<div class="timing off">'+esc(fmtDur(t.cycle))+' gap'
+           + ' <span class="k">· shorter than the '+esc(fmtRest(t.rest_target))+' rest target, so you went before the beep and the set length cannot be split out</span></div>';
+        break;
+
+      case 'lingered':
+        h += '<div class="timing off">'+esc(fmtDur(t.cycle))+' gap'
+           + ' <span class="k">· far past the '+esc(fmtRest(t.rest_target))+' rest target, so the extra is waiting, not effort</span></div>';
+        break;
+    }
+  }
   h += '<div class="row"><label>'+(planned?'target':'reps')+(ex.mode=='timed'?' (sec)':'')+'</label>'
      + '<button class="stp" data-a="ed-dec" data-set="'+s.id+'">−</button>'
      + '<input type="text" inputmode="numeric" data-field="ed-reps" data-set="'+s.id+'" value="'+esc(planned ? (s.target!=null?s.target:'') : (s.reps!=null?s.reps:''))+'">'
@@ -2452,10 +3073,18 @@ function renderOverlay()
     let w = activeWorkout() || findWorkout(o.wid);
     let out = document.getElementById('expout');
 
-    if (out && w)
+    if (out && ui.expFmt == 'backup')
+    {
+      out.value = buildBackup(state);
+    }
+    else if (out && w)
     {
       switch (ui.expFmt)
       {
+        case 'backup':
+          out.value = buildBackup(state);
+          break;
+
         case 'csv':
           out.value = buildCSV(w, state.rig, state.profile);
           break;
@@ -2702,22 +3331,46 @@ function sheetSettings()
      + '</div>'
      + '<div class="ring-readout" id="cal_readout">'+esc(calReadoutText())+'</div>'
      + '<button class="btn small primary" data-a="cal-apply">use as anchor height</button></div>';
+  h += '<div class="frow"><label class="lab">rest timer display</label><div class="seg">'
+     + '<button data-a="timer-dir" data-d="up" class="'+(state.settings.countdown?'':'on')+'">count up</button>'
+     + '<button data-a="timer-dir" data-d="down" class="'+(state.settings.countdown?'on':'')+'">count down</button>'
+     + '</div><div class="hint">counting down shows time remaining and drains the bar; either way it keeps running past the target so you can see how long you actually took.</div></div>';
   h += '<div class="foot"><button class="btn primary" data-a="overlay-close">done</button></div>';
   return h;
 }
 
 function sheetExport(o)
 {
-  let h = '<h2>// export</h2>';
+  let is_backup = ui.expFmt == 'backup';
+  let h = '<h2>// export &amp; backup</h2>';
   h += '<div class="exp-tabs">'
      + '<button class="btn small'+(ui.expFmt=='plain'?' primary':'')+'" data-a="exp-fmt" data-f="plain">FitNotes text</button>'
      + '<button class="btn small'+(ui.expFmt=='compact'?' primary':'')+'" data-a="exp-fmt" data-f="compact">compact</button>'
-     + '<button class="btn small'+(ui.expFmt=='csv'?' primary':'')+'" data-a="exp-fmt" data-f="csv">CSV</button></div>';
+     + '<button class="btn small'+(ui.expFmt=='csv'?' primary':'')+'" data-a="exp-fmt" data-f="csv">CSV</button>'
+     + '<button class="btn small'+(is_backup?' primary':'')+'" data-a="exp-fmt" data-f="backup">full backup</button></div>';
+
+  if (is_backup)
+  {
+    h += '<div class="hint" style="margin-bottom:8px">Complete, lossless snapshot of <b>everything</b> — every workout, all planned and logged sets, rest config, ring geometry, and your rig + profile. This is the file to keep for moving devices or restoring after a reset.</div>';
+  }
+
   h += '<textarea class="exp-out" id="expout" readonly spellcheck="false"></textarea>';
   h += '<div class="foot"><span class="hint" id="copymsg"></span>'
      + '<button class="btn" data-a="exp-download">download</button>'
      + '<button class="btn primary" data-a="exp-copy">copy</button>'
      + '<button class="btn ghost" data-a="overlay-close">close</button></div>';
+
+  if (is_backup)
+  {
+    h += '<div class="import-sec">'
+       + '<div class="calib-h">restore from a backup</div>'
+       + '<div class="hint">Merges into what you already have: a workout with a matching id is overwritten by the file, new ones are added, and rig/profile fill only where you have not set them. Nothing is deleted.</div>'
+       + '<input type="file" id="importfile" accept=".txt,.tsv,text/plain" class="hidden">'
+       + '<div class="btnrow" style="margin-top:8px"><button class="btn small" data-a="import-pick">choose backup file…</button></div>'
+       + (ui.importMsg ? '<div class="import-msg '+(ui.importMsg.kind=='bad'?'bad':'ok')+'">'+esc(ui.importMsg.text)+'</div>' : '')
+       + '</div>';
+  }
+
   return h;
 }
 
@@ -3074,26 +3727,80 @@ function copyExportText()
   fail();
 }
 
-function downloadExportText(workout)
+/* read a chosen backup file and merge it. FileReader is genuinely async I/O, so
+   this is the one place a callback is unavoidable. errors from a bad file are
+   caught HERE, at the boundary, and shown to the user — parseBackup asserts, so a
+   malformed file throws before any state is touched and nothing gets half-imported. */
+function importBackupFile(input)
 {
-  let out = document.getElementById('expout');
-  let ext;
-  let blob;
-  let link;
+  let reader;
 
-  if (!out || !workout)
+  if (!input.files || !input.files.length)
   {
     return;
   }
 
-  ext = ui.expFmt == 'csv' ? 'csv' : 'txt';
+  reader = new FileReader();
+  reader.onload = function()
+  {
+    let result;
+
+    try
+    {
+      result = applyBackup(reader.result);
+    }
+    catch (e)
+    {
+      ui.importMsg = { text: 'import failed: ' + e.message, kind: 'bad' };
+      input.value = '';   /* let the same file be re-picked after a fix */
+      render();
+      return;
+    }
+
+    save();
+    input.value = '';
+    ui.importMsg = { text: 'imported — ' + result.added + ' added, ' + result.replaced + ' replaced', kind: 'ok' };
+    render();
+  };
+
+  reader.readAsText(input.files[0]);
+}
+
+function downloadExportText(workout)
+{
+  let out = document.getElementById('expout');
+  let ext;
+  let name;
+  let blob;
+  let link;
+
+  if (!out)
+  {
+    return;
+  }
+
+  if (ui.expFmt == 'backup')
+  {
+    ext = 'txt';
+    name = 'workout-backup-' + todayISO() + '.' + ext;
+  }
+  else
+  {
+    if (!workout)
+    {
+      return;
+    }
+    ext = ui.expFmt == 'csv' ? 'csv' : 'txt';
+    name = 'workout-' + workout.date + '.' + ext;
+  }
+
   blob = new Blob([out.value], {
     type: ext == 'csv' ? 'text/csv' : 'text/plain'
   });
 
   link = document.createElement('a');
   link.href = URL.createObjectURL(blob);
-  link.download = 'workout-' + workout.date + '.' + ext;
+  link.download = name;
 
   document.body.appendChild(link);
   link.click();
@@ -3146,6 +3853,13 @@ document.addEventListener('click', function(ev)
     case 'settings-open':
       ui.overlay = { type: 'settings' };
       render();
+      return;
+
+    case 'timer-dir':
+      state.settings.countdown = target.dataset.d == 'down';
+      save();
+      render();
+      tick();
       return;
 
     case 'ex-pick':
@@ -3242,6 +3956,7 @@ document.addEventListener('click', function(ev)
       return;
 
     case 'export-open':
+      ui.importMsg = null;
       ui.overlay = { type: 'export', wid: workout && workout.id };
       render();
       return;
@@ -3257,6 +3972,13 @@ document.addEventListener('click', function(ev)
 
     case 'exp-download':
       downloadExportText(workout);
+      return;
+
+    case 'import-pick':
+      if (document.getElementById('importfile'))
+      {
+        document.getElementById('importfile').click();
+      }
       return;
 
     case 'addex-open':
@@ -3439,6 +4161,7 @@ document.addEventListener('click', function(ev)
             unit: last_done.unit,
             status: 'done_clean'
           });
+          repeated.doneAt = Date.now();
           ex.sets.push(repeated);
           repeated.restTarget = ex.restSet;
           startTimer(ex.restSet, ex.name + ' · set rest', repeated.id);
@@ -3547,7 +4270,7 @@ document.addEventListener('click', function(ev)
       {
         hit.set.status = 'planned';
         hit.set.reps = null;
-        hit.set.restActual = null;
+        hit.set.doneAt = null;
         ui.editSetId = null;
         save();
         render();
@@ -3820,6 +4543,12 @@ document.addEventListener('change', function(ev)
   let workout = activeWorkout();
   let hit;
 
+  if (target.id == 'importfile')
+  {
+    importBackupFile(target);
+    return;
+  }
+
   if (!field)
   {
     return;
@@ -3922,7 +4651,8 @@ function boot()
     {
       state = Object.assign(state, loaded); 
     }
-    if (!state.settings) state.settings = { sound:true };
+    if (!state.settings) state.settings = { sound:true, countdown:false };
+    if (state.settings.countdown == null) state.settings.countdown = false;
     if (!state.rig) state.rig = { anchorHeight:null, calX:null, calY:null, calRr:null };
     if (!state.profile) state.profile = { shoulderPushup:null, shoulderRow:null, arm:null };
     /* migrate: the old single S was toe-to-shoulder, i.e. the pushup number */
@@ -3942,6 +4672,18 @@ function boot()
         /* heal ladders saved before positions were contiguous (1,2,3,5,6) —
            order is preserved, only the ordering keys are renumbered */
         normalizeLadders(ex);
+        /* restActual conflated rest with the next set's work; doneAt replaces it */
+        ex.sets.forEach(function(s)
+        {
+          if (s.restActual != null)
+          {
+            delete s.restActual;
+          }
+          if (s.doneAt == null)
+          {
+            s.doneAt = null;
+          }
+        });
       });
     });
 
