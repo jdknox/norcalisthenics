@@ -3068,7 +3068,16 @@ function renderOverlay()
 
   h += '</div>';
   el.innerHTML = h;
-  if (o.type == 'export')
+  if (o.type == 'settings')
+  {
+    let out = document.getElementById('settings_backup_out');
+
+    if (out)
+    {
+      out.value = buildBackup(state);
+    }
+  }
+  else if (o.type == 'export')
   {
     let w = activeWorkout() || findWorkout(o.wid);
     let out = document.getElementById('expout');
@@ -3335,6 +3344,17 @@ function sheetSettings()
      + '<button data-a="timer-dir" data-d="up" class="'+(state.settings.countdown?'':'on')+'">count up</button>'
      + '<button data-a="timer-dir" data-d="down" class="'+(state.settings.countdown?'on':'')+'">count down</button>'
      + '</div><div class="hint">counting down shows time remaining and drains the bar; either way it keeps running past the target so you can see how long you actually took.</div></div>';
+  h += '<div class="import-sec">'
+     + '<div class="calib-h">backup &amp; restore</div>'
+     + '<div class="hint">Complete, lossless snapshot of <b>everything</b> — every workout, all planned and logged sets, rest config, ring geometry, and your rig + profile. Restore merges into what you already have: matching workout ids are replaced, new ones are added, and rig/profile fill only where you have not set them.</div>'
+     + '<textarea class="exp-out" id="settings_backup_out" readonly spellcheck="false"></textarea>'
+     + '<div class="foot"><span class="hint" id="settings_copymsg"></span>'
+     + '<button class="btn" data-a="settings-backup-download">download</button>'
+     + '<button class="btn primary" data-a="settings-backup-copy">copy</button></div>'
+     + '<input type="file" id="settings_importfile" accept=".txt,.tsv,text/plain" class="hidden">'
+     + '<div class="btnrow" style="margin-top:8px"><button class="btn small" data-a="settings-import-pick">load backup file…</button></div>'
+     + (ui.importMsg ? '<div class="import-msg '+(ui.importMsg.kind=='bad'?'bad':'ok')+'">'+esc(ui.importMsg.text)+'</div>' : '')
+     + '</div>';
   h += '<div class="foot"><button class="btn primary" data-a="overlay-close">done</button></div>';
   return h;
 }
@@ -3366,7 +3386,7 @@ function sheetExport(o)
        + '<div class="calib-h">restore from a backup</div>'
        + '<div class="hint">Merges into what you already have: a workout with a matching id is overwritten by the file, new ones are added, and rig/profile fill only where you have not set them. Nothing is deleted.</div>'
        + '<input type="file" id="importfile" accept=".txt,.tsv,text/plain" class="hidden">'
-       + '<div class="btnrow" style="margin-top:8px"><button class="btn small" data-a="import-pick">choose backup file…</button></div>'
+       + '<div class="btnrow" style="margin-top:8px"><button class="btn small" data-a="import-pick">load backup file…</button></div>'
        + (ui.importMsg ? '<div class="import-msg '+(ui.importMsg.kind=='bad'?'bad':'ok')+'">'+esc(ui.importMsg.text)+'</div>' : '')
        + '</div>';
   }
@@ -3678,8 +3698,13 @@ function moveExercise(workout, exId, delta)
 
 function copyExportText()
 {
-  let out = document.getElementById('expout');
-  let msg = document.getElementById('copymsg');
+  copyTextAreaValue('expout', 'copymsg');
+}
+
+function copyTextAreaValue(out_id, msg_id)
+{
+  let out = document.getElementById(out_id);
+  let msg = document.getElementById(msg_id);
 
   function ok()
   {
@@ -3727,6 +3752,35 @@ function copyExportText()
   fail();
 }
 
+function downloadTextAreaValue(out_id, name, mime_type)
+{
+  let out = document.getElementById(out_id);
+  let blob;
+  let link;
+
+  if (!out)
+  {
+    return;
+  }
+
+  blob = new Blob([out.value], {
+    type: mime_type
+  });
+
+  link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = name;
+
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+
+  setTimeout(function()
+  {
+    URL.revokeObjectURL(link.href);
+  }, 4000);
+}
+
 /* read a chosen backup file and merge it. FileReader is genuinely async I/O, so
    this is the one place a callback is unavoidable. errors from a bad file are
    caught HERE, at the boundary, and shown to the user — parseBackup asserts, so a
@@ -3768,16 +3822,8 @@ function importBackupFile(input)
 
 function downloadExportText(workout)
 {
-  let out = document.getElementById('expout');
   let ext;
   let name;
-  let blob;
-  let link;
-
-  if (!out)
-  {
-    return;
-  }
 
   if (ui.expFmt == 'backup')
   {
@@ -3794,22 +3840,12 @@ function downloadExportText(workout)
     name = 'workout-' + workout.date + '.' + ext;
   }
 
-  blob = new Blob([out.value], {
-    type: ext == 'csv' ? 'text/csv' : 'text/plain'
-  });
+  downloadTextAreaValue('expout', name, ext == 'csv' ? 'text/csv' : 'text/plain');
+}
 
-  link = document.createElement('a');
-  link.href = URL.createObjectURL(blob);
-  link.download = name;
-
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-
-  setTimeout(function()
-  {
-    URL.revokeObjectURL(link.href);
-  }, 4000);
+function downloadSettingsBackup()
+{
+  downloadTextAreaValue('settings_backup_out', 'workout-backup-' + todayISO() + '.txt', 'text/plain');
 }
 
 document.addEventListener('click', function(ev)
@@ -3978,6 +4014,21 @@ document.addEventListener('click', function(ev)
       if (document.getElementById('importfile'))
       {
         document.getElementById('importfile').click();
+      }
+      return;
+
+    case 'settings-backup-copy':
+      copyTextAreaValue('settings_backup_out', 'settings_copymsg');
+      return;
+
+    case 'settings-backup-download':
+      downloadSettingsBackup();
+      return;
+
+    case 'settings-import-pick':
+      if (document.getElementById('settings_importfile'))
+      {
+        document.getElementById('settings_importfile').click();
       }
       return;
 
@@ -4543,7 +4594,7 @@ document.addEventListener('change', function(ev)
   let workout = activeWorkout();
   let hit;
 
-  if (target.id == 'importfile')
+  if (target.id == 'importfile' || target.id == 'settings_importfile')
   {
     importBackupFile(target);
     return;
