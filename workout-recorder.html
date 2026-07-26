@@ -247,7 +247,7 @@ h1.page{font-family:var(--mono);font-size:20px;font-weight:600;margin:6px 0 2px;
 .exitem:hover{background:var(--orange);color:var(--orange-ink)}
 .exitem .mt{color:var(--orange)}
 .exitem:hover .mt{color:var(--orange-ink);font-weight:700}
-.sheet input[type=text],.sheet textarea{width:100%}
+.sheet input[type=text],.sheet input[type=date],.sheet input[type=time],.sheet textarea{width:100%}
 .sheet textarea{min-height:64px}
 .seg{display:flex;gap:0;border:1px solid var(--line2);border-radius:5px;overflow:hidden;width:fit-content;max-width:100%;flex-wrap:wrap}
 .seg button{font-family:var(--mono);font-size:12.5px;padding:9px 13px;color:var(--muted);background:var(--panel2)}
@@ -662,6 +662,183 @@ function isoOf(year, month, day)
   return year + '-' + String(month + 1).padStart(2, '0') + '-' + String(day).padStart(2, '0');
 }
 
+function fmtClockTs(value)
+{
+  let d;
+
+  if (value == null)
+  {
+    return '';
+  }
+
+  d = new Date(value);
+  return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+}
+
+function fmtDateTime(value)
+{
+  let d;
+
+  if (value == null)
+  {
+    return '';
+  }
+
+  d = new Date(value);
+  return d.getFullYear()
+    + '-' + String(d.getMonth() + 1).padStart(2, '0')
+    + '-' + String(d.getDate()).padStart(2, '0')
+    + ' ' + String(d.getHours()).padStart(2, '0')
+    + ':' + String(d.getMinutes()).padStart(2, '0');
+}
+
+function isoDateOfTimestamp(value)
+{
+  let d;
+
+  if (value == null)
+  {
+    return '';
+  }
+
+  d = new Date(value);
+  return d.getFullYear()
+    + '-' + String(d.getMonth() + 1).padStart(2, '0')
+    + '-' + String(d.getDate()).padStart(2, '0');
+}
+
+function isISODate(iso_date)
+{
+  let parts;
+  let year;
+  let month;
+  let day;
+  let d;
+
+  if (!iso_date)
+  {
+    return false;
+  }
+
+  parts = iso_date.split('-');
+  if (parts.length != 3)
+  {
+    return false;
+  }
+
+  year = parseInt(parts[0], 10);
+  month = parseInt(parts[1], 10);
+  day = parseInt(parts[2], 10);
+  if (isNaN(year) || isNaN(month) || isNaN(day))
+  {
+    return false;
+  }
+
+  d = new Date(year, month - 1, day);
+  return isoDateOfTimestamp(d.getTime()) == iso_date;
+}
+
+function timestampOfDateTime(iso_date, hhmm)
+{
+  let date_parts;
+  let time_parts;
+  let year;
+  let month;
+  let day;
+  let hours;
+  let mins;
+
+  if (!iso_date || !hhmm)
+  {
+    return null;
+  }
+  if (!isISODate(iso_date))
+  {
+    return null;
+  }
+
+  date_parts = iso_date.split('-');
+  time_parts = hhmm.split(':');
+  if (date_parts.length != 3 || time_parts.length != 2)
+  {
+    return null;
+  }
+
+  year = parseInt(date_parts[0], 10);
+  month = parseInt(date_parts[1], 10);
+  day = parseInt(date_parts[2], 10);
+  hours = parseInt(time_parts[0], 10);
+  mins = parseInt(time_parts[1], 10);
+
+  if (isNaN(year) || isNaN(month) || isNaN(day) || isNaN(hours) || isNaN(mins))
+  {
+    return null;
+  }
+  if (hours < 0 || hours > 23 || mins < 0 || mins > 59)
+  {
+    return null;
+  }
+
+  return new Date(year, month - 1, day, hours, mins, 0, 0).getTime();
+}
+
+function fmtElapsedHM(total_seconds)
+{
+  let whole;
+  let hours;
+  let mins;
+
+  if (total_seconds == null)
+  {
+    return '--:--';
+  }
+
+  whole = Math.max(0, Math.floor(total_seconds));
+  hours = Math.floor(whole/3600);
+  mins = Math.floor((whole % 3600)/60);
+  return String(hours).padStart(2, '0') + ':' + String(mins).padStart(2, '0');
+}
+
+function workoutDurationSeconds(workout)
+{
+  let end_time;
+
+  if (!workout || workout.startedAt == null)
+  {
+    return null;
+  }
+
+  end_time = workout.finishedAt != null ? workout.finishedAt : Date.now();
+  return Math.max(0, Math.floor((end_time - workout.startedAt)/1000));
+}
+
+function workoutDurationLabel(workout)
+{
+  return fmtElapsedHM(workoutDurationSeconds(workout));
+}
+
+function fmtSummaryDuration(total_seconds)
+{
+  let whole;
+  let hours;
+  let mins;
+
+  if (total_seconds == null)
+  {
+    return '';
+  }
+
+  whole = Math.max(0, Math.floor(total_seconds));
+  hours = Math.floor(whole/3600);
+  mins = Math.floor((whole % 3600)/60);
+  if (hours > 0)
+  {
+    return hours + 'h' + String(mins).padStart(2, '0') + 'm';
+  }
+
+  return mins + 'm';
+}
+
 function monthName(month)
 {
   return month_names[month];
@@ -715,6 +892,8 @@ function workoutsByDate(workouts)
 function workoutSummary(workout)
 {
   let set_count = 0;
+  let duration_text;
+  let out;
   let i;
   let j;
 
@@ -729,8 +908,15 @@ function workoutSummary(workout)
     }
   }
 
-  return workout.exercises.length + (workout.exercises.length == 1 ? ' exercise' : ' exercises') +
+  duration_text = fmtSummaryDuration(workoutDurationSeconds(workout));
+  out = workout.exercises.length + (workout.exercises.length == 1 ? ' exercise' : ' exercises') +
     ' · ' + set_count + (set_count == 1 ? ' set' : ' sets');
+  if (duration_text)
+  {
+    out += ' · ' + duration_text;
+  }
+
+  return out;
 }
 
 function isDone(set)
@@ -1222,7 +1408,7 @@ function setLineText(ex, set)
 
 function buildPlain(workout, rig, profile)
 {
-  let out = ['Workout - ' + workout.date, ''];
+  let out = ['Workout - ' + workout.date];
   let i;
   let j;
   let ex;
@@ -1233,6 +1419,12 @@ function buildPlain(workout, rig, profile)
   let rung_texts;
   let set;
   let rung_text;
+
+  if (workout.startedAt != null)
+  {
+    out.push('Started: ' + fmtDateTime(workout.startedAt));
+  }
+  out.push('');
 
   for (i = 0; i < workout.exercises.length; ++i)
   {
@@ -1337,6 +1529,12 @@ function buildCompact(workout, rig, profile)
   let tag;
   let reps;
   let uses_load;
+
+  if (workout.startedAt != null)
+  {
+    out.push('Started: ' + fmtDateTime(workout.startedAt));
+    out.push('');
+  }
 
   for (i = 0; i < workout.exercises.length; ++i)
   {
@@ -1467,7 +1665,7 @@ function csvCell(value)
 
 function buildCSV(workout, rig, profile)
 {
-  let head = ['date', 'workout', 'exercise', 'mode', 'set_index', 'ladder_index', 'rung_index', 'reps', 'load', 'unit', 'clean_status', 'pain', 'rest_target', 'cycle_sec', 'work_sec', 'work_quality', 'setup', 'notes'];
+  let head = ['date', 'workout', 'started_at', 'exercise', 'mode', 'set_index', 'ladder_index', 'rung_index', 'reps', 'load', 'unit', 'clean_status', 'pain', 'rest_target', 'cycle_sec', 'work_sec', 'work_quality', 'setup', 'notes'];
   let rows = [head.join(',')];
   let i;
   let j;
@@ -1539,6 +1737,7 @@ function buildCSV(workout, rig, profile)
       row = [
         workout.date,
         workout.name || '',
+        workout.startedAt != null ? workout.startedAt : '',
         ex.name,
         ex.mode,
         set_index,
@@ -1639,11 +1838,11 @@ function buildBackup(state)
   lines.push('');
 
   lines.push('[workouts]');
-  lines.push(['id', 'date', 'name', 'finished', 'notes'].join('\t'));
+  lines.push(['id', 'date', 'name', 'started_at', 'finished_at', 'finished', 'notes'].join('\t'));
   for (i = 0; i < state.workouts.length; ++i)
   {
     w = state.workouts[i];
-    lines.push([bkCell(w.id), bkCell(w.date), bkCell(w.name), bkBool(w.finished), bkCell(w.notes)].join('\t'));
+    lines.push([bkCell(w.id), bkCell(w.date), bkCell(w.name), bkCell(w.startedAt), bkCell(w.finishedAt), bkBool(w.finished), bkCell(w.notes)].join('\t'));
   }
   lines.push('');
 
@@ -1843,6 +2042,8 @@ function parseBackup(text)
           id: fields[cols.id],
           date: fields[cols.date],
           name: bkStr(fields[cols.name]),
+          startedAt: cols.started_at != null ? bkNum(fields[cols.started_at]) : null,
+          finishedAt: cols.finished_at != null ? bkNum(fields[cols.finished_at]) : null,
           finished: fields[cols.finished] == 'yes',
           notes: bkStr(fields[cols.notes])
         });
@@ -1907,7 +2108,7 @@ function rebuildWorkouts(parsed)
   for (i = 0; i < parsed.workouts.length; ++i)
   {
     rec = parsed.workouts[i];
-    w = { id: rec.id, date: rec.date, name: rec.name, notes: rec.notes, exercises: [], finished: rec.finished };
+    w = { id: rec.id, date: rec.date, name: rec.name, notes: rec.notes, exercises: [], startedAt: rec.startedAt, finishedAt: rec.finishedAt, finished: rec.finished };
     workouts.push(w);
     by_id[w.id] = w;
   }
@@ -2338,6 +2539,99 @@ function save()
 {
   store.save(state); 
 }
+
+function buildFixTimesDraft(workout)
+{
+  return {
+    startedDate: workout && workout.startedAt != null ? isoDateOfTimestamp(workout.startedAt) : (workout ? workout.date : todayISO()),
+    startedTime: workout && workout.startedAt != null ? fmtClockTs(workout.startedAt) : '',
+    finishedDate: workout && workout.finishedAt != null ? isoDateOfTimestamp(workout.finishedAt) : (workout ? workout.date : todayISO()),
+    finishedTime: workout && workout.finishedAt != null ? fmtClockTs(workout.finishedAt) : ''
+  };
+}
+
+function deleteWorkout(workout)
+{
+  let next_workout;
+
+  if (!workout)
+  {
+    return;
+  }
+
+  state.workouts = state.workouts.filter(function(w)
+  {
+    return w.id != workout.id;
+  });
+  next_workout = state.workouts.length ? state.workouts[0] : null;
+  state.activeId = next_workout ? next_workout.id : null;
+  ui.view = 'home';
+  ui.overlay = null;
+  stopTimer();
+  save();
+  render();
+}
+
+function saveFixTimes(workout, draft)
+{
+  let started_at;
+  let finished_at;
+
+  if (!workout || !draft)
+  {
+    return;
+  }
+
+  if ((draft.startedDate && !draft.startedTime) || (!draft.startedDate && draft.startedTime))
+  {
+    alert('Enter both began date and time, or leave both blank.');
+    return;
+  }
+  if ((draft.finishedDate && !draft.finishedTime) || (!draft.finishedDate && draft.finishedTime))
+  {
+    alert('Enter both ended date and time, or leave both blank.');
+    return;
+  }
+
+  started_at = draft.startedDate && draft.startedTime ? timestampOfDateTime(draft.startedDate, draft.startedTime) : null;
+  finished_at = draft.finishedDate && draft.finishedTime ? timestampOfDateTime(draft.finishedDate, draft.finishedTime) : null;
+  if (draft.startedDate && draft.startedTime && started_at == null)
+  {
+    alert('Enter a valid began date and time.');
+    return;
+  }
+  if (draft.finishedDate && draft.finishedTime && finished_at == null)
+  {
+    alert('Enter a valid ended date and time.');
+    return;
+  }
+  if (finished_at != null && started_at == null)
+  {
+    alert('Set a began date and time before setting an ended time.');
+    return;
+  }
+  if (started_at != null && finished_at != null && finished_at < started_at)
+  {
+    alert('Ended time must be after began time.');
+    return;
+  }
+
+  workout.startedAt = started_at;
+  workout.finishedAt = finished_at;
+  workout.finished = finished_at != null;
+  if (started_at != null)
+  {
+    workout.date = isoDateOfTimestamp(started_at);
+  }
+  if (finished_at != null || started_at == null)
+  {
+    stopTimer();
+  }
+  ui.overlay = null;
+  save();
+  render();
+}
+
 function findWorkout(id)
 {
   return state.workouts.find(function(w)
@@ -2495,10 +2789,51 @@ function buildLadderSets(ladder_rungs)
 }
 function newWorkout(name)
 {
-  let w = { id: uid(), date: todayISO(), name: name || 'Workout', notes:'', exercises: [], finished:false };
+  let w = { id: uid(), date: todayISO(), name: name || 'Workout', notes:'', exercises: [], startedAt:null, finishedAt:null, finished:false };
   state.workouts.unshift(w);
   state.activeId = w.id;
   return w;
+}
+
+function ensureWorkoutStarted(workout, when)
+{
+  if (!workout)
+  {
+    return;
+  }
+  if (workout.startedAt == null)
+  {
+    workout.startedAt = when != null ? when : Date.now();
+  }
+}
+
+function latestDoneAtOfWorkout(workout)
+{
+  let latest = null;
+  let i;
+  let j;
+  let ex;
+  let set;
+
+  if (!workout)
+  {
+    return null;
+  }
+
+  for (i = 0; i < workout.exercises.length; ++i)
+  {
+    ex = workout.exercises[i];
+    for (j = 0; j < ex.sets.length; ++j)
+    {
+      set = ex.sets[j];
+      if (set.doneAt != null && (latest == null || set.doneAt > latest))
+      {
+        latest = set.doneAt;
+      }
+    }
+  }
+
+  return latest;
 }
 
 /* import a backup, MERGING into current data (not replacing). a workout whose id
@@ -2571,6 +2906,7 @@ function applyBackup(text)
 /* ======== rest timer ======== */
 let timer = null; /* { since, target, label, setId } */
 let tick_handle = null, beeped = false, audio_ctx = null;
+let workout_duration_handle = null;
 function beep()
 {
   if (!state.settings.sound) return;
@@ -2647,14 +2983,50 @@ function tick()
   }
 }
 
+function updateWorkoutDurationLabel()
+{
+  let workout = activeWorkout();
+  let label = document.getElementById('workout_duration_label');
+
+  if (!label || !workout)
+  {
+    return;
+  }
+
+  label.textContent = workoutDurationLabel(workout);
+}
+
+function syncWorkoutDurationHandle()
+{
+  let workout = activeWorkout();
+  let should_tick = ui.view == 'workout' && workout && workout.startedAt != null && !workout.finished;
+
+  if (should_tick)
+  {
+    if (!workout_duration_handle)
+    {
+      workout_duration_handle = setInterval(updateWorkoutDurationLabel, 1000);
+    }
+  }
+  else if (workout_duration_handle)
+  {
+    clearInterval(workout_duration_handle);
+    workout_duration_handle = null;
+  }
+
+  updateWorkoutDurationLabel();
+}
+
 /* ======== actions on sets ======== */
 function completeSet(setId)
 {
   let w = activeWorkout(); let hit = findSet(w, setId); if (!hit) return;
   let ex = hit.ex, s = hit.set;
+  let now = Date.now();
+  ensureWorkoutStarted(w, now);
   if (s.reps == null) s.reps = s.target != null ? s.target : 0;
   s.status = 'done_clean';
-  s.doneAt = Date.now();   /* the raw fact; cycle and work are derived from it */
+  s.doneAt = now;   /* the raw fact; cycle and work are derived from it */
   let isRung = ex.mode=='ladder';
   let target = ex.restSet, label = ex.name + ' · set rest';
   if (isRung)
@@ -2684,6 +3056,7 @@ function setStatus(setId, status)
 {
   let w = activeWorkout(); let hit = findSet(w, setId); if (!hit) return;
   let s = hit.set;
+  let now;
   if (!isDone(s) && (status=='done_ugly' || status=='pain'))
   {
     if (s.reps==null) s.reps = s.target||0; 
@@ -2693,7 +3066,9 @@ function setStatus(setId, status)
      later must not move the timestamp, or the derived cycle would shift */
   if (isPerformed(s) && s.doneAt == null)
   {
-    s.doneAt = Date.now();
+    now = Date.now();
+    ensureWorkoutStarted(w, now);
+    s.doneAt = now;
   }
   if (status=='pain')
   {
@@ -2713,6 +3088,7 @@ function render()
   app.innerHTML = ui.view=='workout' && activeWorkout() ? renderWorkout(activeWorkout()) : renderHome();
   renderOverlay();
   document.getElementById('soundbtn').textContent = state.settings.sound ? '♪ on' : '♪ off';
+  syncWorkoutDurationHandle();
 }
 
 function renderHome()
@@ -2766,7 +3142,7 @@ function renderCalendar()
   let h = '<div class="cal">';
   h += '<div class="cal-h">'
      + '<button class="nav" data-a="cal-prev" aria-label="previous month">‹</button>'
-     + '<div class="mo">'+esc(monthName(ui.calM)+' '+ui.calY)+'</div>'
+     + '<div class="mo">'+esc(isoOf(ui.calY, ui.calM, 1).slice(0, 7))+'</div>'
      + '<button class="nav" data-a="cal-next" aria-label="next month">›</button>'
      + '<div class="stat">'+month_count+(month_count==1?' workout':' workouts')+'</div>'
      + '</div>';
@@ -2822,13 +3198,16 @@ function renderWorkout(w)
   h += '<div class="whead">'
     + '<button class="btn small ghost" data-a="nav-home">← back</button>'
     + '<input class="wname" data-field="wname" value="'+esc(w.name)+'" aria-label="workout name">'
-    + '<input class="wdate-input" type="date" data-field="wdate" value="'+esc(w.date)+'" aria-label="workout date">'
+    + '<input class="wdate-input" type="text" data-field="wdate" value="'+esc(w.date)+'" placeholder="YYYY-MM-DD" spellcheck="false" aria-label="workout date">'
     + '</div>';
   h += '<div class="btnrow" style="margin-bottom:14px">'
     + '<button class="btn small" data-a="export-open">⇪ Export</button>'
     + '<button class="btn small" data-a="addex-open">+ Add exercise</button>'
+    + (!w.startedAt ? '<button class="btn small primary" data-a="begin-workout">▶ Begin Workout</button>' : '<span class="chip">began '+esc(fmtClockTs(w.startedAt))+'</span>')
     + (!w.finished ? '<button class="btn small" data-a="finish-workout">✓ Finish</button>' : '<button class="btn small ghost" data-a="reopen-workout">reopen</button>')
+    + '<button class="btn small ghost" data-a="workout-menu-open">⋯</button>'
     + '</div>';
+  h += '<div class="sub mono" style="margin:0 0 14px">Duration: <span id="workout_duration_label">'+esc(workoutDurationLabel(w))+'</span></div>';
   if (!w.exercises.length)
   {
     h += '<div class="empty">Add your first exercise.<br><span class="mono" style="font-size:12px;color:var(--faint)">Tap Done as each set happens — the rest timer starts itself.</span></div>';
@@ -3063,6 +3442,14 @@ function renderOverlay()
 
     case 'clone':
       h += sheetClone(o);
+      break;
+
+    case 'workout-menu':
+      h += sheetWorkoutMenu(o);
+      break;
+
+    case 'fix-times':
+      h += sheetFixTimes(o);
       break;
   }
 
@@ -3356,6 +3743,45 @@ function sheetSettings()
      + (ui.importMsg ? '<div class="import-msg '+(ui.importMsg.kind=='bad'?'bad':'ok')+'">'+esc(ui.importMsg.text)+'</div>' : '')
      + '</div>';
   h += '<div class="foot"><button class="btn primary" data-a="overlay-close">done</button></div>';
+  return h;
+}
+
+function sheetWorkoutMenu(o)
+{
+  let workout = activeWorkout() || findWorkout(o.wid);
+  let h = '<h2>// workout</h2>';
+
+  if (!workout)
+  {
+    h += '<div class="foot"><button class="btn ghost" data-a="overlay-close">close</button></div>';
+    return h;
+  }
+
+  h += '<div class="btnrow">'
+     + '<button class="btn" data-a="fix-times-open">Fix Times</button>'
+     + '<button class="btn danger" data-a="workout-delete">Delete Workout</button>'
+     + '</div>';
+  h += '<div class="hint">Fix Times repairs began and ended date-time later. Delete Workout removes the whole workout and all of its sets.</div>';
+  h += '<div class="foot"><button class="btn ghost" data-a="overlay-close">close</button></div>';
+  return h;
+}
+
+function sheetFixTimes(o)
+{
+  let d = o.draft;
+  let h = '<h2>// fix times</h2>';
+
+  h += '<div class="inline2">'
+     + '<div class="frow"><label class="lab">began date</label><input type="text" data-field="ft-start-date" value="'+esc(d.startedDate)+'" placeholder="YYYY-MM-DD" spellcheck="false"></div>'
+     + '<div class="frow"><label class="lab">began time</label><input type="text" data-field="ft-start-time" value="'+esc(d.startedTime)+'" placeholder="HH:MM" spellcheck="false"></div>'
+     + '</div>';
+  h += '<div class="inline2">'
+     + '<div class="frow"><label class="lab">ended date</label><input type="text" data-field="ft-finish-date" value="'+esc(d.finishedDate)+'" placeholder="YYYY-MM-DD" spellcheck="false"></div>'
+     + '<div class="frow"><label class="lab">ended time</label><input type="text" data-field="ft-finish-time" value="'+esc(d.finishedTime)+'" placeholder="HH:MM" spellcheck="false"></div>'
+     + '</div>';
+  h += '<div class="hint">Leave ended blank to keep the workout open. Saving began also sets the workout date to that began date.</div>';
+  h += '<div class="foot"><button class="btn ghost" data-a="fix-times-back">back</button>'
+     + '<button class="btn primary" data-a="fix-times-save">save times</button></div>';
   return h;
 }
 
@@ -3936,6 +4362,53 @@ document.addEventListener('click', function(ev)
       render();
       return;
 
+    case 'begin-workout':
+      if (workout)
+      {
+        ensureWorkoutStarted(workout);
+        save();
+        render();
+      }
+      return;
+
+    case 'workout-menu-open':
+      if (workout)
+      {
+        ui.overlay = { type: 'workout-menu', wid: workout.id };
+        render();
+      }
+      return;
+
+    case 'fix-times-open':
+      if (workout)
+      {
+        ui.overlay = { type: 'fix-times', wid: workout.id, draft: buildFixTimesDraft(workout) };
+        render();
+      }
+      return;
+
+    case 'fix-times-back':
+      if (workout)
+      {
+        ui.overlay = { type: 'workout-menu', wid: workout.id };
+        render();
+      }
+      return;
+
+    case 'fix-times-save':
+      if (workout && ui.overlay && ui.overlay.type == 'fix-times')
+      {
+        saveFixTimes(workout, ui.overlay.draft);
+      }
+      return;
+
+    case 'workout-delete':
+      if (workout && confirm('Delete this workout and all of its exercises and sets?'))
+      {
+        deleteWorkout(workout);
+      }
+      return;
+
     case 'sample':
       loadSample();
       return;
@@ -3965,6 +4438,9 @@ document.addEventListener('click', function(ev)
     case 'finish-workout':
       if (workout)
       {
+        let now = Date.now();
+        ensureWorkoutStarted(workout, now);
+        workout.finishedAt = now;
         workout.finished = true;
         stopTimer();
         ui.view = 'home';
@@ -3976,6 +4452,7 @@ document.addEventListener('click', function(ev)
     case 'reopen-workout':
       if (workout)
       {
+        workout.finishedAt = null;
         workout.finished = false;
         save();
         render();
@@ -4203,8 +4680,11 @@ document.addEventListener('click', function(ev)
       if (ex)
       {
         let last_done = lastDoneSetOf(ex);
+        let now;
         if (last_done)
         {
+          now = Date.now();
+          ensureWorkoutStarted(workout, now);
           let repeated = makeSet({
             target: last_done.reps,
             reps: last_done.reps,
@@ -4212,7 +4692,7 @@ document.addEventListener('click', function(ev)
             unit: last_done.unit,
             status: 'done_clean'
           });
-          repeated.doneAt = Date.now();
+          repeated.doneAt = now;
           ex.sets.push(repeated);
           repeated.restTarget = ex.restSet;
           startTimer(ex.restSet, ex.name + ' · set rest', repeated.id);
@@ -4489,6 +4969,29 @@ document.addEventListener('input', function(ev)
         }
         break;
 
+      case 'fix-times':
+        draft = ui.overlay.draft;
+
+        switch (field)
+        {
+          case 'ft-start-date':
+            draft.startedDate = target.value;
+            return;
+
+          case 'ft-start-time':
+            draft.startedTime = target.value;
+            return;
+
+          case 'ft-finish-date':
+            draft.finishedDate = target.value;
+            return;
+
+          case 'ft-finish-time':
+            draft.finishedTime = target.value;
+            return;
+        }
+        break;
+
       case 'settings':
         switch (field)
         {
@@ -4620,9 +5123,42 @@ document.addEventListener('change', function(ev)
     case 'wdate':
       if (workout && target.value)
       {
+        if (!isISODate(target.value))
+        {
+          alert('Enter the workout date as YYYY-MM-DD.');
+          render();
+          return;
+        }
         workout.date = target.value;
         save();
         render();
+      }
+      return;
+
+    case 'ft-start-date':
+    case 'ft-start-time':
+    case 'ft-finish-date':
+    case 'ft-finish-time':
+      if (ui.overlay && ui.overlay.type == 'fix-times')
+      {
+        switch (field)
+        {
+          case 'ft-start-date':
+            ui.overlay.draft.startedDate = target.value;
+            break;
+
+          case 'ft-start-time':
+            ui.overlay.draft.startedTime = target.value;
+            break;
+
+          case 'ft-finish-date':
+            ui.overlay.draft.finishedDate = target.value;
+            break;
+
+          case 'ft-finish-time':
+            ui.overlay.draft.finishedTime = target.value;
+            break;
+        }
       }
       return;
 
@@ -4716,6 +5252,17 @@ function boot()
 
     state.workouts.forEach(function(w)
     {
+      let latest_done_at;
+
+      if (w.startedAt == null)
+      {
+        w.startedAt = null;
+      }
+      if (w.finishedAt == null)
+      {
+        latest_done_at = latestDoneAtOfWorkout(w);
+        w.finishedAt = w.finished ? (latest_done_at != null ? latest_done_at : w.startedAt) : null;
+      }
       w.exercises.forEach(function(ex)
       {
         if (!ex.ring) ex.ring = { type:'none', Rr:null, H:null };
