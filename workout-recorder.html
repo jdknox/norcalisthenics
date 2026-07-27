@@ -1775,14 +1775,71 @@ function buildCSV(workout, rig, profile)
    does not break old backups). the file is FLAT and relational — exercises point
    at a workout id, sets at an exercise id — and import re-nests by joining on
    those ids. this is the round-trip pair: buildBackup and parseBackup must stay
-   exact inverses, which the fuzz test asserts.
+   exact inverses, which Claude was asserting with internal fuzzing while
+   developing this codec.
 
-   tab-delimited so notes/setup can hold commas without quoting. a literal tab or
-   newline inside a field would break a row, so bkCell strips them on the way out
-   and we assert column counts on the way in — a malformed line crashes loudly at
-   its line number rather than importing partial data. */
+   tab-delimited so notes/setup can hold commas without quoting. the row format
+   stays simple by escaping only backslash, tab, CR, and LF inside text fields. */
 
-const BACKUP_VERSION = 'workout_recorder_backup 1';
+const BACKUP_VERSION = 'workout_recorder_backup\t26.0726.2015';
+
+function bkEncodeText(text)
+{
+  return text
+    .replace(/\\/g, '\\\\')
+    .replace(/\t/g, '\\t')
+    .replace(/\r/g, '\\r')
+    .replace(/\n/g, '\\n');
+}
+
+function bkDecodeText(text)
+{
+  let out = '';
+  let i;
+  let ch;
+  let next;
+
+  for (i = 0; i < text.length; ++i)
+  {
+    ch = text.charAt(i);
+    if (ch != '\\' || i + 1 >= text.length)
+    {
+      out += ch;
+      continue;
+    }
+
+    next = text.charAt(i + 1);
+    switch (next)
+    {
+      case 'n':
+        out += '\n';
+        ++i;
+        break;
+
+      case 'r':
+        out += '\r';
+        ++i;
+        break;
+
+      case 't':
+        out += '\t';
+        ++i;
+        break;
+
+      case '\\':
+        out += '\\';
+        ++i;
+        break;
+
+      default:
+        out += next;
+        ++i;
+        break;
+    }
+  }
+
+  return out;
+}
 
 function bkCell(value)
 {
@@ -1797,8 +1854,7 @@ function bkCell(value)
     return '-';
   }
 
-  /* tabs and newlines are the delimiters; a field cannot contain them */
-  return text.replace(/\t/g, ' ').replace(/\r?\n/g, ' ');
+  return bkEncodeText(text);
 }
 
 function bkBool(value)
@@ -1946,12 +2002,22 @@ function bkInt(text)
 
 function bkStr(text)
 {
-  return text == '-' ? '' : text;
+  if (text == '-')
+  {
+    return '';
+  }
+
+  return bkDecodeText(text);
 }
 
 function bkStrOrNull(text)
 {
-  return text == '-' ? null : text;
+  if (text == '-')
+  {
+    return null;
+  }
+
+  return bkDecodeText(text);
 }
 
 /* header row -> { column_name: index }, so rows are read by name not position */
@@ -1991,9 +2057,14 @@ function parseBackup(text)
     }
   }
 
-  if (!lines.length || lines[0] != BACKUP_VERSION)
+  if (!lines.length)
   {
-    throw new Error('not a workout_recorder backup (first line is "' + (lines[0] || '') + '", expected "' + BACKUP_VERSION + '")');
+    throw new Error('not a workout_recorder backup (file is empty)');
+  }
+
+  if (lines[0] != BACKUP_VERSION)
+  {
+    throw new Error('not a workout_recorder backup (first line is "' + lines[0] + '", expected "' + BACKUP_VERSION + '")');
   }
 
   for (i = 1; i < lines.length; ++i)
