@@ -2,7 +2,7 @@ workout_recorder_backup	26.0726.2015
 
 [globals]
 sound	countdown	active	anchor	cal_x	cal_y	cal_rr	toe_shoulder	heel_shoulder	arm
-yes	yes	mrxu66efkbyjzc	370.8	284	170	23	165	156	60
+yes	yes	ms0p0fenebiz8d	370.8	284	170	23	165	156	60
 
 [workouts]
 id	date	name	started_at	finished_at	finished	notes
@@ -16,22 +16,22 @@ mrh7am8iq0ysd4	2026-07-10	Friday Upper	1783703700000	1783705400000	yes	-
 
 [exercises]
 id	workout	name	mode	rest_set	rest_rung	stop_reason	setup	notes	ring_type	ring_rr	foot_dist
-mrxu7029ualuvc	mrxu66efkbyjzc	Full Pushups	ladder	120	20	-	wide hands\nlower chest	-	none	-	-
-mrlhva2ndque02	mrlhva2m8iegs0	Ring Inclined Pushups	ladder	120	20	-	rings lower shin, body ~45°, feet floor	-	pushup	20	63
-mrlhva2nx9fy6z	mrlhva2m8iegs0	Ring Row	ladder	120	20	-	body 30~45°	-	row	110	24
+mrxu7029ualuvc	mrxu66efkbyjzc	Floor Full Pushups	ladder	120	20	-	wide hands	-	none	-	-
+mrlhva2ndque02	mrlhva2m8iegs0	Ring Pushups Inclined	ladder	120	20	-	rings lower shin, body ~45°, feet floor	-	pushup	20	63
+mrlhva2nx9fy6z	mrlhva2m8iegs0	Ring Row Inclined	ladder	120	20	-	body 30~45°	-	row	110	24
 mrlhva2n16et29	mrlhva2m8iegs0	Hanging Knee Raise	straight	120	20	-	-	-	none	-	-
 mrlhva2n926a9p	mrlhva2m8iegs0	Handle Full Pushups	straight	150	20	-	-	-	none	-	-
 mrlhva2nph1diy	mrlhva2m8iegs0	Banded Hip Bridges	weighted	120	20	-	band at hips · anchor floor · lying	-	none	-	-
-mri3jvjqk1qnjx	mri3hf7gmiihj2	Handle Full Pushups	ladder	150	20	-	wide handles lower chest	-	none	-	-
-mrlarx05yucr3x	mrh7jgxxtzombq	Ring Inclined Pushups	straight	150	20	-	-	-	pushup	20	66.6
-mrh7jdz4nse4t4	mrh7jdz42ap0lp	Ring Inclined Pushups	ladder	150	20	-	rings lower shin, body ~45°, feet floor	-	none	-	-
-mrh7jdz44ihvxd	mrh7jdz42ap0lp	Ring Inclined Pushups	straight	150	20	-	body ~30° · grip neutral · range chest to rings	-	pushup	20	66.6
+mri3jvjqk1qnjx	mri3hf7gmiihj2	Handle Full Pushups	ladder	150	20	-	wide handles	-	none	-	-
+mrlarx05yucr3x	mrh7jgxxtzombq	Ring Pushups Inclined	straight	150	20	-	-	-	pushup	20	66.6
+mrh7jdz4nse4t4	mrh7jdz42ap0lp	Ring Pushups Inclined	ladder	150	20	-	rings lower shin, body ~45°, feet floor	-	none	-	-
+mrh7jdz44ihvxd	mrh7jdz42ap0lp	Ring Pushups Inclined	straight	150	20	-	body ~30° · grip neutral · range chest to rings	-	pushup	20	66.6
 mrh7jdz5aerhq1	mrh7jdz42ap0lp	Handle Full Pushups	ladder	150	20	-	-	-	none	-	-
 mrh7jdz5ebwvxv	mrh7jdz42ap0lp	Hanging Knee Raise	straight	120	20	-	-	-	none	-	-
 mrh7jdz5tlphge	mrh7jdz42ap0lp	Banded Hip Bridges	weighted	120	20	-	band at hips · anchor floor · lying	-	none	-	-
-mrkz56cog3jt5f	mrh7jdz42ap0lp	Ring Row	straight	150	20	-	body ~30° · grip neutral · range chest to rings	-	pushup	20	66.6
-mrh7am8i8kc2oz	mrh7am8iq0ysd4	Ring Inclined Pushups	ladder	150	20	-	rings lower shin, body ~45°, feet floor	-	none	-	-
-mrh7am8ia30dra	mrh7am8iq0ysd4	Ring Row	straight	150	20	-	body ~45° · grip neutral · range chest to rings	-	none	-	-
+mrkz56cog3jt5f	mrh7jdz42ap0lp	Ring Row Inclined	straight	150	20	-	body ~30° · grip neutral · range chest to rings	-	pushup	20	66.6
+mrh7am8i8kc2oz	mrh7am8iq0ysd4	Ring Pushups Inclined	ladder	150	20	-	rings lower shin, body ~45°, feet floor	-	none	-	-
+mrh7am8ia30dra	mrh7am8iq0ysd4	Ring Row Inclined	straight	150	20	-	body ~45° · grip neutral · range chest to rings	-	none	-	-
 mrh7am8im1umwh	mrh7am8iq0ysd4	Handle Full Pushups	ladder	150	20	-	-	-	none	-	-
 mrh7am8ijp9slr	mrh7am8iq0ysd4	Hanging Knee Raise	straight	120	20	-	-	-	none	-	-
 mrh7am8irt23u7	mrh7am8iq0ysd4	Banded Hip Bridges	weighted	120	20	-	band at hips · anchor floor · lying	-	none	-	-
