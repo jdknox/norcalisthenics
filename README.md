@@ -9,6 +9,8 @@ Small local workout tracker in plain HTML, CSS, and JavaScript.
 - logs workouts, exercises, and sets in one page
 - supports straight sets, ladders, weighted sets, and timed sets
 - runs a rest timer automatically
+- lets you repair workout start/end times after the fact
+- lets you edit the saved exercise library in Settings and export it as JS
 - stores data locally in the browser
 - exports plain text, CSV, and full backups
 
@@ -32,6 +34,7 @@ No build step. No server required.
 - normal use stores data in browser local storage
 - full backups are text files produced by the app
 - backup text format is meant for round-tripping, not for hand editing
+- workout library defaults come from `workout-exercises.js`, but the editable saved library lives in browser storage
 
 ## Editing notes
 

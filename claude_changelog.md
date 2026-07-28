@@ -91,9 +91,17 @@ Source anchors:
 - Fixed backup text round-tripping for tabs, carriage returns, newlines, and backslashes by escaping them instead of flattening them to spaces.
 - Restored the custom backup version marker `workout_recorder_backup\t26.0726.2015`.
 
-## 2026-07-28 — JS file split for smaller edit surfaces
+## 2026-07-28 — file split, docs, library editor, and workout navigation polish
 
-Source anchor: commit `2ae7de2` (`Split workout UI into render and sheet files`)
+Source anchors:
+
+- commit `2ae7de2` (`Split workout UI into render and sheet files`)
+- commit `3a1b533` (`update changelog; add README; add backups`)
+- commit `8beae12` (`fix README links`)
+- commit `c328e3c` (`forgot to add warning`)
+- commit `bc98b3d` (`Add editable exercise library and export tools`)
+- commit `40240c0` (`Collapse workout cards and jump between logged days`)
+- commit `457c17c` (`Add workout week and weekday header swatch`)
 
 - Split the inline app script into separate files with plain script tags and no module system.
 - Moved the static exercise and sample data into `workout-exercises.js`.
@@ -101,3 +109,14 @@ Source anchor: commit `2ae7de2` (`Split workout UI into render and sheet files`)
 - Moved overlay builders and sheet-specific helpers into `workout-sheets.js`.
 - Kept the main app flow in `workout-recorder.js`.
 - Reduced the size of the main app file so future edits can target a smaller file without changing runtime behavior.
+- Added the first repo README and a git-backed changelog, then cleaned up the repo markdown links and warning block.
+- Added a Settings-based exercise library editor for the saved main exercise list.
+- Expanded the library editor so each exercise can edit its full stored data, not just the title.
+- Added JS export for the saved exercise library with copy and download actions.
+- Pruned stale learned presets when the saved library is edited so removed names stop leaking into the picker.
+- Made exercise rows in the library editor start collapsed.
+- Made the Settings rigging/profile section collapsible.
+- Made workout exercise cards start collapsed and added workout-level `show all` and `hide all` actions.
+- Added previous/next logged-day navigation directly on the workout date row.
+- Changed the home screen to default to the calendar tab.
+- Added a workout-header week marker with Sunday-start `Wnn` plus highlighted `S M T W T F S`.
