@@ -14,18 +14,18 @@ Small local workout tracker in plain HTML, CSS, and JavaScript.
 
 ## Open it
 
-Open [workout-recorder.html](workout-recorder.html:1) in a browser.
+Open [workout-recorder.html](workout-recorder.html) in a browser.
 
 No build step. No server required.
 
 ## Files
 
-- [workout-recorder.html](workout-recorder.html:1): page shell and CSS
-- [workout-recorder.js](workout-recorder.js:1): app state, actions, storage, import/export, boot
-- [workout-render.js](workout-render.js:1): main screen rendering
-- [workout-sheets.js](workout-sheets.js:1): overlay sheets and sheet-only helpers
-- [workout-exercises.js](workout-exercises.js:1): static exercise library and sample data
-- [claude_changelog.md](claude_changelog.md:1): development history
+- [workout-recorder.html](workout-recorder.html): page shell and CSS
+- [workout-recorder.js](workout-recorder.js): app state, actions, storage, import/export, boot
+- [workout-render.js](workout-render.js): main screen rendering
+- [workout-sheets.js](workout-sheets.js): overlay sheets and sheet-only helpers
+- [workout-exercises.js](workout-exercises.js): static exercise library and sample data
+- [claude_changelog.md](claude_changelog.md): development history
 
 ## Data
 
