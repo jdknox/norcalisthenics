@@ -1,3 +1,9 @@
+
+/*
+> [!WARNING]
+> ⚠️ **AI-gerenated Code:**
+*/
+
 function sheetAddEx(o)
 {
   let d = o.draft;

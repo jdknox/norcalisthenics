@@ -1,3 +1,8 @@
+/*
+> [!WARNING]
+> ⚠️ **AI-gerenated Code:**
+*/
+
 /* ======== rendering ======== */
 function render()
 {

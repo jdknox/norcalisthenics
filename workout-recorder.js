@@ -1,4 +1,10 @@
 'use strict';
+
+/*
+> [!WARNING]
+> ⚠️ **AI-gerenated Code:**
+*/
+
 /* ======== pure helpers ======== */
 /* Procedural helpers: explicit loops, direct data flow, no hidden pipelines.
    Style target: snake_case variables, camelCase functions, old-school syntax.
