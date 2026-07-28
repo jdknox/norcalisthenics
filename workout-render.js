@@ -31,8 +31,8 @@ function renderHome()
   }
 
   h += '<div class="hometabs">'
-     + '<button class="'+(ui.homeTab=='list'?'on':'')+'" data-a="home-tab" data-t="list">list</button>'
      + '<button class="'+(ui.homeTab=='calendar'?'on':'')+'" data-a="home-tab" data-t="calendar">calendar</button>'
+     + '<button class="'+(ui.homeTab=='list'?'on':'')+'" data-a="home-tab" data-t="list">list</button>'
      + '</div>';
 
   if (ui.homeTab == 'calendar') return h + renderCalendar();
@@ -116,11 +116,15 @@ function renderCalendar()
 
 function renderWorkout(w)
 {
+  let prev_day_workout = adjacentLoggedDayWorkout(w, -1);
+  let next_day_workout = adjacentLoggedDayWorkout(w, 1);
   let h = '';
   h += '<div class="whead">'
     + '<button class="btn small ghost" data-a="nav-home">← back</button>'
     + '<input class="wname" data-field="wname" value="'+esc(w.name)+'" aria-label="workout name">'
+    + '<button class="btn small ghost" data-a="workout-day-prev" aria-label="previous logged day"'+(prev_day_workout ? '' : ' disabled')+'>‹</button>'
     + '<input class="wdate-input" type="text" data-field="wdate" value="'+esc(w.date)+'" placeholder="YYYY-MM-DD" spellcheck="false" aria-label="workout date">'
+    + '<button class="btn small ghost" data-a="workout-day-next" aria-label="next logged day"'+(next_day_workout ? '' : ' disabled')+'>›</button>'
     + '</div>';
   h += '<div class="btnrow" style="margin-bottom:14px">'
     + '<button class="btn small" data-a="export-open">⇪ Export</button>'
@@ -129,7 +133,12 @@ function renderWorkout(w)
     + (!w.finished ? '<button class="btn small" data-a="finish-workout">✓ Finish</button>' : '<button class="btn small ghost" data-a="reopen-workout">reopen</button>')
     + '<button class="btn small ghost" data-a="workout-menu-open">⋯</button>'
     + '</div>';
-  h += '<div class="sub mono" style="margin:0 0 14px">Duration: <span id="workout_duration_label">'+esc(workoutDurationLabel(w))+'</span></div>';
+  h += '<div class="sub mono" style="display:flex;align-items:center;gap:8px;margin:0 0 14px">'
+    + '<span>Duration: <span id="workout_duration_label">'+esc(workoutDurationLabel(w))+'</span></span>'
+    + '<span style="flex:1"></span>'
+    + '<button class="btn small ghost" data-a="workout-show-all">show all</button>'
+    + '<button class="btn small ghost" data-a="workout-hide-all">hide all</button>'
+    + '</div>';
   if (!w.exercises.length)
   {
     h += '<div class="empty">Add your first exercise.<br><span class="mono" style="font-size:12px;color:var(--faint)">Tap Done as each set happens — the rest timer starts itself.</span></div>';
@@ -143,9 +152,11 @@ function renderWorkout(w)
 
 function renderCard(w, ex)
 {
+  let open = sectionIsOpen(workoutExerciseSectionKey(w.id, ex.id), false);
   let h = '<section class="card'+(ex.stopped?' stopped':'')+'">';
   h += '<div class="card-h"><div class="exname">'+esc(ex.name)
      + '<span class="modechip">'+esc(ex.mode)+'</span></div>'
+     + '<button class="btn small ghost" data-a="exercise-toggle" data-ex="'+ex.id+'">'+(open ? 'hide' : 'show')+'</button>'
      + '<button class="iconbtn" data-a="ex-menu" data-ex="'+ex.id+'" aria-label="exercise menu">⋯</button></div>';
   if (ex.setup) h += '<div class="setupline">setup: '+esc(ex.setup)+'</div>';
   let ri = ringInfo(ex, state.rig, state.profile);
@@ -170,50 +181,54 @@ function renderCard(w, ex)
       + '<button class="btn small ghost" data-a="pain-dismiss">Continue</button></div></div>';
   }
 
-  h += '<div class="card-body">';
-  if (ex.mode == 'ladder')
+  if (open)
   {
-    laddersOf(ex).forEach(function(L)
-    {
-      h += '<div class="ladder"><div class="ladder-h">Ladder '+L.idx+'<span class="fill"></span></div>';
-      L.sets.forEach(function(s)
-      {
-        h += renderSetRow(ex, s); if (ui.editSetId==s.id) h += renderSetEdit(ex, s); 
-      });
-      if (!ex.stopped) h += '<button class="btn small ghost addrung" data-a="add-rung" data-ex="'+ex.id+'" data-l="'+L.idx+'">+ rung</button>';
-      h += '</div>';
-    });
-  }
-  else 
-  {
-    ex.sets.forEach(function(s)
-    {
-      h += renderSetRow(ex, s); if (ui.editSetId==s.id) h += renderSetEdit(ex, s); 
-    });
-  }
-  h += '</div>';
-
-  if (ui.notesExId == ex.id)
-  {
-    h += '<div class="exnotes"><textarea data-field="exnotes" data-ex="'+ex.id+'" placeholder="exercise notes…">'+esc(ex.notes)+'</textarea></div>';
-  }
-
-  h += '<div class="card-f">';
-  if (!ex.stopped)
-  {
+    h += '<div class="card-body">';
     if (ex.mode == 'ladder')
     {
-      h += '<button class="btn small" data-a="add-ladder" data-ex="'+ex.id+'">+ ladder</button>';
+      laddersOf(ex).forEach(function(L)
+      {
+        h += '<div class="ladder"><div class="ladder-h">Ladder '+L.idx+'<span class="fill"></span></div>';
+        L.sets.forEach(function(s)
+        {
+          h += renderSetRow(ex, s); if (ui.editSetId==s.id) h += renderSetEdit(ex, s); 
+        });
+        if (!ex.stopped) h += '<button class="btn small ghost addrung" data-a="add-rung" data-ex="'+ex.id+'" data-l="'+L.idx+'">+ rung</button>';
+        h += '</div>';
+      });
     }
     else 
     {
-      h += '<button class="btn small" data-a="add-set" data-ex="'+ex.id+'">+ set</button>';
-      let last_done = ex.sets.filter(isDone).slice(-1)[0];
-      if (last_done) h += '<button class="btn small" data-a="repeat" data-ex="'+ex.id+'">↻ repeat '+ (ex.mode=='timed' ? last_done.reps+'s' : (last_done.load!=null? last_done.load+'×':'')+last_done.reps) +'</button>';
+      ex.sets.forEach(function(s)
+      {
+        h += renderSetRow(ex, s); if (ui.editSetId==s.id) h += renderSetEdit(ex, s); 
+      });
     }
+    h += '</div>';
+
+    if (ui.notesExId == ex.id)
+    {
+      h += '<div class="exnotes"><textarea data-field="exnotes" data-ex="'+ex.id+'" placeholder="exercise notes…">'+esc(ex.notes)+'</textarea></div>';
+    }
+
+    h += '<div class="card-f">';
+    if (!ex.stopped)
+    {
+      if (ex.mode == 'ladder')
+      {
+        h += '<button class="btn small" data-a="add-ladder" data-ex="'+ex.id+'">+ ladder</button>';
+      }
+      else 
+      {
+        h += '<button class="btn small" data-a="add-set" data-ex="'+ex.id+'">+ set</button>';
+        let last_done = ex.sets.filter(isDone).slice(-1)[0];
+        if (last_done) h += '<button class="btn small" data-a="repeat" data-ex="'+ex.id+'">↻ repeat '+ (ex.mode=='timed' ? last_done.reps+'s' : (last_done.load!=null? last_done.load+'×':'')+last_done.reps) +'</button>';
+      }
+    }
+    h += '<button class="btn small ghost" data-a="notes-toggle" data-ex="'+ex.id+'">notes'+(ex.notes?' •':'')+'</button>';
+    h += '</div>';
   }
-  h += '<button class="btn small ghost" data-a="notes-toggle" data-ex="'+ex.id+'">notes'+(ex.notes?' •':'')+'</button>';
-  h += '</div></section>';
+  h += '</section>';
   return h;
 }
 

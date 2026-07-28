@@ -2268,7 +2268,7 @@ window.addEventListener('pagehide', function()
 let state = { workouts: [], presets: {}, settings: { sound:true }, rig: { anchorHeight:null, calX:null, calY:null, calRr:null }, profile: { shoulderPushup:null, shoulderRow:null, arm:null }, activeId: null, exerciseLibrary: null };
 let ui = {
   view: 'home',            // home | workout
-  homeTab: 'list',         // list | calendar
+  homeTab: 'calendar',         // list | calendar
   calY: new Date().getFullYear(),
   calM: new Date().getMonth(),
   calSel: null,            // selected iso date in calendar
@@ -2295,6 +2295,31 @@ function sectionIsOpen(key, default_open)
 function toggleSection(key, default_open)
 {
   ui.sectionOpen[key] = !sectionIsOpen(key, default_open);
+}
+
+function setSectionOpen(key, open)
+{
+  ui.sectionOpen[key] = !!open;
+}
+
+function workoutExerciseSectionKey(workout_id, ex_id)
+{
+  return 'workout-ex-' + workout_id + '-' + ex_id;
+}
+
+function setWorkoutExercisesOpen(workout, open)
+{
+  let i;
+
+  if (!workout)
+  {
+    return;
+  }
+
+  for (i = 0; i < workout.exercises.length; ++i)
+  {
+    setSectionOpen(workoutExerciseSectionKey(workout.id, workout.exercises[i].id), open);
+  }
 }
 
 function rawExerciseLibrary()
@@ -2502,6 +2527,72 @@ function deleteWorkout(workout)
   stopTimer();
   save();
   render();
+}
+
+function setWorkoutDate(workout, iso_date)
+{
+  if (!workout)
+  {
+    return false;
+  }
+  if (!isISODate(iso_date))
+  {
+    return false;
+  }
+
+  workout.date = iso_date;
+  save();
+  render();
+  return true;
+}
+
+function adjacentLoggedDayWorkout(workout, direction)
+{
+  let target_date = null;
+  let candidate;
+  let i;
+
+  if (!workout || !isISODate(workout.date))
+  {
+    return null;
+  }
+
+  for (i = 0; i < state.workouts.length; ++i)
+  {
+    candidate = state.workouts[i];
+
+    if (!candidate || !isISODate(candidate.date) || candidate.date == workout.date)
+    {
+      continue;
+    }
+
+    if (direction < 0)
+    {
+      if (candidate.date < workout.date && (target_date == null || candidate.date > target_date))
+      {
+        target_date = candidate.date;
+      }
+    }
+    else if (candidate.date > workout.date && (target_date == null || candidate.date < target_date))
+    {
+      target_date = candidate.date;
+    }
+  }
+
+  if (target_date == null)
+  {
+    return null;
+  }
+
+  for (i = 0; i < state.workouts.length; ++i)
+  {
+    if (state.workouts[i].date == target_date)
+    {
+      return state.workouts[i];
+    }
+  }
+
+  return null;
 }
 
 function saveFixTimes(workout, draft)
@@ -3946,6 +4037,43 @@ document.addEventListener('click', function(ev)
       }
       return;
 
+    case 'workout-show-all':
+      if (workout)
+      {
+        setWorkoutExercisesOpen(workout, true);
+        render();
+      }
+      return;
+
+    case 'workout-hide-all':
+      if (workout)
+      {
+        setWorkoutExercisesOpen(workout, false);
+        render();
+      }
+      return;
+
+    case 'exercise-toggle':
+      if (workout)
+      {
+        toggleSection(workoutExerciseSectionKey(workout.id, target.dataset.ex), false);
+        render();
+      }
+      return;
+
+    case 'workout-day-prev':
+    case 'workout-day-next':
+      if (workout)
+      {
+        let target_workout = adjacentLoggedDayWorkout(workout, action == 'workout-day-prev' ? -1 : 1);
+
+        if (target_workout)
+        {
+          openWorkoutById(target_workout.id);
+        }
+      }
+      return;
+
     case 'exercise-js-copy':
       refreshOverlayOutputs();
       copyTextAreaValue('exercise_js_out', 'exercise_js_copymsg');
@@ -4820,15 +4948,10 @@ document.addEventListener('change', function(ev)
     case 'wdate':
       if (workout && target.value)
       {
-        if (!isISODate(target.value))
+        if (!setWorkoutDate(workout, target.value))
         {
           alert('Enter the workout date as YYYY-MM-DD.');
-          render();
-          return;
         }
-        workout.date = target.value;
-        save();
-        render();
       }
       return;
 
