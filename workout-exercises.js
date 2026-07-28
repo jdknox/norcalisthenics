@@ -1,5 +1,10 @@
 'use strict';
 
+/*
+> [!WARNING]
+> ⚠️ **AI-gerenated Code:**
+*/
+
 window.workout_exercise_library = {
   exercises: [
     {
