@@ -114,6 +114,27 @@ function renderCalendar()
   return h;
 }
 
+function renderWeekSwatch(iso_date)
+{
+  let labels = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+  let active_day = isoWeekdaySun0(iso_date);
+  let week_number = isoWeekNumber(iso_date);
+  let h = '';
+  let i;
+
+  h += '<div class="weekswatch" aria-label="workout weekday">';
+  if (week_number != null)
+  {
+    h += '<span class="weekswatch-wk">W'+String(week_number).padStart(2, '0')+'</span>';
+  }
+  for (i = 0; i < labels.length; ++i)
+  {
+    h += '<span class="weekswatch-d'+(active_day == i ? ' on' : '')+'">'+labels[i]+'</span>';
+  }
+  h += '</div>';
+  return h;
+}
+
 function renderWorkout(w)
 {
   let prev_day_workout = adjacentLoggedDayWorkout(w, -1);
@@ -135,6 +156,7 @@ function renderWorkout(w)
     + '</div>';
   h += '<div class="sub mono" style="display:flex;align-items:center;gap:8px;margin:0 0 14px">'
     + '<span>Duration: <span id="workout_duration_label">'+esc(workoutDurationLabel(w))+'</span></span>'
+    + renderWeekSwatch(w.date)
     + '<span style="flex:1"></span>'
     + '<button class="btn small ghost" data-a="workout-show-all">show all</button>'
     + '<button class="btn small ghost" data-a="workout-hide-all">hide all</button>'

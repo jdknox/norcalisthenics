@@ -337,6 +337,57 @@ function isoOf(year, month, day)
   return year + '-' + String(month + 1).padStart(2, '0') + '-' + String(day).padStart(2, '0');
 }
 
+function isoWeekdaySun0(iso_date)
+{
+  let parts;
+  let year;
+  let month;
+  let day;
+
+  if (!isISODate(iso_date))
+  {
+    return null;
+  }
+
+  parts = iso_date.split('-');
+  year = parseInt(parts[0], 10);
+  month = parseInt(parts[1], 10);
+  day = parseInt(parts[2], 10);
+  return new Date(year, month - 1, day).getDay();
+}
+
+function isoWeekNumber(iso_date)
+{
+  let parts;
+  let year;
+  let month;
+  let day;
+  let date;
+  let year_start;
+  let year_start_day;
+  let day_index;
+
+  if (!isISODate(iso_date))
+  {
+    return null;
+  }
+
+  parts = iso_date.split('-');
+  year = parseInt(parts[0], 10);
+  month = parseInt(parts[1], 10);
+  day = parseInt(parts[2], 10);
+
+  date = new Date(year, month - 1, day);
+  date.setHours(12, 0, 0, 0);
+
+  year_start = new Date(year, 0, 1);
+  year_start.setHours(12, 0, 0, 0);
+  year_start_day = year_start.getDay();
+  day_index = Math.floor((date - year_start)/86400000);
+
+  return Math.floor((day_index + year_start_day)/7) + 1;
+}
+
 function fmtClockTs(value)
 {
   let d;
