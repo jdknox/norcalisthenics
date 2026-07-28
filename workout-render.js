@@ -373,48 +373,13 @@ function renderOverlay()
     case 'fix-times':
       h += sheetFixTimes(o);
       break;
+
+    case 'exercise-editor':
+      h += sheetExerciseEditor(o);
+      break;
   }
 
   h += '</div>';
   el.innerHTML = h;
-  if (o.type == 'settings')
-  {
-    let out = document.getElementById('settings_backup_out');
-
-    if (out)
-    {
-      out.value = buildBackup(state);
-    }
-  }
-  else if (o.type == 'export')
-  {
-    let w = activeWorkout() || findWorkout(o.wid);
-    let out = document.getElementById('expout');
-
-    if (out && ui.expFmt == 'backup')
-    {
-      out.value = buildBackup(state);
-    }
-    else if (out && w)
-    {
-      switch (ui.expFmt)
-      {
-        case 'backup':
-          out.value = buildBackup(state);
-          break;
-
-        case 'csv':
-          out.value = buildCSV(w, state.rig, state.profile);
-          break;
-
-        case 'compact':
-          out.value = buildCompact(w, state.rig, state.profile);
-          break;
-
-        default:
-          out.value = buildPlain(w, state.rig, state.profile);
-          break;
-      }
-    }
-  }
+  refreshOverlayOutputs();
 }

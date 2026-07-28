@@ -222,28 +222,36 @@ function calReadoutText()
 function sheetSettings()
 {
   let rg = state.rig, pr = state.profile;
-  let h = '<h2>// rigging &amp; profile</h2>';
-  h += '<div class="frow"><label class="lab">toe-to-shoulder S<sub>push</sub> (cm)</label>'
-     + '<input type="text" inputmode="decimal" data-field="set-shoulder-push" value="'+esc(pr.shoulderPushup==null?'':pr.shoulderPushup)+'" placeholder="165">'
-     + '<div class="hint">pushup body length — the <b>toe</b> is the pivot. ≈ your standing shoulder height; cleanest measured lying in a plank.</div></div>';
-  h += '<div class="frow"><label class="lab">heel-to-shoulder S<sub>row</sub> (cm)</label>'
-     + '<input type="text" inputmode="decimal" data-field="set-shoulder-row" value="'+esc(pr.shoulderRow==null?'':pr.shoulderRow)+'" placeholder="156">'
-     + '<div class="hint">row body length — the <b>heel</b> is the pivot, so this is its own measurement, shorter than S<sub>push</sub> by about a foot length. Not a reuse.</div></div>';
-  h += '<div class="frow"><label class="lab">arm length (cm)</label>'
-     + '<input type="text" inputmode="decimal" data-field="set-arm" value="'+esc(pr.arm==null?'':pr.arm)+'" placeholder="62">'
-     + '<div class="hint">shoulder joint to hand-contact point, arm straight (shoulder to the centre of a closed fist). Rows only — a pushup uses 0. Typically 60–65.</div></div>';
-  h += '<div class="frow"><label class="lab">anchor height A (cm)</label>'
-     + '<input type="text" inputmode="decimal" data-field="set-anchor" value="'+esc(rg.anchorHeight==null?'':rg.anchorHeight)+'" placeholder="400">'
-     + '<div class="hint">height of the anchor above the floor. Usually too high to tape-measure — use the helper below, or enter directly. Fixed per rig, shared by both modes.</div></div>';
-  h += '<div class="calib"><div class="calib-h">calibration helper — derive A from floor measurements</div>'
-     + '<div class="hint">Pull the resting ring out to a measured floor offset x₁, then measure its height y₁ (both reachable at ground level). All three heights are of the <b>hand-contact point</b> — the bottom inner surface of the ring, where your palm sits.</div>'
-     + '<div class="inline2">'
-     + '<div class="frow"><label class="lab">x₁ (cm)</label><input type="text" inputmode="decimal" data-field="cal-x" value="'+esc(rg.calX==null?'':rg.calX)+'" placeholder="200"></div>'
-     + '<div class="frow"><label class="lab">y₁ (cm)</label><input type="text" inputmode="decimal" data-field="cal-y" value="'+esc(rg.calY==null?'':rg.calY)+'" placeholder="77"></div>'
-     + '<div class="frow"><label class="lab">Rr (cm)</label><input type="text" inputmode="decimal" data-field="cal-rr" value="'+esc(rg.calRr==null?'':rg.calRr)+'" placeholder="20"></div>'
-     + '</div>'
-     + '<div class="ring-readout" id="cal_readout">'+esc(calReadoutText())+'</div>'
-     + '<button class="btn small primary" data-a="cal-apply">use as anchor height</button></div>';
+  let rig_open = sectionIsOpen('settings-rig-profile', true);
+  let h = '<h2>// settings</h2>';
+  h += '<div class="card" style="margin-bottom:12px">';
+  h += '<div class="card-h"><div class="exname">// rigging &amp; profile</div><span class="fill"></span>'
+     + '<button class="btn small" data-a="section-toggle" data-key="settings-rig-profile" data-default="open">'+(rig_open ? 'hide' : 'show')+'</button></div>';
+  if (rig_open)
+  {
+    h += '<div class="frow"><label class="lab">toe-to-shoulder S<sub>push</sub> (cm)</label>'
+       + '<input type="text" inputmode="decimal" data-field="set-shoulder-push" value="'+esc(pr.shoulderPushup==null?'':pr.shoulderPushup)+'" placeholder="165">'
+       + '<div class="hint">pushup body length — the <b>toe</b> is the pivot. ≈ your standing shoulder height; cleanest measured lying in a plank.</div></div>';
+    h += '<div class="frow"><label class="lab">heel-to-shoulder S<sub>row</sub> (cm)</label>'
+       + '<input type="text" inputmode="decimal" data-field="set-shoulder-row" value="'+esc(pr.shoulderRow==null?'':pr.shoulderRow)+'" placeholder="156">'
+       + '<div class="hint">row body length — the <b>heel</b> is the pivot, so this is its own measurement, shorter than S<sub>push</sub> by about a foot length. Not a reuse.</div></div>';
+    h += '<div class="frow"><label class="lab">arm length (cm)</label>'
+       + '<input type="text" inputmode="decimal" data-field="set-arm" value="'+esc(pr.arm==null?'':pr.arm)+'" placeholder="62">'
+       + '<div class="hint">shoulder joint to hand-contact point, arm straight (shoulder to the centre of a closed fist). Rows only — a pushup uses 0. Typically 60–65.</div></div>';
+    h += '<div class="frow"><label class="lab">anchor height A (cm)</label>'
+       + '<input type="text" inputmode="decimal" data-field="set-anchor" value="'+esc(rg.anchorHeight==null?'':rg.anchorHeight)+'" placeholder="400">'
+       + '<div class="hint">height of the anchor above the floor. Usually too high to tape-measure — use the helper below, or enter directly. Fixed per rig, shared by both modes.</div></div>';
+    h += '<div class="calib"><div class="calib-h">calibration helper — derive A from floor measurements</div>'
+       + '<div class="hint">Pull the resting ring out to a measured floor offset x₁, then measure its height y₁ (both reachable at ground level). All three heights are of the <b>hand-contact point</b> — the bottom inner surface of the ring, where your palm sits.</div>'
+       + '<div class="inline2">'
+       + '<div class="frow"><label class="lab">x₁ (cm)</label><input type="text" inputmode="decimal" data-field="cal-x" value="'+esc(rg.calX==null?'':rg.calX)+'" placeholder="200"></div>'
+       + '<div class="frow"><label class="lab">y₁ (cm)</label><input type="text" inputmode="decimal" data-field="cal-y" value="'+esc(rg.calY==null?'':rg.calY)+'" placeholder="77"></div>'
+       + '<div class="frow"><label class="lab">Rr (cm)</label><input type="text" inputmode="decimal" data-field="cal-rr" value="'+esc(rg.calRr==null?'':rg.calRr)+'" placeholder="20"></div>'
+       + '</div>'
+       + '<div class="ring-readout" id="cal_readout">'+esc(calReadoutText())+'</div>'
+       + '<button class="btn small primary" data-a="cal-apply">use as anchor height</button></div>';
+  }
+  h += '</div>';
   h += '<div class="frow"><label class="lab">rest timer display</label><div class="seg">'
      + '<button data-a="timer-dir" data-d="up" class="'+(state.settings.countdown?'':'on')+'">count up</button>'
      + '<button data-a="timer-dir" data-d="down" class="'+(state.settings.countdown?'on':'')+'">count down</button>'
@@ -259,7 +267,102 @@ function sheetSettings()
      + '<div class="btnrow" style="margin-top:8px"><button class="btn small" data-a="settings-import-pick">load backup file…</button></div>'
      + (ui.importMsg ? '<div class="import-msg '+(ui.importMsg.kind=='bad'?'bad':'ok')+'">'+esc(ui.importMsg.text)+'</div>' : '')
      + '</div>';
+  h += '<div class="btnrow" style="margin-top:10px"><button class="btn small" data-a="exercise-editor-open">Edit Exercise List</button></div>';
+  h += '<div class="hint">Saving the exercise list prunes learned presets that no longer exist in workout history or in the saved main list.</div>';
   h += '<div class="foot"><button class="btn primary" data-a="overlay-close">done</button></div>';
+  return h;
+}
+
+function sheetExerciseEditor(o)
+{
+  let list = o.draft;
+  let h = '<h2>// edit exercise list</h2>';
+  let expanded_idx = o.openIdx;
+  let expanded;
+  let item;
+  let summary;
+  let i;
+
+  h += '<div class="hint">This edits the saved main exercise list. Blank names are ignored on save. Duplicate names collapse to the first one.</div>';
+  h += '<div class="frow">';
+
+  for (i = 0; i < list.length; ++i)
+  {
+    item = list[i];
+    expanded = expanded_idx == i;
+    summary = item.mode || 'straight';
+    if (item.mode == 'ladder' && item.ladders)
+    {
+      summary += ' · ' + item.ladders;
+    }
+    else if (item.targets)
+    {
+      summary += ' · ' + item.targets;
+    }
+    h += '<div class="card" style="margin-bottom:12px">';
+    h += '<div class="card-h"><div class="flex"><div class="exname">'+esc(item.name || ('exercise ' + (i + 1)))+'</div><div class="sub" style="margin:2px 0 0">'+esc(summary)+'</div></div>'
+       + '<button class="btn small" data-a="exercise-editor-toggle" data-idx="'+i+'">'+(expanded ? 'hide' : 'edit')+'</button>'
+       + '<button class="btn small danger" data-a="exercise-editor-delete" data-idx="'+i+'">delete</button></div>';
+    if (expanded)
+    {
+      h += '<div class="frow"><label class="lab">name</label>'
+         + '<input type="text" data-field="lib-name" data-idx="'+i+'" value="'+esc(item.name || '')+'" placeholder="exercise name"></div>';
+      h += '<div class="frow"><label class="lab">mode</label>'
+         + '<select data-field="lib-mode" data-idx="'+i+'">'
+         + '<option value="straight"'+(item.mode == 'straight' ? ' selected' : '')+'>straight</option>'
+         + '<option value="ladder"'+(item.mode == 'ladder' ? ' selected' : '')+'>ladder</option>'
+         + '<option value="weighted"'+(item.mode == 'weighted' ? ' selected' : '')+'>weighted</option>'
+         + '<option value="timed"'+(item.mode == 'timed' ? ' selected' : '')+'>timed</option>'
+         + '</select></div>';
+      h += '<div class="frow"><label class="lab">setup</label>'
+         + '<textarea data-field="lib-setup" data-idx="'+i+'" placeholder="optional setup text">'+esc(item.setup || '')+'</textarea></div>';
+      h += '<div class="inline2">'
+         + '<div class="frow"><label class="lab">set rest</label><input type="text" data-field="lib-rest" data-idx="'+i+'" value="'+esc(item.rest || '')+'" placeholder="2:30"></div>'
+         + (item.mode == 'ladder' ? '<div class="frow"><label class="lab">rung rest</label><input type="text" data-field="lib-rrest" data-idx="'+i+'" value="'+esc(item.rrest || '')+'" placeholder="0:20"></div>' : '')
+         + '</div>';
+      if (item.mode == 'ladder')
+      {
+        h += '<div class="frow"><label class="lab">default ladders</label>'
+           + '<input type="text" data-field="lib-ladders" data-idx="'+i+'" value="'+esc(item.ladders || '')+'" placeholder="3 3 2">'
+           + '<div class="hint">same ladder syntax as the add-exercise form</div></div>';
+      }
+      else
+      {
+        h += '<div class="frow"><label class="lab">default targets</label>'
+           + '<input type="text" data-field="lib-targets" data-idx="'+i+'" value="'+esc(item.targets || '')+'" placeholder="'+(item.mode == 'weighted' ? '15x8 / 10x12 / 10x10' : item.mode == 'timed' ? '30 / 30 / 30' : '8 / 8 / 8')+'">'
+           + '<div class="hint">'+(item.mode == 'weighted' ? 'loadxreps, separated by /' : item.mode == 'timed' ? 'seconds, separated by /' : 'reps, separated by /')+'</div></div>';
+        h += '<div class="frow"><label class="lab">unit</label>'
+           + '<input type="text" data-field="lib-unit" data-idx="'+i+'" value="'+esc(item.unit || '')+'" placeholder="kg"></div>';
+      }
+      h += '<div class="frow"><label class="lab">geometry</label>'
+         + '<select data-field="lib-ring-type" data-idx="'+i+'">'
+         + '<option value="none"'+(item.ringType == 'none' ? ' selected' : '')+'>none</option>'
+         + '<option value="pushup"'+(item.ringType == 'pushup' ? ' selected' : '')+'>pushup</option>'
+         + '<option value="row"'+(item.ringType == 'row' ? ' selected' : '')+'>row</option>'
+         + '</select></div>';
+      if (item.ringType != 'none')
+      {
+        h += '<div class="inline2">'
+           + '<div class="frow"><label class="lab">Rr</label><input type="text" data-field="lib-ring-rr" data-idx="'+i+'" value="'+esc(item.ringRr || '')+'" placeholder="110"></div>'
+           + '<div class="frow"><label class="lab">H</label><input type="text" data-field="lib-ring-h" data-idx="'+i+'" value="'+esc(item.ringH || '')+'" placeholder="+80"></div>'
+           + '</div>';
+      }
+    }
+    h += '</div>';
+  }
+
+  h += '</div>';
+  h += '<div class="btnrow"><button class="btn small" data-a="exercise-editor-add">+ add exercise</button></div>';
+  h += '<div class="import-sec">'
+     + '<div class="calib-h">export to js</div>'
+     + '<div class="hint">Exports the current saved exercise list as a `workout-exercises.js` file. The sample workout stays as it is in the checked-in source file.</div>'
+     + '<textarea class="exp-out" id="exercise_js_out" readonly spellcheck="false"></textarea>'
+     + '<div class="foot"><span class="hint" id="exercise_js_copymsg"></span>'
+     + '<button class="btn" data-a="exercise-js-download">download</button>'
+     + '<button class="btn primary" data-a="exercise-js-copy">copy</button></div>'
+     + '</div>';
+  h += '<div class="foot"><button class="btn ghost" data-a="exercise-editor-cancel">back</button>'
+     + '<button class="btn primary" data-a="exercise-editor-save">save</button></div>';
   return h;
 }
 

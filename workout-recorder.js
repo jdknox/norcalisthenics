@@ -2265,7 +2265,7 @@ window.addEventListener('pagehide', function()
 });
 
 /* ======== state ======== */
-let state = { workouts: [], presets: {}, settings: { sound:true }, rig: { anchorHeight:null, calX:null, calY:null, calRr:null }, profile: { shoulderPushup:null, shoulderRow:null, arm:null }, activeId: null };
+let state = { workouts: [], presets: {}, settings: { sound:true }, rig: { anchorHeight:null, calX:null, calY:null, calRr:null }, profile: { shoulderPushup:null, shoulderRow:null, arm:null }, activeId: null, exerciseLibrary: null };
 let ui = {
   view: 'home',            // home | workout
   homeTab: 'list',         // list | calendar
@@ -2278,10 +2278,26 @@ let ui = {
   notesExId: null,
   painExId: null,
   expFmt: 'plain',
-  importMsg: null
+  importMsg: null,
+  sectionOpen: {}
 };
 
-function exerciseLibrary()
+function sectionIsOpen(key, default_open)
+{
+  if (ui.sectionOpen[key] == null)
+  {
+    return default_open;
+  }
+
+  return !!ui.sectionOpen[key];
+}
+
+function toggleSection(key, default_open)
+{
+  ui.sectionOpen[key] = !sectionIsOpen(key, default_open);
+}
+
+function rawExerciseLibrary()
 {
   if (window.workout_exercise_library)
   {
@@ -2289,6 +2305,100 @@ function exerciseLibrary()
   }
 
   return { exercises: [], sampleWorkout: null };
+}
+
+function cloneLibraryTargets(targets)
+{
+  let out = [];
+  let src;
+  let i;
+
+  if (!targets)
+  {
+    return out;
+  }
+
+  for (i = 0; i < targets.length; ++i)
+  {
+    src = targets[i] || {};
+    out.push({ reps: src.reps, load: src.load });
+  }
+
+  return out;
+}
+
+function cloneLibraryLadders(ladders)
+{
+  let out = [];
+  let rung_list;
+  let i;
+  let j;
+
+  if (!ladders)
+  {
+    return out;
+  }
+
+  for (i = 0; i < ladders.length; ++i)
+  {
+    rung_list = [];
+    for (j = 0; j < ladders[i].length; ++j)
+    {
+      rung_list.push(ladders[i][j]);
+    }
+    out.push(rung_list);
+  }
+
+  return out;
+}
+
+function cloneLibraryExercises(exercises)
+{
+  let out = [];
+  let src;
+  let ring;
+  let i;
+
+  if (!exercises)
+  {
+    return out;
+  }
+
+  for (i = 0; i < exercises.length; ++i)
+  {
+    src = exercises[i] || {};
+    ring = src.ring ? { type: src.ring.type, Rr: src.ring.Rr, H: src.ring.H } : null;
+    out.push({
+      name: src.name || '',
+      mode: src.mode || 'straight',
+      setup: src.setup || '',
+      restSet: src.restSet != null ? src.restSet : 150,
+      restRung: src.restRung != null ? src.restRung : 20,
+      defaultTargets: cloneLibraryTargets(src.defaultTargets),
+      defaultLadders: cloneLibraryLadders(src.defaultLadders),
+      targets: cloneLibraryTargets(src.targets),
+      ladders: cloneLibraryLadders(src.ladders),
+      unit: src.unit || null,
+      ring: ring
+    });
+  }
+
+  return out;
+}
+
+function libraryExercises()
+{
+  if (!state.exerciseLibrary)
+  {
+    state.exerciseLibrary = cloneLibraryExercises(rawExerciseLibrary().exercises);
+  }
+
+  return state.exerciseLibrary;
+}
+
+function exerciseLibrary()
+{
+  return { exercises: libraryExercises(), sampleWorkout: rawExerciseLibrary().sampleWorkout };
 }
 
 function libraryExerciseNames()
@@ -2506,6 +2616,374 @@ function touchPreset(ex)
     })||{}).unit || 'kg',
     ring: ringType(ex) != 'none' ? { type:ex.ring.type, Rr:ex.ring.Rr, H:ex.ring.H } : null
   };
+}
+
+function collectExerciseNameKeysFromHistory()
+{
+  let found = {};
+  let name;
+  let i;
+  let j;
+
+  for (i = 0; i < state.workouts.length; ++i)
+  {
+    for (j = 0; j < state.workouts[i].exercises.length; ++j)
+    {
+      name = (state.workouts[i].exercises[j].name || '').trim().toLowerCase();
+      if (name)
+      {
+        found[name] = true;
+      }
+    }
+  }
+
+  return found;
+}
+
+function collectExerciseNameKeysFromLibrary()
+{
+  let found = {};
+  let name;
+  let list = libraryExercises();
+  let i;
+
+  for (i = 0; i < list.length; ++i)
+  {
+    name = (list[i].name || '').trim().toLowerCase();
+    if (name)
+    {
+      found[name] = true;
+    }
+  }
+
+  return found;
+}
+
+function pruneStalePresets()
+{
+  let keep = collectExerciseNameKeysFromHistory();
+  let from_library = collectExerciseNameKeysFromLibrary();
+  let keys = Object.keys(state.presets);
+  let i;
+
+  for (i = 0; i < keys.length; ++i)
+  {
+    if (from_library[keys[i]])
+    {
+      keep[keys[i]] = true;
+    }
+  }
+
+  for (i = 0; i < keys.length; ++i)
+  {
+    if (!keep[keys[i]])
+    {
+      delete state.presets[keys[i]];
+    }
+  }
+}
+
+function buildExerciseEditorDraft()
+{
+  let source = libraryExercises();
+  let out = [];
+  let ex;
+  let targets_text;
+  let i;
+
+  for (i = 0; i < source.length; ++i)
+  {
+    ex = source[i];
+    targets_text = '';
+
+    if (ex.defaultTargets && ex.defaultTargets.length)
+    {
+      targets_text = ex.defaultTargets.map(function(t)
+      {
+        return (t.load != null ? t.load + 'x' : '') + t.reps;
+      }).join(' / ');
+    }
+
+    out.push({
+      name: ex.name || '',
+      mode: ex.mode || 'straight',
+      setup: ex.setup || '',
+      rest: fmtRest(ex.restSet != null ? ex.restSet : 150),
+      rrest: fmtRest(ex.restRung != null ? ex.restRung : 20),
+      targets: targets_text,
+      ladders: ex.defaultLadders && ex.defaultLadders.length ? laddersLabel(ex.defaultLadders) : '',
+      unit: ex.unit || '',
+      ringType: ex.ring && ex.ring.type ? ex.ring.type : 'none',
+      ringRr: ex.ring && ex.ring.Rr != null ? String(ex.ring.Rr) : '',
+      ringH: ex.ring && ex.ring.H != null ? String(ex.ring.H) : ''
+    });
+  }
+
+  return out;
+}
+
+function normalizeExerciseEditorDraft(draft)
+{
+  let cleaned = [];
+  let seen = {};
+  let item;
+  let out;
+  let rest_set;
+  let rest_rung;
+  let ring_rr;
+  let ring_h;
+  let key;
+  let i;
+
+  for (i = 0; i < draft.length; ++i)
+  {
+    item = draft[i];
+    item.name = (item.name || '').trim();
+    if (!item.name)
+    {
+      continue;
+    }
+
+    key = item.name.toLowerCase();
+    if (seen[key])
+    {
+      continue;
+    }
+
+    seen[key] = true;
+    rest_set = parseRest(item.rest);
+    rest_rung = parseRest(item.rrest);
+    ring_rr = parseFloat(item.ringRr);
+    ring_h = parseFloat(item.ringH);
+    out = {
+      name: item.name,
+      mode: item.mode || 'straight',
+      setup: item.setup || '',
+      restSet: rest_set != null ? rest_set : 150,
+      restRung: rest_rung != null ? rest_rung : 20,
+      defaultTargets: [],
+      defaultLadders: [],
+      unit: (item.unit || '').trim() || null,
+      ring: null
+    };
+
+    if (out.mode == 'ladder')
+    {
+      out.defaultLadders = parseLadders(item.ladders);
+      if (!out.defaultLadders.length)
+      {
+        out.defaultLadders = [[1, 2, 3]];
+      }
+    }
+    else
+    {
+      out.defaultTargets = parseTargets(item.targets);
+      if (!out.defaultTargets.length)
+      {
+        out.defaultTargets = [{ reps: 0 }];
+      }
+    }
+
+    if ((item.ringType || 'none') != 'none' || !isNaN(ring_rr) || !isNaN(ring_h))
+    {
+      out.ring = {
+        type: item.ringType || 'none',
+        Rr: isNaN(ring_rr) ? null : ring_rr,
+        H: isNaN(ring_h) ? null : ring_h
+      };
+    }
+
+    cleaned.push(out);
+  }
+
+  return cleaned;
+}
+
+function saveExerciseEditor(draft)
+{
+  let cleaned = normalizeExerciseEditorDraft(draft);
+
+  state.exerciseLibrary = cleaned;
+  pruneStalePresets();
+  ui.overlay = { type: 'settings' };
+  save();
+  render();
+}
+
+function jsString(value)
+{
+  return JSON.stringify(value == null ? '' : value);
+}
+
+function buildExerciseLibraryJS(exercise_list)
+{
+  let lines = [];
+  let list = exercise_list || libraryExercises();
+  let ex;
+  let item_lines;
+  let sample_source = rawExerciseLibrary().sampleWorkoutSource;
+  let i;
+  let j;
+
+  lines.push("'use strict';");
+  lines.push('');
+  lines.push('window.workout_exercise_library = {');
+  lines.push('  exercises: [');
+
+  for (i = 0; i < list.length; ++i)
+  {
+    ex = list[i];
+    item_lines = [];
+    item_lines.push('      name: ' + jsString(ex.name));
+    item_lines.push('      mode: ' + jsString(ex.mode || 'straight'));
+    if (ex.setup)
+    {
+      item_lines.push('      setup: ' + jsString(ex.setup));
+    }
+    if (ex.restSet != null)
+    {
+      item_lines.push('      restSet: ' + ex.restSet);
+    }
+    if (ex.restRung != null && ex.mode == 'ladder')
+    {
+      item_lines.push('      restRung: ' + ex.restRung);
+    }
+    if (ex.unit)
+    {
+      item_lines.push('      unit: ' + jsString(ex.unit));
+    }
+    if (ex.ring)
+    {
+      item_lines.push('      ring: { type: ' + jsString(ex.ring.type || 'none') + ', Rr: ' + (ex.ring.Rr == null ? 'null' : ex.ring.Rr) + ', H: ' + (ex.ring.H == null ? 'null' : ex.ring.H) + ' }');
+    }
+    if (ex.defaultTargets && ex.defaultTargets.length)
+    {
+      lines.push('    {');
+      for (j = 0; j < item_lines.length; ++j)
+      {
+        lines.push(item_lines[j] + ',');
+      }
+      lines.push('      defaultTargets: [');
+      for (j = 0; j < ex.defaultTargets.length; ++j)
+      {
+        if (ex.defaultTargets[j].load != null)
+        {
+          lines.push('        { reps: ' + ex.defaultTargets[j].reps + ', load: ' + ex.defaultTargets[j].load + ' }' + (j + 1 < ex.defaultTargets.length ? ',' : ''));
+        }
+        else
+        {
+          lines.push('        { reps: ' + ex.defaultTargets[j].reps + ' }' + (j + 1 < ex.defaultTargets.length ? ',' : ''));
+        }
+      }
+      lines.push('      ]');
+      lines.push('    }' + (i + 1 < list.length ? ',' : ''));
+      continue;
+    }
+    if (ex.defaultLadders && ex.defaultLadders.length)
+    {
+      lines.push('    {');
+      for (j = 0; j < item_lines.length; ++j)
+      {
+        lines.push(item_lines[j] + ',');
+      }
+      lines.push('      defaultLadders: ' + JSON.stringify(ex.defaultLadders));
+      lines.push('    }' + (i + 1 < list.length ? ',' : ''));
+      continue;
+    }
+
+    lines.push('    {');
+    for (j = 0; j < item_lines.length; ++j)
+    {
+      lines.push(item_lines[j] + (j + 1 < item_lines.length ? ',' : ''));
+    }
+    lines.push('    }' + (i + 1 < list.length ? ',' : ''));
+  }
+
+  lines.push('  ],');
+  if (sample_source)
+  {
+    lines.push('  sampleWorkout: ' + sample_source);
+  }
+  else
+  {
+    lines.push('  sampleWorkout: ' + JSON.stringify(rawExerciseLibrary().sampleWorkout, null, 2).replace(/^/gm, '  '));
+  }
+  lines.push('};');
+  lines.push('');
+
+  return lines.join('\n');
+}
+
+function downloadExerciseLibraryJS()
+{
+  refreshOverlayOutputs();
+  downloadTextAreaValue('exercise_js_out', 'workout-exercises.js', 'text/javascript');
+}
+
+function refreshOverlayOutputs()
+{
+  let o = ui.overlay;
+  let out;
+  let w;
+  let list;
+
+  if (!o)
+  {
+    return;
+  }
+
+  switch (o.type)
+  {
+    case 'settings':
+      out = document.getElementById('settings_backup_out');
+
+      if (out)
+      {
+        out.value = buildBackup(state);
+      }
+      return;
+
+    case 'export':
+      w = activeWorkout() || findWorkout(o.wid);
+      out = document.getElementById('expout');
+
+      if (out && ui.expFmt == 'backup')
+      {
+        out.value = buildBackup(state);
+      }
+      else if (out && w)
+      {
+        switch (ui.expFmt)
+        {
+          case 'backup':
+            out.value = buildBackup(state);
+            break;
+
+          case 'csv':
+            out.value = buildCSV(w, state.rig, state.profile);
+            break;
+
+          case 'compact':
+            out.value = buildCompact(w, state.rig, state.profile);
+            break;
+
+          default:
+            out.value = buildPlain(w, state.rig, state.profile);
+            break;
+        }
+      }
+      return;
+
+    case 'exercise-editor':
+      out = document.getElementById('exercise_js_out');
+
+      if (out)
+      {
+        list = normalizeExerciseEditorDraft(o.draft);
+        out.value = buildExerciseLibraryJS(list);
+      }
+      return;
+  }
 }
 
 /* ======== builders ======== */
@@ -3393,6 +3871,90 @@ document.addEventListener('click', function(ev)
       render();
       return;
 
+    case 'section-toggle':
+      toggleSection(target.dataset.key, target.dataset.default == 'open');
+      render();
+      return;
+
+    case 'exercise-editor-open':
+      ui.overlay = { type: 'exercise-editor', draft: buildExerciseEditorDraft(), openIdx: -1 };
+      render();
+      return;
+
+    case 'exercise-editor-add':
+      if (ui.overlay && ui.overlay.type == 'exercise-editor')
+      {
+        ui.overlay.draft.push({
+          name: '',
+          mode: 'straight',
+          setup: '',
+          rest: '2:30',
+          rrest: '0:20',
+          targets: '8 / 8 / 8',
+          ladders: '3 3 2',
+          unit: '',
+          ringType: 'none',
+          ringRr: '',
+          ringH: ''
+        });
+        ui.overlay.openIdx = ui.overlay.draft.length - 1;
+        render();
+      }
+      return;
+
+    case 'exercise-editor-toggle':
+      if (ui.overlay && ui.overlay.type == 'exercise-editor')
+      {
+        if (ui.overlay.openIdx == parseInt(target.dataset.idx, 10))
+        {
+          ui.overlay.openIdx = -1;
+        }
+        else
+        {
+          ui.overlay.openIdx = parseInt(target.dataset.idx, 10);
+        }
+        render();
+      }
+      return;
+
+    case 'exercise-editor-delete':
+      if (ui.overlay && ui.overlay.type == 'exercise-editor')
+      {
+        let deleted_idx = parseInt(target.dataset.idx, 10);
+        ui.overlay.draft.splice(deleted_idx, 1);
+        if (ui.overlay.openIdx == deleted_idx)
+        {
+          ui.overlay.openIdx = -1;
+        }
+        else if (ui.overlay.openIdx > deleted_idx)
+        {
+          --ui.overlay.openIdx;
+        }
+        render();
+      }
+      return;
+
+    case 'exercise-editor-cancel':
+      ui.overlay = { type: 'settings' };
+      render();
+      return;
+
+    case 'exercise-editor-save':
+      if (ui.overlay && ui.overlay.type == 'exercise-editor')
+      {
+        saveExerciseEditor(ui.overlay.draft);
+      }
+      return;
+
+    case 'exercise-js-copy':
+      refreshOverlayOutputs();
+      copyTextAreaValue('exercise_js_out', 'exercise_js_copymsg');
+      return;
+
+    case 'exercise-js-download':
+      downloadExerciseLibraryJS();
+      return;
+
     case 'timer-dir':
       state.settings.countdown = target.dataset.d == 'down';
       save();
@@ -4120,6 +4682,65 @@ document.addEventListener('input', function(ev)
             return;
         }
         break;
+
+      case 'exercise-editor':
+        draft = ui.overlay.draft;
+
+        switch (field)
+        {
+          case 'lib-name':
+          case 'lib-setup':
+          case 'lib-rest':
+          case 'lib-rrest':
+          case 'lib-targets':
+          case 'lib-ladders':
+          case 'lib-unit':
+          case 'lib-ring-rr':
+          case 'lib-ring-h':
+            if (draft[parseInt(target.dataset.idx, 10)])
+            {
+              switch (field)
+              {
+                case 'lib-name':
+                  draft[parseInt(target.dataset.idx, 10)].name = target.value;
+                  break;
+
+                case 'lib-setup':
+                  draft[parseInt(target.dataset.idx, 10)].setup = target.value;
+                  break;
+
+                case 'lib-rest':
+                  draft[parseInt(target.dataset.idx, 10)].rest = target.value;
+                  break;
+
+                case 'lib-rrest':
+                  draft[parseInt(target.dataset.idx, 10)].rrest = target.value;
+                  break;
+
+                case 'lib-targets':
+                  draft[parseInt(target.dataset.idx, 10)].targets = target.value;
+                  break;
+
+                case 'lib-ladders':
+                  draft[parseInt(target.dataset.idx, 10)].ladders = target.value;
+                  break;
+
+                case 'lib-unit':
+                  draft[parseInt(target.dataset.idx, 10)].unit = target.value;
+                  break;
+
+                case 'lib-ring-rr':
+                  draft[parseInt(target.dataset.idx, 10)].ringRr = target.value;
+                  break;
+
+                case 'lib-ring-h':
+                  draft[parseInt(target.dataset.idx, 10)].ringH = target.value;
+                  break;
+              }
+            }
+            return;
+        }
+        break;
     }
   }
 
@@ -4262,6 +4883,22 @@ document.addEventListener('change', function(ev)
       }
       return;
 
+    case 'lib-mode':
+      if (ui.overlay && ui.overlay.type == 'exercise-editor' && ui.overlay.draft[parseInt(target.dataset.idx, 10)])
+      {
+        ui.overlay.draft[parseInt(target.dataset.idx, 10)].mode = target.value;
+        render();
+      }
+      return;
+
+    case 'lib-ring-type':
+      if (ui.overlay && ui.overlay.type == 'exercise-editor' && ui.overlay.draft[parseInt(target.dataset.idx, 10)])
+      {
+        ui.overlay.draft[parseInt(target.dataset.idx, 10)].ringType = target.value;
+        render();
+      }
+      return;
+
     case 'ed-reps':
     case 'ed-load':
     case 'ed-note':
@@ -4318,6 +4955,10 @@ function boot()
     if (state.settings.countdown == null) state.settings.countdown = false;
     if (!state.rig) state.rig = { anchorHeight:null, calX:null, calY:null, calRr:null };
     if (!state.profile) state.profile = { shoulderPushup:null, shoulderRow:null, arm:null };
+    if (!state.exerciseLibrary)
+    {
+      state.exerciseLibrary = cloneLibraryExercises(rawExerciseLibrary().exercises);
+    }
     /* migrate: the old single S was toe-to-shoulder, i.e. the pushup number */
     if (state.profile.shoulderPushup == null && state.profile.shoulder != null)
     {
