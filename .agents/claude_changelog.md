@@ -110,6 +110,7 @@ Source anchors:
 - Kept the main app flow in `workout-recorder.js`.
 - Reduced the size of the main app file so future edits can target a smaller file without changing runtime behavior.
 - Added the first repo README and a git-backed changelog, then cleaned up the repo markdown links and warning block.
+- Added an AI agent session map so future agents can find which prior work streams have context for the app.
 - Added a Settings-based exercise library editor for the saved main exercise list.
 - Expanded the library editor so each exercise can edit its full stored data, not just the title.
 - Added JS export for the saved exercise library with copy and download actions.

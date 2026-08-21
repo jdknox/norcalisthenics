@@ -28,6 +28,7 @@ No build step. No server required.
 - [workout-sheets.js](workout-sheets.js): overlay sheets and sheet-only helpers
 - [workout-exercises.js](workout-exercises.js): static exercise library and sample data
 - [claude_changelog.md](claude_changelog.md): development history
+- [AI_AGENT_SESSIONS.md](AI_AGENT_SESSIONS.md): AI-assisted work streams and context anchors
 
 ## Data
 
