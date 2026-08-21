@@ -7,6 +7,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>workout_recorder</title>
 <style>
 /* ============================================================
@@ -54,6 +57,11 @@ input:focus,textarea:focus,select:focus{border-color:var(--orange)}
 .brand{font-family:var(--mono);font-size:14px;letter-spacing:.04em;color:var(--text)}
 .brand .dot{color:var(--orange)}
 .topbar .spacer{flex:1}
+.storage-status{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--faint);border:1px solid var(--line);border-radius:999px;padding:6px 9px;background:var(--panel)}
+.storage-status.ok{color:var(--green);border-color:#40532f;background:#232a1d}
+.storage-status.warn{color:var(--red);border-color:#5a3230;background:#2c2020}
+.storage-status.checking{color:var(--amber);border-color:#5d4a1e;background:#2b2519}
 .iconbtn{font-family:var(--mono);font-size:12px;color:var(--muted);border:1px solid var(--line);
   border-radius:4px;padding:6px 10px;background:var(--panel)}
 .iconbtn:hover{color:var(--text);border-color:var(--line2)}
@@ -319,6 +327,7 @@ h1.page{font-family:var(--mono);font-size:20px;font-weight:600;margin:6px 0 2px;
 <header class="topbar">
   <div class="brand"><span class="dot">●</span> workout_recorder</div>
   <div class="spacer"></div>
+  <div id="storage_status" class="storage-status checking" title="checking shared storage" aria-live="polite">storage: checking</div>
   <button class="iconbtn" data-a="settings-open" title="rigging & profile" aria-label="rigging and profile settings">⚙ setup</button>
   <button class="iconbtn" id="soundbtn" data-a="sound-toggle" title="timer sound">♪ on</button>
 </header>
@@ -340,10 +349,11 @@ h1.page{font-family:var(--mono);font-size:20px;font-weight:600;margin:6px 0 2px;
 
 <div id="overlay" class="overlay hidden"></div>
 
+<script src="shared-storage.js"></script>
+
 <script src="workout-exercises.js"></script>
 <script src="workout-sheets.js"></script>
 <script src="workout-render.js"></script>
-<script src="workout-shared-storage.js"></script>
 <script src="workout-recorder.js"></script>
 </body>
 </html>

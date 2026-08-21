@@ -10,7 +10,40 @@ function render()
   app.innerHTML = ui.view=='workout' && activeWorkout() ? renderWorkout(activeWorkout()) : renderHome();
   renderOverlay();
   document.getElementById('soundbtn').textContent = state.settings.sound ? '♪ on' : '♪ off';
+  renderStorageStatus();
   syncWorkoutDurationHandle();
+}
+
+function renderStorageStatus()
+{
+  let el = document.getElementById('storage_status');
+  let info = ui.storageStatus;
+  let cls = 'storage-status';
+
+  if (!el || !info)
+  {
+    return;
+  }
+
+  switch (info.kind)
+  {
+    case 'ok':
+      cls += ' ok';
+      break;
+
+    case 'warn':
+      cls += ' warn';
+      break;
+
+    default:
+      cls += ' checking';
+      break;
+  }
+
+  el.className = cls;
+  el.textContent = info.text;
+  el.title = info.title;
+  el.setAttribute('aria-label', info.title);
 }
 
 function renderHome()

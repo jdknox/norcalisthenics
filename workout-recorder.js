@@ -2221,6 +2221,34 @@ function ringLineClass(ri)
 
 /* ======== storage (artifact window.storage → localStorage fallback) ======== */
 let storage_key = 'wr:data:v1';
+function setStorageStatus(kind, text, title)
+{
+  ui.storageStatus = {
+    kind: kind,
+    text: text,
+    title: title
+  };
+
+  if (typeof renderStorageStatus == 'function')
+  {
+    renderStorageStatus();
+  }
+}
+window.setStorageStatus = setStorageStatus;
+
+if (window.pending_storage_status)
+{
+  setStorageStatus(window.pending_storage_status.kind, window.pending_storage_status.text, window.pending_storage_status.title);
+}
+
+setTimeout(function()
+{
+  if (ui && ui.storageStatus && ui.storageStatus.kind == 'checking')
+  {
+    setStorageStatus('warn', 'storage: stalled', 'shared storage check did not finish; check the local server and browser network state');
+  }
+}, 2500);
+
 let store = {
   load: function()
   {
@@ -2241,18 +2269,22 @@ let store = {
     {
       return window.storage.get(storage_key).then(function(result)
       {
+        setStorageStatus('ok', 'storage: server', 'shared storage server responded; loading and saving go through the server');
+
         if (result && result.value)
         {
           return JSON.parse(result.value);
         }
 
         return null;
-      }, function()
+      }, function(error)
       {
+        setStorageStatus('warn', 'storage: browser fallback', 'shared storage load failed; using browser local storage' + (error && error.message ? ' (' + error.message + ')' : ''));
         return readLocal();
       });
     }
 
+    setStorageStatus('warn', 'storage: browser only', 'shared storage adapter missing; using browser local storage');
     return Promise.resolve(readLocal());
   },
   _t:null,
@@ -2296,13 +2328,16 @@ let store = {
     {
       return window.storage.set(storage_key, json_text).then(function()
       {
+        setStorageStatus('ok', 'storage: server', 'shared storage server responded; loading and saving go through the server');
         return null;
-      }, function()
+      }, function(error)
       {
+        setStorageStatus('warn', 'storage: browser fallback', 'shared storage save failed; using browser local storage' + (error && error.message ? ' (' + error.message + ')' : ''));
         return writeLocal(json_text);
       });
     }
 
+    setStorageStatus('warn', 'storage: browser only', 'shared storage adapter missing; using browser local storage');
     return writeLocal(json_text);
   }
 };
@@ -2330,6 +2365,11 @@ let ui = {
   painExId: null,
   expFmt: 'plain',
   importMsg: null,
+  storageStatus: {
+    kind: window.storage ? 'checking' : 'warn',
+    text: window.storage ? 'storage: checking' : 'storage: browser only',
+    title: window.storage ? 'checking shared storage server' : 'shared storage adapter missing; using browser local storage'
+  },
   sectionOpen: {}
 };
 
