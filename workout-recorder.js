@@ -1217,7 +1217,7 @@ function buildPlain(workout, rig, profile)
         }
       }
     }
-    else 
+    else
     {
       for (j = 0; j < performed.length; ++j)
       {
@@ -1315,7 +1315,7 @@ function buildCompact(workout, rig, profile)
         }
       }
     }
-    else 
+    else
     {
       uses_load = false;
       for (j = 0; j < ex.sets.length; ++j)
@@ -1358,7 +1358,7 @@ function buildCompact(workout, rig, profile)
         {
           body_parts.push(set.load + ' ' + (set.unit || 'kg') + ' x ' + reps + tag);
         }
-        else 
+        else
         {
           body_parts.push(reps + tag);
         }
@@ -1448,7 +1448,7 @@ function buildCSV(workout, rig, profile)
       {
         status = '';
       }
-      else 
+      else
       {
         status = set.status;
       }
@@ -2254,7 +2254,7 @@ let store = {
   {
     function readLocal()
     {
-      try 
+      try
       {
         let stored_value = localStorage.getItem(storage_key);
         return stored_value ? JSON.parse(stored_value) : null;
@@ -2294,7 +2294,7 @@ let store = {
     let self_ref = this;
     this._t = setTimeout(function()
     {
-      self_ref.flush(data); 
+      self_ref.flush(data);
     }, 400);
     this._pending = data;
   },
@@ -2302,7 +2302,7 @@ let store = {
   {
     function writeLocal(json_text)
     {
-      try 
+      try
       {
         localStorage.setItem(storage_key, json_text);
       }
@@ -2315,13 +2315,13 @@ let store = {
     if (!data) return Promise.resolve();
 
     let json_text;
-    try 
+    try
     {
-      json_text = JSON.stringify(data); 
+      json_text = JSON.stringify(data);
     }
     catch(e)
     {
-      return Promise.resolve(); 
+      return Promise.resolve();
     }
 
     if (window.storage && window.storage.set)
@@ -2343,11 +2343,11 @@ let store = {
 };
 document.addEventListener('visibilitychange', function()
 {
-  if (document.visibilityState=='hidden') store.flush(); 
+  if (document.visibilityState=='hidden') store.flush();
 });
 window.addEventListener('pagehide', function()
 {
-  store.flush(); 
+  store.flush();
 });
 
 /* ======== state ======== */
@@ -2585,7 +2585,7 @@ function applyLibraryExerciseToDraft(d)
 
 function save()
 {
-  store.save(state); 
+  store.save(state);
 }
 
 function buildFixTimesDraft(workout)
@@ -2750,19 +2750,19 @@ function findWorkout(id)
 {
   return state.workouts.find(function(w)
   {
-    return w.id==id; 
-  }); 
+    return w.id==id;
+  });
 }
 function activeWorkout()
 {
-  return findWorkout(state.activeId); 
+  return findWorkout(state.activeId);
 }
 function findEx(w, exId)
 {
   return w && w.exercises.find(function(e)
   {
-    return e.id==exId; 
-  }); 
+    return e.id==exId;
+  });
 }
 function findSet(w, setId)
 {
@@ -2772,7 +2772,7 @@ function findSet(w, setId)
     let ex = w.exercises[i];
     let s = ex.sets.find(function(x)
     {
-      return x.id==setId; 
+      return x.id==setId;
     });
     if (s) return { ex:ex, set:s };
   }
@@ -2789,12 +2789,12 @@ function touchPreset(ex)
     setup: ex.setup || '',
     lastTargets: ex.mode=='ladder' ? null : ex.sets.map(function(s)
     {
-      return { reps: s.target!=null?s.target:s.reps, load: s.load }; 
+      return { reps: s.target!=null?s.target:s.reps, load: s.load };
     }),
     lastLadders: ex.mode=='ladder' ? rungsOf(ex) : null,
     unit: (ex.sets.find(function(s)
     {
-      return s.unit; 
+      return s.unit;
     })||{}).unit || 'kg',
     ring: ringType(ex) != 'none' ? { type:ex.ring.type, Rr:ex.ring.Rr, H:ex.ring.H } : null
   };
@@ -3405,14 +3405,14 @@ function beep()
   }
   catch(e)
   {}
-  if (navigator.vibrate) 
+  if (navigator.vibrate)
   {
     try
     {
-      navigator.vibrate(200); 
+      navigator.vibrate(200);
     }
     catch(e)
-    {} 
+    {}
   }
 }
 function startTimer(target, label, setId)
@@ -3429,7 +3429,7 @@ function stopTimer()
   document.getElementById('timerbar').classList.add('hidden');
   if (tick_handle)
   {
-    clearInterval(tick_handle); tick_handle = null; 
+    clearInterval(tick_handle); tick_handle = null;
   }
   save();
 }
@@ -3461,7 +3461,7 @@ function tick()
 
   if (over && !beeped)
   {
-    beeped = true; beep(); 
+    beeped = true; beep();
   }
 }
 
@@ -3515,18 +3515,18 @@ function completeSet(setId)
   {
     let more = ex.sets.some(function(x)
     {
-      return x.ladderIndex==s.ladderIndex && (x.rungIndex||0) > (s.rungIndex||0) && x.status=='planned'; 
+      return x.ladderIndex==s.ladderIndex && (x.rungIndex||0) > (s.rungIndex||0) && x.status=='planned';
     });
     if (more)
     {
-      target = ex.restRung; label = ex.name + ' · rung rest'; s.restTarget = ex.restRung; 
+      target = ex.restRung; label = ex.name + ' · rung rest'; s.restTarget = ex.restRung;
     }
-    else 
+    else
     {
-      target = ex.restSet; label = ex.name + ' · ladder rest'; s.restTarget = ex.restSet; 
+      target = ex.restSet; label = ex.name + ' · ladder rest'; s.restTarget = ex.restSet;
     }
   }
-  else 
+  else
   {
     s.restTarget = ex.restSet;
   }
@@ -3541,7 +3541,7 @@ function setStatus(setId, status)
   let now;
   if (!isDone(s) && (status=='done_ugly' || status=='pain'))
   {
-    if (s.reps==null) s.reps = s.target||0; 
+    if (s.reps==null) s.reps = s.target||0;
   }
   s.status = status;
   /* stamp the first transition into a performed state; re-tagging clean->ugly
@@ -3554,11 +3554,11 @@ function setStatus(setId, status)
   }
   if (status=='pain')
   {
-    ui.painExId = hit.ex.id; 
+    ui.painExId = hit.ex.id;
   }
   if (status=='failed' || status=='skipped')
   {
-    if (s.reps==null) s.reps = 0; 
+    if (s.reps==null) s.reps = 0;
   }
   save(); render();
 }
@@ -3577,7 +3577,7 @@ function cloneWorkout(srcId, applyProg)
     {
       ex.sets = buildLadderSets(applyProg ? sug.ladders : (rungsOf(sx).length ? rungsOf(sx) : [[1]]));
     }
-    else 
+    else
     {
       let unit = (sx.sets.find(function(s)
       {
@@ -3586,7 +3586,7 @@ function cloneWorkout(srcId, applyProg)
       let targets = applyProg ? sug.targets
         : sx.sets.map(function(s)
         {
-          return { reps: s.target!=null?s.target:(s.reps||0), load: s.load }; 
+          return { reps: s.target!=null?s.target:(s.reps||0), load: s.load };
         });
       if (!targets.length) targets = [{reps:0}];
       ex.sets = buildSetsFromTargets(targets, unit);
@@ -3658,7 +3658,7 @@ function openAddEx(editExId, prefillName)
       if (ex.mode=='ladder') d.tops = laddersLabel(rungsOf(ex));
       else d.targets = ex.sets.map(function(s)
       {
-        return (s.load!=null? s.load+'x':'')+(s.target!=null?s.target:(s.reps||0)); 
+        return (s.load!=null? s.load+'x':'')+(s.target!=null?s.target:(s.reps||0));
       }).join(' / ');
     }
   }
@@ -3683,12 +3683,12 @@ function applyPresetToDraft(d)
   {
     d.targets = p.lastTargets.map(function(t)
     {
-      return (t.load!=null? t.load+'x':'')+t.reps; 
+      return (t.load!=null? t.load+'x':'')+t.reps;
     }).join(' / ');
   }
   if (p.ring)
   {
-    d.ringType = p.ring.type || 'pushup'; d.ringRr = p.ring.Rr!=null?String(p.ring.Rr):''; d.ringH = p.ring.H!=null?String(p.ring.H):''; 
+    d.ringType = p.ring.type || 'pushup'; d.ringRr = p.ring.Rr!=null?String(p.ring.Rr):''; d.ringH = p.ring.H!=null?String(p.ring.H):'';
   }
 }
 function draftRing(d)
@@ -3701,7 +3701,7 @@ function saveAddEx()
   let o = ui.overlay; if (!o || o.type!='addex') return;
   let w = activeWorkout(); if (!w)
   {
-    w = newWorkout('Workout'); ui.view='workout'; 
+    w = newWorkout('Workout'); ui.view='workout';
   }
   let d = o.draft;
   let name = (d.name||'').trim(); if (!name) return;
@@ -3723,23 +3723,23 @@ function saveAddEx()
         let ladder_rungs = parseLadders(d.tops); if (!ladder_rungs.length) ladder_rungs=[[1]];
         ex.sets = rebuildLadderSets(ex, ladder_rungs);
       }
-      else 
+      else
       {
         let tg = parseTargets(d.targets); if (!tg.length) tg=[{reps:0}];
         fresh = buildSetsFromTargets(tg.slice(performed.length), 'kg');
         if (d.mode!='weighted') fresh.forEach(function(s)
         {
-          if (!performed.length) 
+          if (!performed.length)
           {
-            s.load=null; s.unit=null; 
-          } 
+            s.load=null; s.unit=null;
+          }
         });
         ex.sets = performed.concat(fresh);
       }
     }
     touchPreset(ex);
   }
-  else 
+  else
   {
     let nx = makeExercise({ name:name, mode:d.mode, setup:d.setup, restSet:restSet, restRung:restRung, ring:draftRing(d) });
     if (d.mode=='ladder')
@@ -3747,7 +3747,7 @@ function saveAddEx()
       let ladder_rungs = parseLadders(d.tops); if (!ladder_rungs.length) ladder_rungs=[[1]];
       nx.sets = buildLadderSets(ladder_rungs);
     }
-    else 
+    else
     {
       let tt = parseTargets(d.targets); if (!tt.length) tt=[{reps: d.mode=='timed'?30:8}];
       nx.sets = buildSetsFromTargets(tt, 'kg');
@@ -3756,7 +3756,7 @@ function saveAddEx()
     {
       let i = w.exercises.findIndex(function(e)
       {
-        return e.id==o.afterExId; 
+        return e.id==o.afterExId;
       });
       w.exercises.splice(i+1, 0, nx);
     }
@@ -3886,7 +3886,7 @@ function copyTextAreaValue(out_id, msg_id)
     out.focus();
     out.select();
 
-    try 
+    try
     {
       document.execCommand('copy');
       ok();
@@ -4703,7 +4703,7 @@ document.addEventListener('click', function(ev)
         {
           hit.set.target = Math.max(0, (hit.set.target || 0) + delta);
         }
-        else 
+        else
         {
           hit.set.reps = Math.max(0, (hit.set.reps || 0) + delta);
         }
@@ -5163,7 +5163,7 @@ function boot()
 
     if (loaded && loaded.workouts)
     {
-      state = Object.assign(state, loaded); 
+      state = Object.assign(state, loaded);
     }
     if (!state.settings) state.settings = { sound:true, countdown:false };
     if (state.settings.countdown == null) state.settings.countdown = false;
