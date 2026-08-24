@@ -478,6 +478,7 @@ function timestampOfDateTime(iso_date, hhmm)
   {
     return null;
   }
+
   if (!isISODate(iso_date))
   {
     return null;
@@ -500,6 +501,7 @@ function timestampOfDateTime(iso_date, hhmm)
   {
     return null;
   }
+
   if (hours < 0 || hours > 23 || mins < 0 || mins > 59)
   {
     return null;
@@ -1088,6 +1090,7 @@ function fmtDur(sec)
   {
     return '';
   }
+
   if (sec < 60)
   {
     return sec + 's';
@@ -1124,6 +1127,7 @@ function setLineText(ex, set)
   {
     return reps + ' sec' + tag;
   }
+
   if (set.load != null)
   {
     return set.load + ' ' + (set.unit || 'kg') + ' x ' + reps + ' reps' + tag;
@@ -1990,6 +1994,7 @@ function bodyAngle(anchor_height, body_len, pivot_dist, ring_height, arm_len)
   {
     return { status: 'incomplete', deg: 0 };
   }
+
   if (!(anchor_height > 0) || !(body_len > 0))
   {
     return { status: 'incomplete', deg: 0 };
@@ -2034,6 +2039,7 @@ function calibrateAnchor(x1, y1, ringRestHeight)
   {
     return null;
   }
+
   if (isNaN(x1) || isNaN(y1) || isNaN(ringRestHeight))
   {
     return null;
@@ -2155,14 +2161,17 @@ function ringInfo(ex, rig, profile)
   {
     missing.push('anchor height');
   }
+
   if (body_len == null)
   {
     missing.push(ringPivotWord(type) + '-to-shoulder');
   }
+
   if (arm_len == null)
   {
     missing.push('arm length');
   }
+
   if (missing.length)
   {
     return { incomplete: true, text: label + ' — set ' + missing.join(' + ') + ' in ⚙ setup' };
@@ -2211,6 +2220,7 @@ function ringLineClass(ri)
   {
     return ' bad';
   }
+
   if (ri.incomplete)
   {
     return ' faint';
@@ -2219,8 +2229,11 @@ function ringLineClass(ri)
   return '';
 }
 
-/* ======== storage (artifact window.storage → localStorage fallback) ======== */
+/* ======== storage (shared server → localStorage fallback) ======== */
 let storage_key = 'wr:data:v1';
+let storage_flush_timer = null;
+let pending_storage_data = null;
+
 function setStorageStatus(kind, text, title)
 {
   ui.storageStatus = {
@@ -2236,118 +2249,105 @@ function setStorageStatus(kind, text, title)
 }
 window.setStorageStatus = setStorageStatus;
 
-if (window.pending_storage_status)
+function localStorageRead()
 {
-  setStorageStatus(window.pending_storage_status.kind, window.pending_storage_status.text, window.pending_storage_status.title);
+  let stored_value = localStorage.getItem(storage_key);
+  return stored_value ? JSON.parse(stored_value) : null;
 }
 
-setTimeout(function()
+function localStorageWrite(json_text)
+{
+  localStorage.setItem(storage_key, json_text);
+  return Promise.resolve();
+}
+
+function sharedStorageAvailable()
+{
+  return window.sharedStorageGet && window.sharedStorageSet;
+}
+
+function loadStorage()
+{
+  if (sharedStorageAvailable())
+  {
+    return window.sharedStorageGet(storage_key).then(function(result)
+    {
+      setStorageStatus('ok', 'storage: server', 'shared storage server responded; loading and saving go through the server');
+
+      if (result && result.value)
+      {
+        return JSON.parse(result.value);
+      }
+
+      return null;
+    }, function(error)
+    {
+      let message = error && error.message ? ' (' + error.message + ')' : '';
+      setStorageStatus('warn', 'storage: browser fallback', 'shared storage load failed; using browser local storage' + message);
+      return localStorageRead();
+    });
+  }
+
+  setStorageStatus('warn', 'storage: browser only', 'shared storage adapter missing; using browser local storage');
+  return Promise.resolve(localStorageRead());
+}
+
+function saveStorage(data)
+{
+  clearTimeout(storage_flush_timer);
+  storage_flush_timer = setTimeout(function()
+  {
+    flushStorage(data);
+  }, 400);
+  pending_storage_data = data;
+}
+
+function flushStorage(data)
+{
+  data = data || pending_storage_data;
+  if (!data)
+  {
+    return Promise.resolve();
+  }
+
+  let json_text = JSON.stringify(data);
+
+  if (sharedStorageAvailable())
+  {
+    return window.sharedStorageSet(storage_key, json_text).then(function()
+    {
+      setStorageStatus('ok', 'storage: server', 'shared storage server responded; loading and saving go through the server');
+      return null;
+    }, function(error)
+    {
+      let message = error && error.message ? ' (' + error.message + ')' : '';
+      setStorageStatus('warn', 'storage: browser fallback', 'shared storage save failed; using browser local storage' + message);
+      return localStorageWrite(json_text);
+    });
+  }
+
+  setStorageStatus('warn', 'storage: browser only', 'shared storage adapter missing; using browser local storage');
+  return localStorageWrite(json_text);
+}
+
+function checkStorageStatus()
 {
   if (ui && ui.storageStatus && ui.storageStatus.kind == 'checking')
   {
     setStorageStatus('warn', 'storage: stalled', 'shared storage check did not finish; check the local server and browser network state');
   }
-}, 2500);
+}
 
-let store = {
-  load: function()
-  {
-    function readLocal()
-    {
-      try
-      {
-        let stored_value = localStorage.getItem(storage_key);
-        return stored_value ? JSON.parse(stored_value) : null;
-      }
-      catch (e)
-      {
-        return null;
-      }
-    }
-
-    if (window.storage && window.storage.get)
-    {
-      return window.storage.get(storage_key).then(function(result)
-      {
-        setStorageStatus('ok', 'storage: server', 'shared storage server responded; loading and saving go through the server');
-
-        if (result && result.value)
-        {
-          return JSON.parse(result.value);
-        }
-
-        return null;
-      }, function(error)
-      {
-        setStorageStatus('warn', 'storage: browser fallback', 'shared storage load failed; using browser local storage' + (error && error.message ? ' (' + error.message + ')' : ''));
-        return readLocal();
-      });
-    }
-
-    setStorageStatus('warn', 'storage: browser only', 'shared storage adapter missing; using browser local storage');
-    return Promise.resolve(readLocal());
-  },
-  _t:null,
-  save: function(data)
-  {
-    clearTimeout(this._t);
-    let self_ref = this;
-    this._t = setTimeout(function()
-    {
-      self_ref.flush(data);
-    }, 400);
-    this._pending = data;
-  },
-  flush: function(data)
-  {
-    function writeLocal(json_text)
-    {
-      try
-      {
-        localStorage.setItem(storage_key, json_text);
-      }
-      catch (e)
-      {}
-      return Promise.resolve();
-    }
-
-    data = data || this._pending;
-    if (!data) return Promise.resolve();
-
-    let json_text;
-    try
-    {
-      json_text = JSON.stringify(data);
-    }
-    catch(e)
-    {
-      return Promise.resolve();
-    }
-
-    if (window.storage && window.storage.set)
-    {
-      return window.storage.set(storage_key, json_text).then(function()
-      {
-        setStorageStatus('ok', 'storage: server', 'shared storage server responded; loading and saving go through the server');
-        return null;
-      }, function(error)
-      {
-        setStorageStatus('warn', 'storage: browser fallback', 'shared storage save failed; using browser local storage' + (error && error.message ? ' (' + error.message + ')' : ''));
-        return writeLocal(json_text);
-      });
-    }
-
-    setStorageStatus('warn', 'storage: browser only', 'shared storage adapter missing; using browser local storage');
-    return writeLocal(json_text);
-  }
-};
 document.addEventListener('visibilitychange', function()
 {
-  if (document.visibilityState=='hidden') store.flush();
+  if (document.visibilityState == 'hidden')
+  {
+    flushStorage();
+  }
 });
 window.addEventListener('pagehide', function()
 {
-  store.flush();
+  flushStorage();
 });
 
 /* ======== state ======== */
@@ -2366,12 +2366,19 @@ let ui = {
   expFmt: 'plain',
   importMsg: null,
   storageStatus: {
-    kind: window.storage ? 'checking' : 'warn',
-    text: window.storage ? 'storage: checking' : 'storage: browser only',
-    title: window.storage ? 'checking shared storage server' : 'shared storage adapter missing; using browser local storage'
+    kind: sharedStorageAvailable() ? 'checking' : 'warn',
+    text: sharedStorageAvailable() ? 'storage: checking' : 'storage: browser only',
+    title: sharedStorageAvailable() ? 'checking shared storage server' : 'shared storage adapter missing; using browser local storage'
   },
   sectionOpen: {}
 };
+
+if (window.pending_storage_status)
+{
+  setStorageStatus(window.pending_storage_status.kind, window.pending_storage_status.text, window.pending_storage_status.title);
+}
+
+setTimeout(checkStorageStatus, 2500);
 
 function sectionIsOpen(key, default_open)
 {
@@ -2575,6 +2582,7 @@ function applyLibraryExerciseToDraft(d)
       return (t.load != null ? t.load + 'x' : '') + t.reps;
     }).join(' / ');
   }
+
   if (ex.ring)
   {
     d.ringType = ex.ring.type || 'pushup';
@@ -2585,7 +2593,7 @@ function applyLibraryExerciseToDraft(d)
 
 function save()
 {
-  store.save(state);
+  saveStorage(state);
 }
 
 function buildFixTimesDraft(workout)
@@ -2626,6 +2634,7 @@ function setWorkoutDate(workout, iso_date)
   {
     return false;
   }
+
   if (!isISODate(iso_date))
   {
     return false;
@@ -2701,6 +2710,7 @@ function saveFixTimes(workout, draft)
     alert('Enter both began date and time, or leave both blank.');
     return;
   }
+
   if ((draft.finishedDate && !draft.finishedTime) || (!draft.finishedDate && draft.finishedTime))
   {
     alert('Enter both ended date and time, or leave both blank.');
@@ -2714,16 +2724,19 @@ function saveFixTimes(workout, draft)
     alert('Enter a valid began date and time.');
     return;
   }
+
   if (draft.finishedDate && draft.finishedTime && finished_at == null)
   {
     alert('Enter a valid ended date and time.');
     return;
   }
+
   if (finished_at != null && started_at == null)
   {
     alert('Set a began date and time before setting an ended time.');
     return;
   }
+
   if (started_at != null && finished_at != null && finished_at < started_at)
   {
     alert('Ended time must be after began time.');
@@ -2737,6 +2750,7 @@ function saveFixTimes(workout, draft)
   {
     workout.date = isoDateOfTimestamp(started_at);
   }
+
   if (finished_at != null || started_at == null)
   {
     stopTimer();
@@ -2753,10 +2767,12 @@ function findWorkout(id)
     return w.id==id;
   });
 }
+
 function activeWorkout()
 {
   return findWorkout(state.activeId);
 }
+
 function findEx(w, exId)
 {
   return w && w.exercises.find(function(e)
@@ -2764,6 +2780,7 @@ function findEx(w, exId)
     return e.id==exId;
   });
 }
+
 function findSet(w, setId)
 {
   if (!w) return null;
@@ -3022,22 +3039,27 @@ function buildExerciseLibraryJS(exercise_list)
     {
       item_lines.push('      setup: ' + jsString(ex.setup));
     }
+
     if (ex.restSet != null)
     {
       item_lines.push('      restSet: ' + ex.restSet);
     }
+
     if (ex.restRung != null && ex.mode == 'ladder')
     {
       item_lines.push('      restRung: ' + ex.restRung);
     }
+
     if (ex.unit)
     {
       item_lines.push('      unit: ' + jsString(ex.unit));
     }
+
     if (ex.ring)
     {
       item_lines.push('      ring: { type: ' + jsString(ex.ring.type || 'none') + ', Rr: ' + (ex.ring.Rr == null ? 'null' : ex.ring.Rr) + ', H: ' + (ex.ring.H == null ? 'null' : ex.ring.H) + ' }');
     }
+
     if (ex.defaultTargets && ex.defaultTargets.length)
     {
       lines.push('    {');
@@ -3061,6 +3083,7 @@ function buildExerciseLibraryJS(exercise_list)
       lines.push('    }' + (i + 1 < list.length ? ',' : ''));
       continue;
     }
+
     if (ex.defaultLadders && ex.defaultLadders.length)
     {
       lines.push('    {');
@@ -3174,6 +3197,7 @@ function makeSet(o)
   return Object.assign({ id: uid(), ladderIndex:null, rungIndex:null, target:null, reps:null,
     load:null, unit:null, status:'planned', restTarget:null, doneAt:null, note:'' }, o||{});
 }
+
 function makeExercise(o)
 {
   let ex = Object.assign({ id: uid(), name:'', mode:'straight', setup:'', notes:'',
@@ -3182,6 +3206,7 @@ function makeExercise(o)
   if (ex.ring.type == null) ex.ring.type = ex.ring.enabled ? 'pushup' : 'none';  // migrate old shape
   return ex;
 }
+
 function buildSetsFromTargets(targets, unit)
 {
   return targets.map(function(t)
@@ -3269,6 +3294,7 @@ function buildLadderSets(ladder_rungs)
 
   return sets;
 }
+
 function newWorkout(name)
 {
   let w = { id: uid(), date: todayISO(), name: name || 'Workout', notes:'', exercises: [], startedAt:null, finishedAt:null, finished:false };
@@ -3283,6 +3309,7 @@ function ensureWorkoutStarted(workout, when)
   {
     return;
   }
+
   if (workout.startedAt == null)
   {
     workout.startedAt = when != null ? when : Date.now();
@@ -3389,6 +3416,7 @@ function applyBackup(text)
 let timer = null; /* { since, target, label, setId } */
 let tick_handle = null, beeped = false, audio_ctx = null;
 let workout_duration_handle = null;
+
 function beep()
 {
   if (!state.settings.sound) return;
@@ -3397,7 +3425,7 @@ function beep()
     audio_ctx = audio_ctx || new (window.AudioContext || window.webkitAudioContext)();
     let oscillator = audio_ctx.createOscillator();
     let gain = audio_ctx.createGain();
-    oscillator.type = 'square'; oscillator.frequency.value = 880;
+    oscillator.type = 'square'; oscillator.frequency.value = 440;
     gain.gain.setValueAtTime(0.08, audio_ctx.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.0001, audio_ctx.currentTime + 0.35);
     oscillator.connect(gain); gain.connect(audio_ctx.destination);
@@ -3405,6 +3433,7 @@ function beep()
   }
   catch(e)
   {}
+
   if (navigator.vibrate)
   {
     try
@@ -3415,6 +3444,7 @@ function beep()
     {}
   }
 }
+
 function startTimer(target, label, setId)
 {
   timer = { since: Date.now(), target: target, label: label, setId: setId };
@@ -3423,6 +3453,7 @@ function startTimer(target, label, setId)
   if (!tick_handle) tick_handle = setInterval(tick, 250);
   tick();
 }
+
 function stopTimer()
 {
   timer = null;
@@ -3433,6 +3464,7 @@ function stopTimer()
   }
   save();
 }
+
 function tick()
 {
   if (!timer) return;
@@ -3534,6 +3566,7 @@ function completeSet(setId)
   touchPreset(ex);
   save(); render();
 }
+
 function setStatus(setId, status)
 {
   let w = activeWorkout(); let hit = findSet(w, setId); if (!hit) return;
@@ -3552,10 +3585,12 @@ function setStatus(setId, status)
     ensureWorkoutStarted(w, now);
     s.doneAt = now;
   }
+
   if (status=='pain')
   {
     ui.painExId = hit.ex.id;
   }
+
   if (status=='failed' || status=='skipped')
   {
     if (s.reps==null) s.reps = 0;
@@ -3591,12 +3626,14 @@ function cloneWorkout(srcId, applyProg)
       if (!targets.length) targets = [{reps:0}];
       ex.sets = buildSetsFromTargets(targets, unit);
     }
+
     if (applyProg && sug.warn) ex.notes = '⚠ ' + sug.reason;
     w.exercises.push(ex);
   });
   ui.view = 'workout'; ui.overlay = null;
   save(); render(); window.scrollTo(0,0);
 }
+
 function loadSample()
 {
   let sample = exerciseLibrary().sampleWorkout;
@@ -3665,6 +3702,7 @@ function openAddEx(editExId, prefillName)
   ui.overlay = { type:'addex', editExId: editExId||null, draft: d, afterExId: null };
   render();
 }
+
 function applyPresetToDraft(d)
 {
   let p = state.presets[(d.name||'').trim().toLowerCase()];
@@ -3686,16 +3724,19 @@ function applyPresetToDraft(d)
       return (t.load!=null? t.load+'x':'')+t.reps;
     }).join(' / ');
   }
+
   if (p.ring)
   {
     d.ringType = p.ring.type || 'pushup'; d.ringRr = p.ring.Rr!=null?String(p.ring.Rr):''; d.ringH = p.ring.H!=null?String(p.ring.H):'';
   }
 }
+
 function draftRing(d)
 {
   let Rr = parseFloat(d.ringRr), H = parseFloat(d.ringH);
   return { type: d.ringType || 'none', Rr: isNaN(Rr) ? null : Rr, H: isNaN(H) ? null : H };
 }
+
 function saveAddEx()
 {
   let o = ui.overlay; if (!o || o.type!='addex') return;
@@ -3752,6 +3793,7 @@ function saveAddEx()
       let tt = parseTargets(d.targets); if (!tt.length) tt=[{reps: d.mode=='timed'?30:8}];
       nx.sets = buildSetsFromTargets(tt, 'kg');
     }
+
     if (o.afterExId)
     {
       let i = w.exercises.findIndex(function(e)
@@ -5157,7 +5199,7 @@ document.addEventListener('focusout', function(ev)
 /* ======== boot ======== */
 function boot()
 {
-  store.load().then(function(loaded)
+  loadStorage().then(function(loaded)
   {
     let active_workout;
 
@@ -5165,6 +5207,7 @@ function boot()
     {
       state = Object.assign(state, loaded);
     }
+
     if (!state.settings) state.settings = { sound:true, countdown:false };
     if (state.settings.countdown == null) state.settings.countdown = false;
     if (!state.rig) state.rig = { anchorHeight:null, calX:null, calY:null, calRr:null };
@@ -5178,6 +5221,7 @@ function boot()
     {
       state.profile.shoulderPushup = state.profile.shoulder;
     }
+
     if (state.profile.shoulderRow == null) state.profile.shoulderRow = null;
     if (state.profile.arm == null) state.profile.arm = null;
 
@@ -5189,11 +5233,13 @@ function boot()
       {
         w.startedAt = null;
       }
+
       if (w.finishedAt == null)
       {
         latest_done_at = latestDoneAtOfWorkout(w);
         w.finishedAt = w.finished ? (latest_done_at != null ? latest_done_at : w.startedAt) : null;
       }
+
       w.exercises.forEach(function(ex)
       {
         if (!ex.ring) ex.ring = { type:'none', Rr:null, H:null };
@@ -5208,6 +5254,7 @@ function boot()
           {
             delete s.restActual;
           }
+
           if (s.doneAt == null)
           {
             s.doneAt = null;
