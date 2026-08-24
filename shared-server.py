@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 
+# > [!WARNING]
+# > ⚠️ **AI-gerenated Code:**
+
 import http.server
 import json
 import time
