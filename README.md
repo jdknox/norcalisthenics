@@ -34,7 +34,8 @@ data.
 - [workout-recorder.js](workout-recorder.js): app state, actions, storage, import/export, boot
 - [workout-render.js](workout-render.js): main screen rendering
 - [workout-sheets.js](workout-sheets.js): overlay sheets and sheet-only helpers
-- [workout-exercises.js](workout-exercises.js): static exercise library and sample data
+- [workout-exercises.js](workout-exercises.js): static exercise library defaults
+- [workout-sample.js](workout-sample.js): sample workout loaded from the empty state
 - [claude_changelog.md](claude_changelog.md): development history
 - [AI_AGENT_SESSIONS.md](AI_AGENT_SESSIONS.md): AI-assisted work streams and context anchors
 
@@ -42,25 +43,27 @@ data.
 
 - direct-file use stores data in browser local storage
 - shared use should store data through the local Python server
-- the intended RPi/shared direction is to use the TSV backup format as the
-  canonical data file
+- shared server use stores the TSV backup format as the canonical data file in
+  `workout-data.tsv`
 - full backups are text files produced by the app
 - backup text format is meant for round-tripping, not for hand editing
 - workout library defaults come from `workout-exercises.js`, but the editable saved library lives in browser storage
+- the sample workout is separate from the editable exercise library and lives in `workout-sample.js`
 
 ## Local server direction
 
 Use Python for the local/RPi server unless there is a specific reason to keep a
-compiled C daemon. Python's standard library can serve the files, disable
-browser caching, and handle the simple data-file operations this app needs:
+compiled C daemon. Python's standard library serves the files, disables browser
+caching, and handles the simple data-file operations this app needs:
 
-- `GET` returns the current TSV data file
-- `PUT` or `POST` writes a new TSV body to a temporary file
+- `GET /api/workout-data` returns the current TSV data file
+- `PUT` or `POST /api/workout-data` writes a new TSV body to a temporary file
 - the previous TSV is rotated to a backup
 - the temporary file is renamed into place atomically
 
 The C server in [src/workout-server.c](src/workout-server.c) is optional
-experimental work. It could eventually replace the Python server.
+experimental work. It does not need to replace the Python server just to move
+from JSON storage to TSV storage.
 
 ## Editing notes
 
@@ -73,5 +76,5 @@ experimental work. It could eventually replace the Python server.
 
 - `.codex` is ignored
 - `backups/` currently holds sample backup files, not app code
-- runtime data files such as `shared-storage.json` are ignored because they are
-  machine-local user data, not source
+- runtime data files such as `workout-data.tsv` and `shared-storage.json` are
+  ignored because they are machine-local user data, not source

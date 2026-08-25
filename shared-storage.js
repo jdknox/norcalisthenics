@@ -20,31 +20,28 @@ function notifyStorageStatus(kind, text, title)
   };
 }
 
-function storageUrl(key)
-{
-  return '/api/storage?key=' + encodeURIComponent(key);
-}
+let workout_data_url = '/api/workout-data';
 
-function readStorageJson(response)
+function readStorageText(response)
 {
   if (!response.ok)
   {
     throw new Error('storage request failed: ' + response.status);
   }
 
-  return response.json();
+  return response.text();
 }
 
-function sharedStorageGet(key)
+function sharedStorageLoadText()
 {
   notifyStorageStatus('checking', 'storage: checking', 'checking shared storage server');
-  return fetch(storageUrl(key), {
+  return fetch(workout_data_url, {
     method: 'GET',
     cache: 'no-store'
-  }).then(readStorageJson).then(function(result)
+  }).then(readStorageText).then(function(text)
   {
     notifyStorageStatus('ok', 'storage: server', 'shared storage server responded; loading and saving go through the server');
-    return result;
+    return text;
   }, function(error)
   {
     let message = error && error.message ? ' (' + error.message + ')' : '';
@@ -53,16 +50,16 @@ function sharedStorageGet(key)
   });
 }
 
-function sharedStorageSet(key, value)
+function sharedStorageSaveText(text)
 {
   notifyStorageStatus('checking', 'storage: checking', 'saving to shared storage server');
-  return fetch(storageUrl(key), {
-    method: 'POST',
+  return fetch(workout_data_url, {
+    method: 'PUT',
     headers: {
-      'Content-Type': 'application/json'
+      'Content-Type': 'text/tab-separated-values; charset=utf-8'
     },
-    body: JSON.stringify({ value: value })
-  }).then(readStorageJson).then(function(result)
+    body: text
+  }).then(readStorageText).then(function(result)
   {
     notifyStorageStatus('ok', 'storage: server', 'shared storage server responded; loading and saving go through the server');
     return result;
@@ -74,5 +71,5 @@ function sharedStorageSet(key, value)
   });
 }
 
-window.sharedStorageGet = sharedStorageGet;
-window.sharedStorageSet = sharedStorageSet;
+window.sharedStorageLoadText = sharedStorageLoadText;
+window.sharedStorageSaveText = sharedStorageSaveText;

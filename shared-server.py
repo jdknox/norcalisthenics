@@ -4,102 +4,25 @@
 # > ⚠️ **AI-gerenated Code:**
 
 import http.server
-import json
+import glob
+import os
 import time
 import urllib.parse
 
 
-storage_file = './shared-storage.json'
+data_file = './workout-data.tsv'
+temp_file = './workout-data.tsv.tmp'
+backup_file = './workout-data.tsv.bak'
 default_host = '0.0.0.0'
 default_port = 8010
 
 
-def readStorage():
-    if not fileExists(storage_file):
-        return {}
-
-    handle = open(storage_file, 'r', encoding='utf-8')
-    text = handle.read()
-    handle.close()
-
-    if text.strip() == '':
-        return {}
-
-    return json.loads(text)
-
-
-def writeStorage(data):
-    handle = open(storage_file, 'w', encoding='utf-8')
-    handle.write(json.dumps(data, indent=2, sort_keys=True))
-    handle.write('\n')
-    handle.close()
-
-
-def parseStoredValue(value):
-    if type(value) != str:
-        return value
-
-    if value == '':
-        return value
-
-    first = value[0]
-    if first != '{' and first != '[':
-        return value
-
-    return json.loads(value)
-
-
-def encodeApiValue(value):
-    if type(value) == str or value == None:
-        return value
-
-    return json.dumps(value, separators=(',', ':'))
-
-
 def fileExists(path):
-    handle = None
-
     if not path:
         return False
 
-    try_open = open(path, 'a+', encoding='utf-8')
-    try_open.close()
-
-    handle = open(path, 'r', encoding='utf-8')
-    handle.close()
-    return True
-
-
-def parseKey(path):
-    parts = urllib.parse.urlparse(path)
-    query = urllib.parse.parse_qs(parts.query)
-    key_list = query.get('key', [])
-
-    if len(key_list) < 1:
-        return ''
-
-    return key_list[0]
-
-
-def readRequestJson(handler):
-    length_text = handler.headers.get('Content-Length', '0')
-    length = int(length_text)
-    raw_body = handler.rfile.read(length)
-
-    if raw_body == b'':
-        return {}
-
-    return json.loads(raw_body.decode('utf-8'))
-
-
-def writeJson(handler, code, payload):
-    body = json.dumps(payload).encode('utf-8')
-    handler.send_response(code)
-    handler.send_header('Content-Type', 'application/json; charset=utf-8')
-    handler.send_header('Content-Length', str(len(body)))
-    noCacheHeaders(handler)
-    handler.end_headers()
-    handler.wfile.write(body)
+    matches = glob.glob(path)
+    return len(matches) > 0
 
 
 def readTextFile(path):
@@ -107,6 +30,19 @@ def readTextFile(path):
     text = handle.read()
     handle.close()
     return text
+
+
+def writeTextFile(path, text):
+    handle = open(path, 'w', encoding='utf-8', newline='')
+    handle.write(text)
+    handle.close()
+
+
+def readRequestText(handler):
+    length_text = handler.headers.get('Content-Length', '0')
+    length = int(length_text)
+    raw_body = handler.rfile.read(length)
+    return raw_body.decode('utf-8')
 
 
 def noCacheHeaders(handler):
@@ -122,6 +58,7 @@ def versionHtmlScripts(html_text):
     script_names = [
         'shared-storage.js',
         'workout-exercises.js',
+        'workout-sample.js',
         'workout-sheets.js',
         'workout-render.js',
         'workout-recorder.js'
@@ -147,6 +84,32 @@ def writeHtml(handler, path):
     handler.wfile.write(body)
 
 
+def writePlainText(handler, code, text, content_type):
+    body = text.encode('utf-8')
+    handler.send_response(code)
+    handler.send_header('Content-Type', content_type)
+    handler.send_header('Content-Length', str(len(body)))
+    noCacheHeaders(handler)
+    handler.end_headers()
+    handler.wfile.write(body)
+
+
+def readWorkoutData():
+    if not fileExists(data_file):
+        return ''
+
+    return readTextFile(data_file)
+
+
+def writeWorkoutData(text):
+    writeTextFile(temp_file, text)
+
+    if fileExists(data_file):
+        os.replace(data_file, backup_file)
+
+    os.replace(temp_file, data_file)
+
+
 class WorkoutHandler(http.server.SimpleHTTPRequestHandler):
     def end_headers(self):
         noCacheHeaders(self)
@@ -158,27 +121,24 @@ class WorkoutHandler(http.server.SimpleHTTPRequestHandler):
         if path == '/' or path == '/workout-recorder.html':
             return writeHtml(self, './workout-recorder.html')
 
-        if path != '/api/storage':
-            return http.server.SimpleHTTPRequestHandler.do_GET(self)
+        if path == '/api/workout-data':
+            text = readWorkoutData()
+            return writePlainText(self, 200, text, 'text/tab-separated-values; charset=utf-8')
 
-        key = parseKey(self.path)
-        data = readStorage()
-        value = encodeApiValue(data.get(key))
-        return writeJson(self, 200, { 'key': key, 'value': value })
+        return http.server.SimpleHTTPRequestHandler.do_GET(self)
 
-    def do_POST(self):
+    def do_PUT(self):
         path = urllib.parse.urlparse(self.path).path
 
-        if path != '/api/storage':
-            return writeJson(self, 404, { 'error': 'not found' })
+        if path != '/api/workout-data':
+            return writePlainText(self, 404, 'not found\n', 'text/plain; charset=utf-8')
 
-        key = parseKey(self.path)
-        payload = readRequestJson(self)
-        value = payload.get('value')
-        data = readStorage()
-        data[key] = parseStoredValue(value)
-        writeStorage(data)
-        return writeJson(self, 200, { 'ok': True, 'key': key })
+        text = readRequestText(self)
+        writeWorkoutData(text)
+        return writePlainText(self, 200, 'ok\n', 'text/plain; charset=utf-8')
+
+    def do_POST(self):
+        return self.do_PUT()
 
 
 def main():

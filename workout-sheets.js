@@ -355,7 +355,7 @@ function sheetExerciseEditor(o)
   h += '<div class="btnrow"><button class="btn small" data-a="exercise-editor-add">+ add exercise</button></div>';
   h += '<div class="import-sec">'
      + '<div class="calib-h">export to js</div>'
-     + '<div class="hint">Exports the current saved exercise list as a `workout-exercises.js` file. The sample workout stays as it is in the checked-in source file.</div>'
+     + '<div class="hint">Exports the current saved exercise list as a `workout-exercises.js` file. The sample workout lives separately in `workout-sample.js`.</div>'
      + '<textarea class="exp-out" id="exercise_js_out" readonly spellcheck="false"></textarea>'
      + '<div class="foot"><span class="hint" id="exercise_js_copymsg"></span>'
      + '<button class="btn" data-a="exercise-js-download">download</button>'
