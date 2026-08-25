@@ -17,7 +17,7 @@ function render()
 function renderStorageStatus()
 {
   let el = document.getElementById('storage_status');
-  let info = ui.storageStatus;
+  let info = ui.storage_status;
   let cls = 'storage-status';
 
   if (!el || !info)
@@ -64,11 +64,11 @@ function renderHome()
   }
 
   h += '<div class="hometabs">'
-     + '<button class="'+(ui.homeTab=='calendar'?'on':'')+'" data-a="home-tab" data-t="calendar">calendar</button>'
-     + '<button class="'+(ui.homeTab=='list'?'on':'')+'" data-a="home-tab" data-t="list">list</button>'
+     + '<button class="'+(ui.home_tab=='calendar'?'on':'')+'" data-a="home-tab" data-t="calendar">calendar</button>'
+     + '<button class="'+(ui.home_tab=='list'?'on':'')+'" data-a="home-tab" data-t="list">list</button>'
      + '</div>';
 
-  if (ui.homeTab == 'calendar') return h + renderCalendar();
+  if (ui.home_tab == 'calendar') return h + renderCalendar();
 
   h += '<div class="wlist">';
   state.workouts.forEach(function(w)
@@ -87,17 +87,17 @@ function renderHome()
 function renderCalendar()
 {
   let byDate = workoutsByDate(state.workouts);
-  let cells = monthCells(ui.calY, ui.calM);
+  let cells = monthCells(ui.cal_y, ui.cal_m);
   let today = todayISO();
   let month_count = state.workouts.filter(function(w)
   {
-    let d = w.date.split('-'); return parseInt(d[0],10)==ui.calY && parseInt(d[1],10)-1==ui.calM;
+    let d = w.date.split('-'); return parseInt(d[0],10)==ui.cal_y && parseInt(d[1],10)-1==ui.cal_m;
   }).length;
 
   let h = '<div class="cal">';
   h += '<div class="cal-h">'
      + '<button class="nav" data-a="cal-prev" aria-label="previous month">‹</button>'
-     + '<div class="mo">'+esc(isoOf(ui.calY, ui.calM, 1).slice(0, 7))+'</div>'
+     + '<div class="mo">'+esc(isoOf(ui.cal_y, ui.cal_m, 1).slice(0, 7))+'</div>'
      + '<button class="nav" data-a="cal-next" aria-label="next month">›</button>'
      + '<div class="stat">'+month_count+(month_count==1?' workout':' workouts')+'</div>'
      + '</div>';
@@ -113,12 +113,12 @@ function renderCalendar()
     {
       h += '<div class="cal-cell blank"></div>'; return; 
     }
-    let iso = isoOf(ui.calY, ui.calM, d);
+    let iso = isoOf(ui.cal_y, ui.cal_m, d);
     let list = byDate[iso] || [];
     let cls = 'cal-cell';
     if (list.length) cls += ' has';
     if (iso == today) cls += ' today';
-    if (iso == ui.calSel) cls += ' sel';
+    if (iso == ui.cal_sel) cls += ' sel';
     h += '<'+(list.length ? 'button' : 'div')+' class="'+cls+'"'
        + (list.length ? ' data-a="cal-day" data-d="'+iso+'"' : '')+'>'
        + (list.length>1 ? '<span class="cnt">'+list.length+'</span>' : '')
@@ -128,12 +128,12 @@ function renderCalendar()
   });
   h += '</div>';
 
-  if (ui.calSel && byDate[ui.calSel])
+  if (ui.cal_sel && byDate[ui.cal_sel])
   {
     h += '<div class="cal-day-panel">';
-    h += '<div class="pd">'+esc(ui.calSel)+'</div>';
+    h += '<div class="pd">'+esc(ui.cal_sel)+'</div>';
     h += '<div class="wlist">';
-    byDate[ui.calSel].forEach(function(w)
+    byDate[ui.cal_sel].forEach(function(w)
     {
       h += '<button class="witem" data-a="open-workout" data-id="'+w.id+'">'
         + '<span class="flex"><span class="wname">'+esc(w.name)+'</span><br><span class="wsum">'
@@ -183,7 +183,7 @@ function renderWorkout(w)
   h += '<div class="btnrow" style="margin-bottom:14px">'
     + '<button class="btn small" data-a="export-open">⇪ Export</button>'
     + '<button class="btn small" data-a="addex-open">+ Add exercise</button>'
-    + (!w.startedAt ? '<button class="btn small primary" data-a="begin-workout">▶ Begin Workout</button>' : '<span class="chip">began '+esc(fmtClockTs(w.startedAt))+'</span>')
+    + (!w.started_at ? '<button class="btn small primary" data-a="begin-workout">▶ Begin Workout</button>' : '<span class="chip">began '+esc(fmtClockTs(w.started_at))+'</span>')
     + (!w.finished ? '<button class="btn small" data-a="finish-workout">✓ Finish</button>' : '<button class="btn small ghost" data-a="reopen-workout">reopen</button>')
     + '<button class="btn small ghost" data-a="workout-menu-open">⋯</button>'
     + '</div>';
@@ -216,7 +216,7 @@ function renderCard(w, ex)
   if (ex.setup) h += '<div class="setupline">setup: '+esc(ex.setup)+'</div>';
   let ri = ringInfo(ex, state.rig, state.profile);
   if (ri) h += '<div class="ringline'+ringLineClass(ri)+'">'+esc(ri.text)+'</div>';
-  h += '<div class="restline">rest '+fmtRest(ex.restSet)+(ex.mode=='ladder' ? ' · rung '+fmtRest(ex.restRung) : '')+'</div>';
+  h += '<div class="restline">rest '+fmtRest(ex.rest_set)+(ex.mode=='ladder' ? ' · rung '+fmtRest(ex.rest_rung) : '')+'</div>';
 
   let perf = ex.sets.filter(isPerformed);
   if (perf.length)
@@ -225,10 +225,10 @@ function renderCard(w, ex)
     h += '<div class="nextline"><span class="k">next time → </span><span class="'+(sug.warn?'warn':'v')+'">'
        + esc(targetsLabel(sug)) + '</span> <span class="k">· '+esc(sug.reason)+'</span></div>';
   }
-  if (ex.stopped) h += '<div class="stoppedline">■ stopped'+(ex.stopReason ? ' — '+esc(ex.stopReason) : '')+'</div>';
+  if (ex.stopped) h += '<div class="stoppedline">■ stopped'+(ex.stop_reason ? ' — '+esc(ex.stop_reason) : '')+'</div>';
 
-  if (ui.menuExId == ex.id) h += renderMenu(w, ex);
-  if (ui.painExId == ex.id && !ex.stopped)
+  if (ui.menu_ex_id == ex.id) h += renderMenu(w, ex);
+  if (ui.pain_ex_id == ex.id && !ex.stopped)
   {
     h += '<div class="painbar">Pain marked on this exercise.'
       + '<div class="btnrow"><button class="btn small danger" data-a="stop-ex" data-ex="'+ex.id+'">Stop exercise</button>'
@@ -246,7 +246,7 @@ function renderCard(w, ex)
         h += '<div class="ladder"><div class="ladder-h">Ladder '+L.idx+'<span class="fill"></span></div>';
         L.sets.forEach(function(s)
         {
-          h += renderSetRow(ex, s); if (ui.editSetId==s.id) h += renderSetEdit(ex, s); 
+          h += renderSetRow(ex, s); if (ui.edit_set_id==s.id) h += renderSetEdit(ex, s);
         });
         if (!ex.stopped) h += '<button class="btn small ghost addrung" data-a="add-rung" data-ex="'+ex.id+'" data-l="'+L.idx+'">+ rung</button>';
         h += '</div>';
@@ -256,12 +256,12 @@ function renderCard(w, ex)
     {
       ex.sets.forEach(function(s)
       {
-        h += renderSetRow(ex, s); if (ui.editSetId==s.id) h += renderSetEdit(ex, s); 
+        h += renderSetRow(ex, s); if (ui.edit_set_id==s.id) h += renderSetEdit(ex, s);
       });
     }
     h += '</div>';
 
-    if (ui.notesExId == ex.id)
+    if (ui.notes_ex_id == ex.id)
     {
       h += '<div class="exnotes"><textarea data-field="exnotes" data-ex="'+ex.id+'" placeholder="exercise notes…">'+esc(ex.notes)+'</textarea></div>';
     }
@@ -289,7 +289,7 @@ function renderCard(w, ex)
 
 function renderSetRow(ex, s)
 {
-  let label = ex.mode=='ladder' ? 'r'+(s.rungIndex||'') : '#'+(ex.sets.indexOf(s)+1);
+  let label = ex.mode=='ladder' ? 'r'+(s.rung_index||'') : '#'+(ex.sets.indexOf(s)+1);
   let planned = s.status == 'planned';
   let h = '<div class="set '+(planned?'planned':'')+'">';
   h += '<span class="idx">'+esc(label)+'</span>';

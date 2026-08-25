@@ -480,10 +480,10 @@ function workoutDurationSeconds(workout)
 {
     let end_time;
 
-    if (!workout || workout.startedAt == null) { return null; }
+    if (!workout || workout.started_at == null) { return null; }
 
-    end_time = workout.finishedAt != null ? workout.finishedAt : Date.now();
-    return Math.max(0, Math.floor((end_time - workout.startedAt)/1000));
+    end_time = workout.finished_at != null ? workout.finished_at : Date.now();
+    return Math.max(0, Math.floor((end_time - workout.started_at)/1000));
 }
 
 function workoutDurationLabel(workout)
@@ -609,17 +609,17 @@ function laddersOf(ex)
     let keys;
     let ladders = [];
     let i;
-    let ladderIndex;
+    let ladder_index;
     let key;
 
     for (i = 0; i < ex.sets.length; ++i)
     {
-        ladderIndex = ex.sets[i].ladderIndex || 1;
-        if (!map[ladderIndex])
+        ladder_index = ex.sets[i].ladder_index || 1;
+        if (!map[ladder_index])
         {
-            map[ladderIndex] = [];
+            map[ladder_index] = [];
         }
-        map[ladderIndex].push(ex.sets[i]);
+        map[ladder_index].push(ex.sets[i]);
     }
 
     keys = Object.keys(map);
@@ -633,7 +633,7 @@ function laddersOf(ex)
         key = keys[i];
         map[key].sort(function(a, b)
         {
-            return (a.rungIndex || 0) - (b.rungIndex || 0);
+            return (a.rung_index || 0) - (b.rung_index || 0);
         });
         ladders.push({
             idx: Number(key),
@@ -696,7 +696,7 @@ function topsOf(ex)
     return tops;
 }
 
-/* ladderIndex and rungIndex are ordering keys only — the rep count lives in
+/* ladder_index and rung_index are ordering keys only — the rep count lives in
   target. deletes and the old max+1 add-rung could leave gaps (1,2,3,5,6),
   which is what made rung_index look wrong in the CSV. renumber by sorted
   position; order is preserved, so this is safe to run on load. */
@@ -714,8 +714,8 @@ function normalizeLadders(ex)
     {
         for (j = 0; j < ladders[i].sets.length; ++j)
         {
-            ladders[i].sets[j].ladderIndex = i + 1;
-            ladders[i].sets[j].rungIndex = j + 1;
+            ladders[i].sets[j].ladder_index = i + 1;
+            ladders[i].sets[j].rung_index = j + 1;
         }
     }
 }
@@ -943,14 +943,14 @@ function targetsLabel(suggestion)
 
 /* ---------- derived timings ----------
 
-  doneAt is the only raw fact we record: the moment DONE was tapped. everything
+  done_at is the only raw fact we record: the moment DONE was tapped. everything
   else follows by subtraction, so nothing is cached and a corrected timestamp
   re-derives cleanly.
 
-      cycle(N)  = doneAt(N+1) - doneAt(N)      the whole gap between two taps
-      work(N+1) = cycle(N) - restTarget(N)     what is left after the intended rest
+      cycle(N)  = done_at(N+1) - done_at(N)      the whole gap between two taps
+      work(N+1) = cycle(N) - rest_target(N)     what is left after the intended rest
 
-  note WHICH set each belongs to: the rest that follows set N is restTarget(N),
+  note WHICH set each belongs to: the rest that follows set N is rest_target(N),
   so subtracting it from that gap leaves the work of set N+1, not of set N. the
   first performed set has no predecessor and therefore no derived work.
 
@@ -980,16 +980,16 @@ function setTimings(ex)
     {
         set = ordered[i].set;
 
-        if (!isPerformed(set) || set.doneAt == null) { continue; }
+        if (!isPerformed(set) || set.done_at == null) { continue; }
 
         if (prev != null)
         {
-            cycle = Math.round((set.doneAt - prev.doneAt)/1000);
+            cycle = Math.round((set.done_at - prev.done_at)/1000);
 
             /* a timed set already RECORDS its duration — no need to infer one, and no
               assumption to break. rest is then the exact remainder. */
             exact = ex.mode == 'timed' && set.reps != null;
-            work = exact ? set.reps : cycle - (prev.restTarget || 0);
+            work = exact ? set.reps : cycle - (prev.rest_target || 0);
 
             if (exact)
             {
@@ -1011,8 +1011,8 @@ function setTimings(ex)
             out[set.id] = {
                 cycle: cycle,
                 work: work,
-                rest: exact ? cycle - work : (prev.restTarget || 0),
-                rest_target: prev.restTarget || 0,
+                rest: exact ? cycle - work : (prev.rest_target || 0),
+                rest_target: prev.rest_target || 0,
                 status: status
             };
         }
@@ -1090,9 +1090,9 @@ function buildPlain(workout, rig, profile)
     let set;
     let rung_text;
 
-    if (workout.startedAt != null)
+    if (workout.started_at != null)
     {
-        out.push('Started: ' + fmtDateTime(workout.startedAt));
+        out.push('Started: ' + fmtDateTime(workout.started_at));
     }
     out.push('');
 
@@ -1112,7 +1112,7 @@ function buildPlain(workout, rig, profile)
         ri = ringInfo(ex, rig, profile);
         if (ri && ri.deg != null)
         {
-            out.push('Rings: ' + ri.label + ' ' + ri.deg.toFixed(1) + '° (Rr ' + ri.Rr + ', H ' + (ri.H >= 0 ? '+' : '') + ri.H + ' cm)');
+            out.push('Rings: ' + ri.label + ' ' + ri.deg.toFixed(1) + '° (Rr ' + ri.rr + ', H ' + (ri.h >= 0 ? '+' : '') + ri.h + ' cm)');
         }
 
         if (ex.mode == 'ladder')
@@ -1194,9 +1194,9 @@ function buildCompact(workout, rig, profile)
     let reps;
     let uses_load;
 
-    if (workout.startedAt != null)
+    if (workout.started_at != null)
     {
-        out.push('Started: ' + fmtDateTime(workout.startedAt));
+        out.push('Started: ' + fmtDateTime(workout.started_at));
         out.push('');
     }
 
@@ -1354,7 +1354,7 @@ function buildCSV(workout, rig, profile)
 
         if (ri && ri.deg != null)
         {
-            setup_cell = (setup_cell ? setup_cell + ' | ' : '') + ri.label + ' ' + ri.deg.toFixed(1) + '° (Rr ' + ri.Rr + ', H ' + (ri.H >= 0 ? '+' : '') + ri.H + ')';
+            setup_cell = (setup_cell ? setup_cell + ' | ' : '') + ri.label + ' ' + ri.deg.toFixed(1) + '° (Rr ' + ri.rr + ', H ' + (ri.h >= 0 ? '+' : '') + ri.h + ')';
         }
 
         for (j = 0; j < ordered.length; ++j)
@@ -1392,7 +1392,7 @@ function buildCSV(workout, rig, profile)
             row = [
                 workout.date,
                 workout.name || '',
-                workout.startedAt != null ? workout.startedAt : '',
+                workout.started_at != null ? workout.started_at : '',
                 ex.name,
                 ex.mode,
                 set_index,
@@ -1403,7 +1403,7 @@ function buildCSV(workout, rig, profile)
                 set.load != null ? (set.unit || 'kg') : '',
                 status,
                 set.status == 'pain' ? 'yes' : '',
-                set.restTarget != null ? set.restTarget : '',
+                set.rest_target != null ? set.rest_target : '',
                 timings[set.id] ? timings[set.id].cycle : '',
                 timings[set.id] && (timings[set.id].status == 'exact' || timings[set.id].status == 'estimate') ? timings[set.id].work : '',
                 timings[set.id] ? timings[set.id].status : '',
@@ -1537,13 +1537,13 @@ function buildBackup(state)
     lines.push([
         bkBool(state.settings.sound),
         bkBool(state.settings.countdown),
-        bkCell(state.activeId),
-        bkCell(state.rig.anchorHeight),
-        bkCell(state.rig.calX),
-        bkCell(state.rig.calY),
-        bkCell(state.rig.calRr),
-        bkCell(state.profile.shoulderPushup),
-        bkCell(state.profile.shoulderRow),
+        bkCell(state.active_id),
+        bkCell(state.rig.anchor_height),
+        bkCell(state.rig.cal_x),
+        bkCell(state.rig.cal_y),
+        bkCell(state.rig.cal_rr),
+        bkCell(state.profile.shoulder_pushup),
+        bkCell(state.profile.shoulder_row),
         bkCell(state.profile.arm)
     ].join('\t'));
     lines.push('');
@@ -1553,7 +1553,7 @@ function buildBackup(state)
     for (i = 0; i < state.workouts.length; ++i)
     {
         w = state.workouts[i];
-        lines.push([bkCell(w.id), bkCell(w.date), bkCell(w.name), bkCell(w.startedAt), bkCell(w.finishedAt), bkBool(w.finished), bkCell(w.notes)].join('\t'));
+        lines.push([bkCell(w.id), bkCell(w.date), bkCell(w.name), bkCell(w.started_at), bkCell(w.finished_at), bkBool(w.finished), bkCell(w.notes)].join('\t'));
     }
     lines.push('');
 
@@ -1573,14 +1573,14 @@ function buildBackup(state)
                 bkCell(w.id),
                 bkCell(ex.name),
                 bkCell(ex.mode),
-                bkCell(ex.restSet),
-                bkCell(ex.restRung),
-                bkCell(ex.stopped ? (ex.stopReason || 'stopped') : null),
+                bkCell(ex.rest_set),
+                bkCell(ex.rest_rung),
+                bkCell(ex.stopped ? (ex.stop_reason || 'stopped') : null),
                 bkCell(ex.setup),
                 bkCell(ex.notes),
                 bkCell(ex.ring.type),
-                bkCell(ex.ring.Rr),
-                bkCell(ex.ring.H)
+                bkCell(ex.ring.rr),
+                bkCell(ex.ring.h)
             ].join('\t'));
         }
     }
@@ -1595,7 +1595,7 @@ function buildBackup(state)
         {
             ex = w.exercises[j];
             /* emit in logical order so a hand-read file makes sense; import does not
-              depend on order (rungIndex/ladderIndex carry position) */
+              depend on order (rung_index/ladder_index carry position) */
             ordered = orderedSetsOf(ex);
             for (k = 0; k < ordered.length; ++k)
             {
@@ -1603,15 +1603,15 @@ function buildBackup(state)
                 s = entry.set;
                 lines.push([
                     bkCell(ex.id),
-                    bkCell(s.ladderIndex),
-                    bkCell(s.rungIndex),
+                    bkCell(s.ladder_index),
+                    bkCell(s.rung_index),
                     bkCell(s.target),
                     bkCell(s.reps),
                     bkCell(s.load),
                     bkCell(s.unit),
                     bkCell(s.status),
-                    bkCell(s.restTarget),
-                    bkCell(s.doneAt),
+                    bkCell(s.rest_target),
+                    bkCell(s.done_at),
                     bkCell(s.note)
                 ].join('\t'));
             }
@@ -1743,13 +1743,13 @@ function parseBackup(text)
                 out.globals = {
                     sound: fields[cols.sound] == 'yes',
                     countdown: fields[cols.countdown] == 'yes',
-                    activeId: bkStrOrNull(fields[cols.active]),
-                    anchorHeight: bkNum(fields[cols.anchor]),
-                    calX: bkNum(fields[cols.cal_x]),
-                    calY: bkNum(fields[cols.cal_y]),
-                    calRr: bkNum(fields[cols.cal_rr]),
-                    shoulderPushup: bkNum(fields[cols.toe_shoulder]),
-                    shoulderRow: bkNum(fields[cols.heel_shoulder]),
+                    active_id: bkStrOrNull(fields[cols.active]),
+                    anchor_height: bkNum(fields[cols.anchor]),
+                    cal_x: bkNum(fields[cols.cal_x]),
+                    cal_y: bkNum(fields[cols.cal_y]),
+                    cal_rr: bkNum(fields[cols.cal_rr]),
+                    shoulder_pushup: bkNum(fields[cols.toe_shoulder]),
+                    shoulder_row: bkNum(fields[cols.heel_shoulder]),
                     arm: bkNum(fields[cols.arm])
                 };
                 break;
@@ -1759,8 +1759,8 @@ function parseBackup(text)
                     id: fields[cols.id],
                     date: fields[cols.date],
                     name: bkStr(fields[cols.name]),
-                    startedAt: cols.started_at != null ? bkNum(fields[cols.started_at]) : null,
-                    finishedAt: cols.finished_at != null ? bkNum(fields[cols.finished_at]) : null,
+                    started_at: cols.started_at != null ? bkNum(fields[cols.started_at]) : null,
+                    finished_at: cols.finished_at != null ? bkNum(fields[cols.finished_at]) : null,
                     finished: fields[cols.finished] == 'yes',
                     notes: bkStr(fields[cols.notes])
                 });
@@ -1772,31 +1772,31 @@ function parseBackup(text)
                     workout: fields[cols.workout],
                     name: bkStr(fields[cols.name]),
                     mode: fields[cols.mode],
-                    restSet: bkInt(fields[cols.rest_set]),
-                    restRung: bkInt(fields[cols.rest_rung]),
+                    rest_set: bkInt(fields[cols.rest_set]),
+                    rest_rung: bkInt(fields[cols.rest_rung]),
                     /* '-' reason means not stopped; any reason implies stopped */
                     stopped: fields[cols.stop_reason] != '-',
-                    stopReason: bkStrOrNull(fields[cols.stop_reason]),
+                    stop_reason: bkStrOrNull(fields[cols.stop_reason]),
                     setup: bkStr(fields[cols.setup]),
                     notes: bkStr(fields[cols.notes]),
-                    ringType: fields[cols.ring_type],
-                    ringRr: bkNum(fields[cols.ring_rr]),
-                    ringH: bkNum(fields[cols.foot_dist])
+                    ring_type: fields[cols.ring_type],
+                    ring_rr: bkNum(fields[cols.ring_rr]),
+                    ring_h: bkNum(fields[cols.foot_dist])
                 });
                 break;
 
             case '[sets]':
                 out.sets.push({
                     exercise: fields[cols.exercise],
-                    ladderIndex: bkInt(fields[cols.ladder]),
-                    rungIndex: bkInt(fields[cols.rung]),
+                    ladder_index: bkInt(fields[cols.ladder]),
+                    rung_index: bkInt(fields[cols.rung]),
                     target: bkInt(fields[cols.target]),
                     reps: bkInt(fields[cols.reps]),
                     load: bkNum(fields[cols.load]),
                     unit: bkStrOrNull(fields[cols.unit]),
                     status: fields[cols.status],
-                    restTarget: bkInt(fields[cols.rest_target]),
-                    doneAt: bkNum(fields[cols.done_at]),
+                    rest_target: bkInt(fields[cols.rest_target]),
+                    done_at: bkNum(fields[cols.done_at]),
                     note: bkStr(fields[cols.note])
                 });
                 break;
@@ -1825,7 +1825,7 @@ function rebuildWorkouts(parsed)
     for (i = 0; i < parsed.workouts.length; ++i)
     {
         rec = parsed.workouts[i];
-        w = { id: rec.id, date: rec.date, name: rec.name, notes: rec.notes, exercises: [], startedAt: rec.startedAt, finishedAt: rec.finishedAt, finished: rec.finished };
+        w = { id: rec.id, date: rec.date, name: rec.name, notes: rec.notes, exercises: [], started_at: rec.started_at, finished_at: rec.finished_at, finished: rec.finished };
         workouts.push(w);
         by_id[w.id] = w;
     }
@@ -1845,12 +1845,12 @@ function rebuildWorkouts(parsed)
             mode: rec.mode,
             setup: rec.setup,
             notes: rec.notes,
-            restSet: rec.restSet,
-            restRung: rec.restRung,
+            rest_set: rec.rest_set,
+            rest_rung: rec.rest_rung,
             stopped: rec.stopped,
-            ring: { type: rec.ringType, Rr: rec.ringRr, H: rec.ringH }
+            ring: { type: rec.ring_type, rr: rec.ring_rr, h: rec.ring_h }
         });
-        ex.stopReason = rec.stopReason;
+        ex.stop_reason = rec.stop_reason;
         w.exercises.push(ex);
         if (ex_by_id[ex.id])
         {
@@ -1869,15 +1869,15 @@ function rebuildWorkouts(parsed)
         }
 
         s = makeSet({
-            ladderIndex: rec.ladderIndex,
-            rungIndex: rec.rungIndex,
+            ladder_index: rec.ladder_index,
+            rung_index: rec.rung_index,
             target: rec.target,
             reps: rec.reps,
             load: rec.load,
             unit: rec.unit,
             status: rec.status,
-            restTarget: rec.restTarget,
-            doneAt: rec.doneAt,
+            rest_target: rec.rest_target,
+            done_at: rec.done_at,
             note: rec.note
         });
         ex.sets.push(s);
@@ -1962,7 +1962,7 @@ function calibrateAnchor(x1, y1, ringRestHeight)
 }
 
 /* resolve a geometry-enabled exercise to a display line, given global rig + profile. */
-function ringType(ex)
+function ringKind(ex)
 {
     return ex.ring && ex.ring.type ? ex.ring.type : 'none';
 }
@@ -2001,10 +2001,10 @@ function ringBodyLen(type, profile)
     switch (type)
     {
         case 'pushup':
-            return profile.shoulderPushup;
+            return profile.shoulder_pushup;
 
         case 'row':
-            return profile.shoulderRow;
+            return profile.shoulder_row;
     }
 
     return null;
@@ -2026,7 +2026,7 @@ function ringArmLen(type, profile)
 
 function ringInfo(ex, rig, profile)
 {
-    let type = ringType(ex);
+    let type = ringKind(ex);
     let label;
     let ring_height;
     let pivot_dist;
@@ -2048,15 +2048,15 @@ function ringInfo(ex, rig, profile)
     }
 
     label = ringModeLabel(type);
-    ring_height = ex.ring.Rr;
-    pivot_dist = ex.ring.H;
+    ring_height = ex.ring.rr;
+    pivot_dist = ex.ring.h;
 
     if (ring_height == null || pivot_dist == null)
     {
         return { incomplete: true, text: label + ' — enter ring height + ' + ringPivotWord(type) + ' distance' };
     }
 
-    anchor_height = rig ? rig.anchorHeight : null;
+    anchor_height = rig ? rig.anchor_height : null;
     body_len = ringBodyLen(type, profile);
     arm_len = ringArmLen(type, profile);
 
@@ -2093,8 +2093,8 @@ function ringInfo(ex, rig, profile)
             return {
                 impossible: true,
                 label: label,
-                Rr: ring_height,
-                H: pivot_dist,
+                rr: ring_height,
+                h: pivot_dist,
                 text: label + ' — impossible configuration (can\'t reach) · Rr ' + ring_height + ' · H ' + signed_pivot
             };
 
@@ -2102,8 +2102,8 @@ function ringInfo(ex, rig, profile)
             return {
                 slack: true,
                 label: label,
-                Rr: ring_height,
-                H: pivot_dist,
+                rr: ring_height,
+                h: pivot_dist,
                 text: label + ' — rings too low (slack straps) · Rr ' + ring_height + ' · H ' + signed_pivot
             };
     }
@@ -2111,8 +2111,8 @@ function ringInfo(ex, rig, profile)
     return {
         deg: result.deg,
         label: label,
-        Rr: ring_height,
-        H: pivot_dist,
+        rr: ring_height,
+        h: pivot_dist,
         text: label + ' ∠ ' + result.deg.toFixed(1) + '° · Rr ' + ring_height + ' · H ' + signed_pivot + ' cm'
     };
 }
@@ -2140,7 +2140,7 @@ let pending_storage_data = null;
 
 function setStorageStatus(kind, text, title)
 {
-    ui.storageStatus = {
+    ui.storage_status = {
         kind: kind,
         text: text,
         title: title
@@ -2170,8 +2170,8 @@ function sharedStorageAvailable()
     return window.sharedStorageLoadText && window.sharedStorageSaveText;
 }
 
-let rig_fields = ['anchorHeight', 'calX', 'calY', 'calRr'];
-let profile_fields = ['shoulderPushup', 'shoulderRow', 'arm'];
+let rig_fields = ['anchor_height', 'cal_x', 'cal_y', 'cal_rr'];
+let profile_fields = ['shoulder_pushup', 'shoulder_row', 'arm'];
 
 function makeNullStruct(fields)
 {
@@ -2194,8 +2194,8 @@ function makeState()
         settings: { sound:true, countdown:false },
         rig: makeNullStruct(rig_fields),
         profile: makeNullStruct(profile_fields),
-        activeId: null,
-        exerciseLibrary: null
+        active_id: null,
+        exercise_library: null
     };
 }
 
@@ -2213,13 +2213,13 @@ function stateFromBackupText(text)
     {
         loaded.settings.sound = g.sound;
         loaded.settings.countdown = g.countdown;
-        loaded.activeId = g.activeId;
-        loaded.rig.anchorHeight = g.anchorHeight;
-        loaded.rig.calX = g.calX;
-        loaded.rig.calY = g.calY;
-        loaded.rig.calRr = g.calRr;
-        loaded.profile.shoulderPushup = g.shoulderPushup;
-        loaded.profile.shoulderRow = g.shoulderRow;
+        loaded.active_id = g.active_id;
+        loaded.rig.anchor_height = g.anchor_height;
+        loaded.rig.cal_x = g.cal_x;
+        loaded.rig.cal_y = g.cal_y;
+        loaded.rig.cal_rr = g.cal_rr;
+        loaded.profile.shoulder_pushup = g.shoulder_pushup;
+        loaded.profile.shoulder_row = g.shoulder_row;
         loaded.profile.arm = g.arm;
     }
 
@@ -2288,7 +2288,7 @@ function flushStorage(data)
 
 function checkStorageStatus()
 {
-    if (ui && ui.storageStatus && ui.storageStatus.kind == 'checking')
+    if (ui && ui.storage_status && ui.storage_status.kind == 'checking')
     {
         setStorageStatus('warn', 'storage: stalled', 'shared storage check did not finish; check the local server and browser network state');
     }
@@ -2310,23 +2310,23 @@ window.addEventListener('pagehide', function()
 let state = makeState();
 let ui = {
     view: 'home',            // home | workout
-    homeTab: 'calendar',         // list | calendar
-    calY: new Date().getFullYear(),
-    calM: new Date().getMonth(),
-    calSel: null,            // selected iso date in calendar
+    home_tab: 'calendar',         // list | calendar
+    cal_y: new Date().getFullYear(),
+    cal_m: new Date().getMonth(),
+    cal_sel: null,            // selected iso date in calendar
     overlay: null,           // {type:'addex'|'export'|'clone', ...}
-    editSetId: null,
-    menuExId: null,
-    notesExId: null,
-    painExId: null,
-    expFmt: 'plain',
-    importMsg: null,
-    storageStatus: {
+    edit_set_id: null,
+    menu_ex_id: null,
+    notes_ex_id: null,
+    pain_ex_id: null,
+    exp_fmt: 'plain',
+    import_msg: null,
+    storage_status: {
         kind: sharedStorageAvailable() ? 'checking' : 'warn',
         text: sharedStorageAvailable() ? 'storage: checking' : 'storage: browser only',
         title: sharedStorageAvailable() ? 'checking shared storage server' : 'shared storage adapter missing; using browser local storage'
     },
-    sectionOpen: {}
+    section_open: {}
 };
 
 if (window.pending_storage_status)
@@ -2338,19 +2338,19 @@ setTimeout(checkStorageStatus, 2500);
 
 function sectionIsOpen(key, default_open)
 {
-    if (ui.sectionOpen[key] == null) { return default_open; }
+    if (ui.section_open[key] == null) { return default_open; }
 
-    return !!ui.sectionOpen[key];
+    return !!ui.section_open[key];
 }
 
 function toggleSection(key, default_open)
 {
-    ui.sectionOpen[key] = !sectionIsOpen(key, default_open);
+    ui.section_open[key] = !sectionIsOpen(key, default_open);
 }
 
 function setSectionOpen(key, open)
 {
-    ui.sectionOpen[key] = !!open;
+    ui.section_open[key] = !!open;
 }
 
 function workoutExerciseSectionKey(workout_id, ex_id)
@@ -2441,15 +2441,15 @@ function cloneLibraryExercises(exercises)
     for (i = 0; i < exercises.length; ++i)
     {
         src = exercises[i] || {};
-        ring = src.ring ? { type: src.ring.type, Rr: src.ring.Rr, H: src.ring.H } : null;
+        ring = src.ring ? { type: src.ring.type, rr: src.ring.rr, h: src.ring.h } : null;
         out.push({
             name: src.name || '',
             mode: src.mode || 'straight',
             setup: src.setup || '',
-            restSet: src.restSet != null ? src.restSet : 150,
-            restRung: src.restRung != null ? src.restRung : 20,
-            defaultTargets: cloneLibraryTargets(src.defaultTargets),
-            defaultLadders: cloneLibraryLadders(src.defaultLadders),
+            rest_set: src.rest_set != null ? src.rest_set : 150,
+            rest_rung: src.rest_rung != null ? src.rest_rung : 20,
+            default_targets: cloneLibraryTargets(src.default_targets),
+            default_ladders: cloneLibraryLadders(src.default_ladders),
             targets: cloneLibraryTargets(src.targets),
             ladders: cloneLibraryLadders(src.ladders),
             unit: src.unit || null,
@@ -2462,17 +2462,17 @@ function cloneLibraryExercises(exercises)
 
 function libraryExercises()
 {
-    if (!state.exerciseLibrary)
+    if (!state.exercise_library)
     {
-        state.exerciseLibrary = cloneLibraryExercises(rawExerciseLibrary().exercises);
+        state.exercise_library = cloneLibraryExercises(rawExerciseLibrary().exercises);
     }
 
-    return state.exerciseLibrary;
+    return state.exercise_library;
 }
 
 function exerciseLibrary()
 {
-    return { exercises: libraryExercises(), sampleWorkout: sampleWorkout() };
+    return { exercises: libraryExercises(), sample_workout: sampleWorkout() };
 }
 
 function libraryExerciseNames()
@@ -2517,12 +2517,12 @@ function applyLibraryExerciseToDraft(d)
 
     d.mode = ex.mode || d.mode;
     d.setup = ex.setup || d.setup;
-    if (ex.restSet != null) d.rest = fmtRest(ex.restSet);
-    if (ex.restRung != null) d.rrest = fmtRest(ex.restRung);
-    if (ex.mode == 'ladder' && ex.defaultLadders && ex.defaultLadders.length) d.tops = laddersLabel(ex.defaultLadders);
-    else if (ex.defaultTargets && ex.defaultTargets.length)
+    if (ex.rest_set != null) d.rest = fmtRest(ex.rest_set);
+    if (ex.rest_rung != null) d.rrest = fmtRest(ex.rest_rung);
+    if (ex.mode == 'ladder' && ex.default_ladders && ex.default_ladders.length) d.tops = laddersLabel(ex.default_ladders);
+    else if (ex.default_targets && ex.default_targets.length)
     {
-        d.targets = ex.defaultTargets.map(function(t)
+        d.targets = ex.default_targets.map(function(t)
         {
             return (t.load != null ? t.load + 'x' : '') + t.reps;
         }).join(' / ');
@@ -2530,9 +2530,9 @@ function applyLibraryExerciseToDraft(d)
 
     if (ex.ring)
     {
-        d.ringType = ex.ring.type || 'pushup';
-        d.ringRr = ex.ring.Rr != null ? String(ex.ring.Rr) : '';
-        d.ringH = ex.ring.H != null ? String(ex.ring.H) : '';
+        d.ring_type = ex.ring.type || 'pushup';
+        d.ring_rr = ex.ring.rr != null ? String(ex.ring.rr) : '';
+        d.ring_h = ex.ring.h != null ? String(ex.ring.h) : '';
     }
 }
 
@@ -2544,10 +2544,10 @@ function save()
 function buildFixTimesDraft(workout)
 {
     return {
-        startedDate: workout && workout.startedAt != null ? isoDateOfTimestamp(workout.startedAt) : (workout ? workout.date : todayISO()),
-        startedTime: workout && workout.startedAt != null ? fmtClockTs(workout.startedAt) : '',
-        finishedDate: workout && workout.finishedAt != null ? isoDateOfTimestamp(workout.finishedAt) : (workout ? workout.date : todayISO()),
-        finishedTime: workout && workout.finishedAt != null ? fmtClockTs(workout.finishedAt) : ''
+        started_date: workout && workout.started_at != null ? isoDateOfTimestamp(workout.started_at) : (workout ? workout.date : todayISO()),
+        started_time: workout && workout.started_at != null ? fmtClockTs(workout.started_at) : '',
+        finished_date: workout && workout.finished_at != null ? isoDateOfTimestamp(workout.finished_at) : (workout ? workout.date : todayISO()),
+        finished_time: workout && workout.finished_at != null ? fmtClockTs(workout.finished_at) : ''
     };
 }
 
@@ -2562,7 +2562,7 @@ function deleteWorkout(workout)
         return w.id != workout.id;
     });
     next_workout = state.workouts.length ? state.workouts[0] : null;
-    state.activeId = next_workout ? next_workout.id : null;
+    state.active_id = next_workout ? next_workout.id : null;
     ui.view = 'home';
     ui.overlay = null;
     stopTimer();
@@ -2629,27 +2629,27 @@ function saveFixTimes(workout, draft)
 
     if (!workout || !draft) { return; }
 
-    if ((draft.startedDate && !draft.startedTime) || (!draft.startedDate && draft.startedTime))
+    if ((draft.started_date && !draft.started_time) || (!draft.started_date && draft.started_time))
     {
         alert('Enter both began date and time, or leave both blank.');
         return;
     }
 
-    if ((draft.finishedDate && !draft.finishedTime) || (!draft.finishedDate && draft.finishedTime))
+    if ((draft.finished_date && !draft.finished_time) || (!draft.finished_date && draft.finished_time))
     {
         alert('Enter both ended date and time, or leave both blank.');
         return;
     }
 
-    started_at = draft.startedDate && draft.startedTime ? timestampOfDateTime(draft.startedDate, draft.startedTime) : null;
-    finished_at = draft.finishedDate && draft.finishedTime ? timestampOfDateTime(draft.finishedDate, draft.finishedTime) : null;
-    if (draft.startedDate && draft.startedTime && started_at == null)
+    started_at = draft.started_date && draft.started_time ? timestampOfDateTime(draft.started_date, draft.started_time) : null;
+    finished_at = draft.finished_date && draft.finished_time ? timestampOfDateTime(draft.finished_date, draft.finished_time) : null;
+    if (draft.started_date && draft.started_time && started_at == null)
     {
         alert('Enter a valid began date and time.');
         return;
     }
 
-    if (draft.finishedDate && draft.finishedTime && finished_at == null)
+    if (draft.finished_date && draft.finished_time && finished_at == null)
     {
         alert('Enter a valid ended date and time.');
         return;
@@ -2667,8 +2667,8 @@ function saveFixTimes(workout, draft)
         return;
     }
 
-    workout.startedAt = started_at;
-    workout.finishedAt = finished_at;
+    workout.started_at = started_at;
+    workout.finished_at = finished_at;
     workout.finished = finished_at != null;
     if (started_at != null)
     {
@@ -2694,7 +2694,7 @@ function findWorkout(id)
 
 function activeWorkout()
 {
-    return findWorkout(state.activeId);
+    return findWorkout(state.active_id);
 }
 
 function findEx(w, exId)
@@ -2705,7 +2705,7 @@ function findEx(w, exId)
     });
 }
 
-function findSet(w, setId)
+function findSet(w, set_id)
 {
     if (!w) return null;
     for (let i=0; i<w.exercises.length; ++i)
@@ -2713,7 +2713,7 @@ function findSet(w, setId)
         let ex = w.exercises[i];
         let s = ex.sets.find(function(x)
         {
-            return x.id==setId;
+            return x.id==set_id;
         });
         if (s) return { ex:ex, set:s };
     }
@@ -2726,18 +2726,18 @@ function touchPreset(ex)
     let k = ex.name.trim().toLowerCase(); if (!k) return;
     state.presets[k] = {
         name: ex.name.trim(), mode: ex.mode,
-        restSet: ex.restSet, restRung: ex.restRung,
+        rest_set: ex.rest_set, rest_rung: ex.rest_rung,
         setup: ex.setup || '',
-        lastTargets: ex.mode=='ladder' ? null : ex.sets.map(function(s)
+        last_targets: ex.mode=='ladder' ? null : ex.sets.map(function(s)
         {
             return { reps: s.target!=null?s.target:s.reps, load: s.load };
         }),
-        lastLadders: ex.mode=='ladder' ? rungsOf(ex) : null,
+        last_ladders: ex.mode=='ladder' ? rungsOf(ex) : null,
         unit: (ex.sets.find(function(s)
         {
             return s.unit;
         })||{}).unit || 'kg',
-        ring: ringType(ex) != 'none' ? { type:ex.ring.type, Rr:ex.ring.Rr, H:ex.ring.H } : null
+        ring: ringKind(ex) != 'none' ? { type:ex.ring.type, rr:ex.ring.rr, h:ex.ring.h } : null
     };
 }
 
@@ -2819,9 +2819,9 @@ function buildExerciseEditorDraft()
         ex = source[i];
         targets_text = '';
 
-        if (ex.defaultTargets && ex.defaultTargets.length)
+        if (ex.default_targets && ex.default_targets.length)
         {
-            targets_text = ex.defaultTargets.map(function(t)
+            targets_text = ex.default_targets.map(function(t)
             {
                 return (t.load != null ? t.load + 'x' : '') + t.reps;
             }).join(' / ');
@@ -2831,14 +2831,14 @@ function buildExerciseEditorDraft()
             name: ex.name || '',
             mode: ex.mode || 'straight',
             setup: ex.setup || '',
-            rest: fmtRest(ex.restSet != null ? ex.restSet : 150),
-            rrest: fmtRest(ex.restRung != null ? ex.restRung : 20),
+            rest: fmtRest(ex.rest_set != null ? ex.rest_set : 150),
+            rrest: fmtRest(ex.rest_rung != null ? ex.rest_rung : 20),
             targets: targets_text,
-            ladders: ex.defaultLadders && ex.defaultLadders.length ? laddersLabel(ex.defaultLadders) : '',
+            ladders: ex.default_ladders && ex.default_ladders.length ? laddersLabel(ex.default_ladders) : '',
             unit: ex.unit || '',
-            ringType: ex.ring && ex.ring.type ? ex.ring.type : 'none',
-            ringRr: ex.ring && ex.ring.Rr != null ? String(ex.ring.Rr) : '',
-            ringH: ex.ring && ex.ring.H != null ? String(ex.ring.H) : ''
+            ring_type: ex.ring && ex.ring.type ? ex.ring.type : 'none',
+            ring_rr: ex.ring && ex.ring.rr != null ? String(ex.ring.rr) : '',
+            ring_h: ex.ring && ex.ring.h != null ? String(ex.ring.h) : ''
         });
     }
 
@@ -2870,43 +2870,43 @@ function normalizeExerciseEditorDraft(draft)
         seen[key] = true;
         rest_set = parseRest(item.rest);
         rest_rung = parseRest(item.rrest);
-        ring_rr = parseFloat(item.ringRr);
-        ring_h = parseFloat(item.ringH);
+        ring_rr = parseFloat(item.ring_rr);
+        ring_h = parseFloat(item.ring_h);
         out = {
             name: item.name,
             mode: item.mode || 'straight',
             setup: item.setup || '',
-            restSet: rest_set != null ? rest_set : 150,
-            restRung: rest_rung != null ? rest_rung : 20,
-            defaultTargets: [],
-            defaultLadders: [],
+            rest_set: rest_set != null ? rest_set : 150,
+            rest_rung: rest_rung != null ? rest_rung : 20,
+            default_targets: [],
+            default_ladders: [],
             unit: (item.unit || '').trim() || null,
             ring: null
         };
 
         if (out.mode == 'ladder')
         {
-            out.defaultLadders = parseLadders(item.ladders);
-            if (!out.defaultLadders.length)
+            out.default_ladders = parseLadders(item.ladders);
+            if (!out.default_ladders.length)
             {
-                out.defaultLadders = [[1, 2, 3]];
+                out.default_ladders = [[1, 2, 3]];
             }
         }
         else
         {
-            out.defaultTargets = parseTargets(item.targets);
-            if (!out.defaultTargets.length)
+            out.default_targets = parseTargets(item.targets);
+            if (!out.default_targets.length)
             {
-                out.defaultTargets = [{ reps: 0 }];
+                out.default_targets = [{ reps: 0 }];
             }
         }
 
-        if ((item.ringType || 'none') != 'none' || !isNaN(ring_rr) || !isNaN(ring_h))
+        if ((item.ring_type || 'none') != 'none' || !isNaN(ring_rr) || !isNaN(ring_h))
         {
             out.ring = {
-                type: item.ringType || 'none',
-                Rr: isNaN(ring_rr) ? null : ring_rr,
-                H: isNaN(ring_h) ? null : ring_h
+                type: item.ring_type || 'none',
+                rr: isNaN(ring_rr) ? null : ring_rr,
+                h: isNaN(ring_h) ? null : ring_h
             };
         }
 
@@ -2920,7 +2920,7 @@ function saveExerciseEditor(draft)
 {
     let cleaned = normalizeExerciseEditorDraft(draft);
 
-    state.exerciseLibrary = cleaned;
+    state.exercise_library = cleaned;
     pruneStalePresets();
     ui.overlay = { type: 'settings' };
     save();
@@ -2957,14 +2957,14 @@ function buildExerciseLibraryJS(exercise_list)
             item_lines.push('      setup: ' + jsString(ex.setup));
         }
 
-        if (ex.restSet != null)
+        if (ex.rest_set != null)
         {
-            item_lines.push('      restSet: ' + ex.restSet);
+            item_lines.push('      rest_set: ' + ex.rest_set);
         }
 
-        if (ex.restRung != null && ex.mode == 'ladder')
+        if (ex.rest_rung != null && ex.mode == 'ladder')
         {
-            item_lines.push('      restRung: ' + ex.restRung);
+            item_lines.push('      rest_rung: ' + ex.rest_rung);
         }
 
         if (ex.unit)
@@ -2974,26 +2974,26 @@ function buildExerciseLibraryJS(exercise_list)
 
         if (ex.ring)
         {
-            item_lines.push('      ring: { type: ' + jsString(ex.ring.type || 'none') + ', Rr: ' + (ex.ring.Rr == null ? 'null' : ex.ring.Rr) + ', H: ' + (ex.ring.H == null ? 'null' : ex.ring.H) + ' }');
+            item_lines.push('      ring: { type: ' + jsString(ex.ring.type || 'none') + ', rr: ' + (ex.ring.rr == null ? 'null' : ex.ring.rr) + ', h: ' + (ex.ring.h == null ? 'null' : ex.ring.h) + ' }');
         }
 
-        if (ex.defaultTargets && ex.defaultTargets.length)
+        if (ex.default_targets && ex.default_targets.length)
         {
             lines.push('    {');
             for (j = 0; j < item_lines.length; ++j)
             {
                 lines.push(item_lines[j] + ',');
             }
-            lines.push('      defaultTargets: [');
-            for (j = 0; j < ex.defaultTargets.length; ++j)
+            lines.push('      default_targets: [');
+            for (j = 0; j < ex.default_targets.length; ++j)
             {
-                if (ex.defaultTargets[j].load != null)
+                if (ex.default_targets[j].load != null)
                 {
-                    lines.push('        { reps: ' + ex.defaultTargets[j].reps + ', load: ' + ex.defaultTargets[j].load + ' }' + (j + 1 < ex.defaultTargets.length ? ',' : ''));
+                    lines.push('        { reps: ' + ex.default_targets[j].reps + ', load: ' + ex.default_targets[j].load + ' }' + (j + 1 < ex.default_targets.length ? ',' : ''));
                 }
                 else
                 {
-                    lines.push('        { reps: ' + ex.defaultTargets[j].reps + ' }' + (j + 1 < ex.defaultTargets.length ? ',' : ''));
+                    lines.push('        { reps: ' + ex.default_targets[j].reps + ' }' + (j + 1 < ex.default_targets.length ? ',' : ''));
                 }
             }
             lines.push('      ]');
@@ -3001,14 +3001,14 @@ function buildExerciseLibraryJS(exercise_list)
             continue;
         }
 
-        if (ex.defaultLadders && ex.defaultLadders.length)
+        if (ex.default_ladders && ex.default_ladders.length)
         {
             lines.push('    {');
             for (j = 0; j < item_lines.length; ++j)
             {
                 lines.push(item_lines[j] + ',');
             }
-            lines.push('      defaultLadders: ' + JSON.stringify(ex.defaultLadders));
+            lines.push('      default_ladders: ' + JSON.stringify(ex.default_ladders));
             lines.push('    }' + (i + 1 < list.length ? ',' : ''));
             continue;
         }
@@ -3058,13 +3058,13 @@ function refreshOverlayOutputs()
             w = activeWorkout() || findWorkout(o.wid);
             out = document.getElementById('expout');
 
-            if (out && ui.expFmt == 'backup')
+            if (out && ui.exp_fmt == 'backup')
             {
                 out.value = buildBackup(state);
             }
             else if (out && w)
             {
-                switch (ui.expFmt)
+                switch (ui.exp_fmt)
                 {
                     case 'backup':
                         out.value = buildBackup(state);
@@ -3100,15 +3100,15 @@ function refreshOverlayOutputs()
 /* ======== builders ======== */
 function makeSet(o)
 {
-    return Object.assign({ id: uid(), ladderIndex:null, rungIndex:null, target:null, reps:null,
-        load:null, unit:null, status:'planned', restTarget:null, doneAt:null, note:'' }, o||{});
+    return Object.assign({ id: uid(), ladder_index:null, rung_index:null, target:null, reps:null,
+        load:null, unit:null, status:'planned', rest_target:null, done_at:null, note:'' }, o||{});
 }
 
 function makeExercise(o)
 {
     let ex = Object.assign({ id: uid(), name:'', mode:'straight', setup:'', notes:'',
-        restSet:150, restRung:20, stopped:false, ring:{ type:'none', Rr:null, H:null }, sets:[] }, o||{});
-    if (!ex.ring) ex.ring = { type:'none', Rr:null, H:null };
+        rest_set:150, rest_rung:20, stopped:false, ring:{ type:'none', rr:null, h:null }, sets:[] }, o||{});
+    if (!ex.ring) ex.ring = { type:'none', rr:null, h:null };
     if (ex.ring.type == null) ex.ring.type = ex.ring.enabled ? 'pushup' : 'none';  // migrate old shape
     return ex;
 }
@@ -3129,7 +3129,7 @@ function buildSetsFromTargets(targets, unit)
   and packing heals it.
 
   the list supplies targets for the PLANNED tail only. the previous approach
-  matched the list against each set's existing rungIndex, which broke the moment
+  matched the list against each set's existing rung_index, which broke the moment
   the list length changed: a position left by a removed rung simply got refilled
   from the list, so the ladder could never shrink. */
 function rebuildLadderSets(ex, ladder_rungs)
@@ -3166,20 +3166,20 @@ function rebuildLadderSets(ex, ladder_rungs)
 
         for (j = 0; j < done.length; ++j)
         {
-            done[j].ladderIndex = ladder_no;
-            done[j].rungIndex = j + 1;
+            done[j].ladder_index = ladder_no;
+            done[j].rung_index = j + 1;
             out.push(done[j]);
         }
 
         for (j = done.length; j < rungs.length; ++j)
         {
-            out.push(makeSet({ ladderIndex: ladder_no, rungIndex: j + 1, target: rungs[j] }));
+            out.push(makeSet({ ladder_index: ladder_no, rung_index: j + 1, target: rungs[j] }));
         }
     }
 
     return out;
 }
-/* rungIndex is the POSITION in the ladder (contiguous); target is the rep count.
+/* rung_index is the POSITION in the ladder (contiguous); target is the rep count.
   keeping them separate is what allows arbitrary rungs like 1,2,4,5. */
 function buildLadderSets(ladder_rungs)
 {
@@ -3191,7 +3191,7 @@ function buildLadderSets(ladder_rungs)
     {
         for (j = 0; j < ladder_rungs[i].length; ++j)
         {
-            sets.push(makeSet({ ladderIndex: i + 1, rungIndex: j + 1, target: ladder_rungs[i][j] }));
+            sets.push(makeSet({ ladder_index: i + 1, rung_index: j + 1, target: ladder_rungs[i][j] }));
         }
     }
 
@@ -3200,9 +3200,9 @@ function buildLadderSets(ladder_rungs)
 
 function newWorkout(name)
 {
-    let w = { id: uid(), date: todayISO(), name: name || 'Workout', notes:'', exercises: [], startedAt:null, finishedAt:null, finished:false };
+    let w = { id: uid(), date: todayISO(), name: name || 'Workout', notes:'', exercises: [], started_at:null, finished_at:null, finished:false };
     state.workouts.unshift(w);
-    state.activeId = w.id;
+    state.active_id = w.id;
     return w;
 }
 
@@ -3210,9 +3210,9 @@ function ensureWorkoutStarted(workout, when)
 {
     if (!workout) { return; }
 
-    if (workout.startedAt == null)
+    if (workout.started_at == null)
     {
-        workout.startedAt = when != null ? when : Date.now();
+        workout.started_at = when != null ? when : Date.now();
     }
 }
 
@@ -3232,9 +3232,9 @@ function latestDoneAtOfWorkout(workout)
         for (j = 0; j < ex.sets.length; ++j)
         {
             set = ex.sets[j];
-            if (set.doneAt != null && (latest == null || set.doneAt > latest))
+            if (set.done_at != null && (latest == null || set.done_at > latest))
             {
-                latest = set.doneAt;
+                latest = set.done_at;
             }
         }
     }
@@ -3291,12 +3291,12 @@ function applyBackup(text)
 
     if (g)
     {
-        if (state.rig.anchorHeight == null) state.rig.anchorHeight = g.anchorHeight;
-        if (state.rig.calX == null) state.rig.calX = g.calX;
-        if (state.rig.calY == null) state.rig.calY = g.calY;
-        if (state.rig.calRr == null) state.rig.calRr = g.calRr;
-        if (state.profile.shoulderPushup == null) state.profile.shoulderPushup = g.shoulderPushup;
-        if (state.profile.shoulderRow == null) state.profile.shoulderRow = g.shoulderRow;
+        if (state.rig.anchor_height == null) state.rig.anchor_height = g.anchor_height;
+        if (state.rig.cal_x == null) state.rig.cal_x = g.cal_x;
+        if (state.rig.cal_y == null) state.rig.cal_y = g.cal_y;
+        if (state.rig.cal_rr == null) state.rig.cal_rr = g.cal_rr;
+        if (state.profile.shoulder_pushup == null) state.profile.shoulder_pushup = g.shoulder_pushup;
+        if (state.profile.shoulder_row == null) state.profile.shoulder_row = g.shoulder_row;
         if (state.profile.arm == null) state.profile.arm = g.arm;
     }
 
@@ -3310,7 +3310,7 @@ function applyBackup(text)
 }
 
 /* ======== rest timer ======== */
-let timer = null; /* { since, target, label, setId } */
+let timer = null; /* { since, target, label, set_id } */
 let tick_handle = null, beeped = false, audio_ctx = null;
 let workout_duration_handle = null;
 
@@ -3342,9 +3342,9 @@ function beep()
     }
 }
 
-function startTimer(target, label, setId)
+function startTimer(target, label, set_id)
 {
-    timer = { since: Date.now(), target: target, label: label, setId: setId };
+    timer = { since: Date.now(), target: target, label: label, set_id: set_id };
     beeped = false;
     document.getElementById('timerbar').classList.remove('hidden');
     if (!tick_handle) tick_handle = setInterval(tick, 250);
@@ -3407,7 +3407,7 @@ function updateWorkoutDurationLabel()
 function syncWorkoutDurationHandle()
 {
     let workout = activeWorkout();
-    let should_tick = ui.view == 'workout' && workout && workout.startedAt != null && !workout.finished;
+    let should_tick = ui.view == 'workout' && workout && workout.started_at != null && !workout.finished;
 
     if (should_tick)
     {
@@ -3426,44 +3426,44 @@ function syncWorkoutDurationHandle()
 }
 
 /* ======== actions on sets ======== */
-function completeSet(setId)
+function completeSet(set_id)
 {
-    let w = activeWorkout(); let hit = findSet(w, setId); if (!hit) return;
+    let w = activeWorkout(); let hit = findSet(w, set_id); if (!hit) return;
     let ex = hit.ex, s = hit.set;
     let now = Date.now();
     ensureWorkoutStarted(w, now);
     if (s.reps == null) s.reps = s.target != null ? s.target : 0;
     s.status = 'done_clean';
-    s.doneAt = now;   /* the raw fact; cycle and work are derived from it */
+    s.done_at = now;   /* the raw fact; cycle and work are derived from it */
     let isRung = ex.mode=='ladder';
-    let target = ex.restSet, label = ex.name + ' · set rest';
+    let target = ex.rest_set, label = ex.name + ' · set rest';
     if (isRung)
     {
         let more = ex.sets.some(function(x)
         {
-            return x.ladderIndex==s.ladderIndex && (x.rungIndex||0) > (s.rungIndex||0) && x.status=='planned';
+            return x.ladder_index==s.ladder_index && (x.rung_index||0) > (s.rung_index||0) && x.status=='planned';
         });
         if (more)
         {
-            target = ex.restRung; label = ex.name + ' · rung rest'; s.restTarget = ex.restRung;
+            target = ex.rest_rung; label = ex.name + ' · rung rest'; s.rest_target = ex.rest_rung;
         }
         else
         {
-            target = ex.restSet; label = ex.name + ' · ladder rest'; s.restTarget = ex.restSet;
+            target = ex.rest_set; label = ex.name + ' · ladder rest'; s.rest_target = ex.rest_set;
         }
     }
     else
     {
-        s.restTarget = ex.restSet;
+        s.rest_target = ex.rest_set;
     }
     startTimer(target, label, s.id);
     touchPreset(ex);
     save(); render();
 }
 
-function setStatus(setId, status)
+function setStatus(set_id, status)
 {
-    let w = activeWorkout(); let hit = findSet(w, setId); if (!hit) return;
+    let w = activeWorkout(); let hit = findSet(w, set_id); if (!hit) return;
     let s = hit.set;
     let now;
     if (!isDone(s) && (status=='done_ugly' || status=='pain'))
@@ -3473,16 +3473,16 @@ function setStatus(setId, status)
     s.status = status;
     /* stamp the first transition into a performed state; re-tagging clean->ugly
       later must not move the timestamp, or the derived cycle would shift */
-    if (isPerformed(s) && s.doneAt == null)
+    if (isPerformed(s) && s.done_at == null)
     {
         now = Date.now();
         ensureWorkoutStarted(w, now);
-        s.doneAt = now;
+        s.done_at = now;
     }
 
     if (status=='pain')
     {
-        ui.painExId = hit.ex.id;
+        ui.pain_ex_id = hit.ex.id;
     }
 
     if (status=='failed' || status=='skipped')
@@ -3493,14 +3493,14 @@ function setStatus(setId, status)
 }
 
 /* ======== clone / sample ======== */
-function cloneWorkout(srcId, applyProg)
+function cloneWorkout(src_id, applyProg)
 {
-    let src = findWorkout(srcId); if (!src) return;
+    let src = findWorkout(src_id); if (!src) return;
     let w = newWorkout(src.name);
     src.exercises.forEach(function(sx)
     {
-        let ex = makeExercise({ name:sx.name, mode:sx.mode, setup:sx.setup, restSet:sx.restSet, restRung:sx.restRung,
-            ring: sx.ring ? { type:(sx.ring.type||(sx.ring.enabled?'pushup':'none')), Rr:sx.ring.Rr, H:sx.ring.H } : { type:'none', Rr:null, H:null } });
+        let ex = makeExercise({ name:sx.name, mode:sx.mode, setup:sx.setup, rest_set:sx.rest_set, rest_rung:sx.rest_rung,
+            ring: sx.ring ? { type:(sx.ring.type||(sx.ring.enabled?'pushup':'none')), rr:sx.ring.rr, h:sx.ring.h } : { type:'none', rr:null, h:null } });
         let sug = suggestForExercise(sx);
         if (sx.mode=='ladder')
         {
@@ -3530,7 +3530,7 @@ function cloneWorkout(srcId, applyProg)
 
 function loadSample()
 {
-    let sample = exerciseLibrary().sampleWorkout;
+    let sample = exerciseLibrary().sample_workout;
     let w;
     let ex;
     let src;
@@ -3548,9 +3548,9 @@ function loadSample()
             name: src.name,
             mode: src.mode,
             setup: src.setup,
-            restSet: src.restSet,
-            restRung: src.restRung,
-            ring: src.ring ? { type: src.ring.type || 'none', Rr: src.ring.Rr, H: src.ring.H } : { type:'none', Rr:null, H:null }
+            rest_set: src.rest_set,
+            rest_rung: src.rest_rung,
+            ring: src.ring ? { type: src.ring.type || 'none', rr: src.ring.rr, h: src.ring.h } : { type:'none', rr:null, h:null }
         });
         if (src.mode == 'ladder')
         {
@@ -3569,20 +3569,20 @@ function loadSample()
 }
 
 /* ======== add-exercise helpers ======== */
-function openAddEx(editExId, prefillName)
+function openAddEx(edit_ex_id, prefillName)
 {
     let w = activeWorkout();
-    let d = { name: prefillName||'', mode:'straight', targets:'8 / 8 / 8', tops:'3 3 2', rest:'2:30', rrest:'0:20', setup:'', ringType:'none', ringRr:'', ringH:'' };
-    if (editExId && w)
+    let d = { name: prefillName||'', mode:'straight', targets:'8 / 8 / 8', tops:'3 3 2', rest:'2:30', rrest:'0:20', setup:'', ring_type:'none', ring_rr:'', ring_h:'' };
+    if (edit_ex_id && w)
     {
-        let ex = findEx(w, editExId);
+        let ex = findEx(w, edit_ex_id);
         if (ex)
         {
             d.name = ex.name; d.mode = ex.mode; d.setup = ex.setup;
-            d.rest = fmtRest(ex.restSet); d.rrest = fmtRest(ex.restRung);
-            d.ringType = (ex.ring && ex.ring.type) ? ex.ring.type : (ex.ring && ex.ring.enabled ? 'pushup' : 'none');
-            d.ringRr = ex.ring && ex.ring.Rr!=null ? String(ex.ring.Rr) : '';
-            d.ringH = ex.ring && ex.ring.H!=null ? String(ex.ring.H) : '';
+            d.rest = fmtRest(ex.rest_set); d.rrest = fmtRest(ex.rest_rung);
+            d.ring_type = (ex.ring && ex.ring.type) ? ex.ring.type : (ex.ring && ex.ring.enabled ? 'pushup' : 'none');
+            d.ring_rr = ex.ring && ex.ring.rr!=null ? String(ex.ring.rr) : '';
+            d.ring_h = ex.ring && ex.ring.h!=null ? String(ex.ring.h) : '';
             if (ex.mode=='ladder') d.tops = laddersLabel(rungsOf(ex));
             else d.targets = ex.sets.map(function(s)
             {
@@ -3590,7 +3590,7 @@ function openAddEx(editExId, prefillName)
             }).join(' / ');
         }
     }
-    ui.overlay = { type:'addex', editExId: editExId||null, draft: d, afterExId: null };
+    ui.overlay = { type:'addex', edit_ex_id: edit_ex_id||null, draft: d, after_ex_id: null };
     render();
 }
 
@@ -3604,13 +3604,13 @@ function applyPresetToDraft(d)
     }
     d.mode = p.mode || d.mode;
     d.setup = p.setup || d.setup;
-    if (p.restSet!=null) d.rest = fmtRest(p.restSet);
-    if (p.restRung!=null) d.rrest = fmtRest(p.restRung);
-    if (p.mode=='ladder' && p.lastLadders && p.lastLadders.length) d.tops = laddersLabel(p.lastLadders);
-    else if (p.mode=='ladder' && p.lastTops && p.lastTops.length) d.tops = p.lastTops.join(' ');  /* pre-rung-list preset */
-    else if (p.lastTargets && p.lastTargets.length)
+    if (p.rest_set!=null) d.rest = fmtRest(p.rest_set);
+    if (p.rest_rung!=null) d.rrest = fmtRest(p.rest_rung);
+    if (p.mode=='ladder' && p.last_ladders && p.last_ladders.length) d.tops = laddersLabel(p.last_ladders);
+    else if (p.mode=='ladder' && p.last_tops && p.last_tops.length) d.tops = p.last_tops.join(' ');  /* pre-rung-list preset */
+    else if (p.last_targets && p.last_targets.length)
     {
-        d.targets = p.lastTargets.map(function(t)
+        d.targets = p.last_targets.map(function(t)
         {
             return (t.load!=null? t.load+'x':'')+t.reps;
         }).join(' / ');
@@ -3618,14 +3618,14 @@ function applyPresetToDraft(d)
 
     if (p.ring)
     {
-        d.ringType = p.ring.type || 'pushup'; d.ringRr = p.ring.Rr!=null?String(p.ring.Rr):''; d.ringH = p.ring.H!=null?String(p.ring.H):'';
+        d.ring_type = p.ring.type || 'pushup'; d.ring_rr = p.ring.rr!=null?String(p.ring.rr):''; d.ring_h = p.ring.h!=null?String(p.ring.h):'';
     }
 }
 
 function draftRing(d)
 {
-    let Rr = parseFloat(d.ringRr), H = parseFloat(d.ringH);
-    return { type: d.ringType || 'none', Rr: isNaN(Rr) ? null : Rr, H: isNaN(H) ? null : H };
+    let rr = parseFloat(d.ring_rr), h = parseFloat(d.ring_h);
+    return { type: d.ring_type || 'none', rr: isNaN(rr) ? null : rr, h: isNaN(h) ? null : h };
 }
 
 function saveAddEx()
@@ -3637,13 +3637,13 @@ function saveAddEx()
     }
     let d = o.draft;
     let name = (d.name||'').trim(); if (!name) return;
-    let restSet = parseRest(d.rest); if (restSet==null) restSet = 150;
-    let restRung = parseRest(d.rrest); if (restRung==null) restRung = 20;
+    let rest_set = parseRest(d.rest); if (rest_set==null) rest_set = 150;
+    let rest_rung = parseRest(d.rrest); if (rest_rung==null) rest_rung = 20;
 
-    if (o.editExId)
+    if (o.edit_ex_id)
     {
-        let ex = findEx(w, o.editExId); if (!ex) return;
-        ex.name = name; ex.setup = d.setup; ex.restSet = restSet; ex.restRung = restRung;
+        let ex = findEx(w, o.edit_ex_id); if (!ex) return;
+        ex.name = name; ex.setup = d.setup; ex.rest_set = rest_set; ex.rest_rung = rest_rung;
         ex.ring = draftRing(d);
         /* keep performed sets, rebuild the planned remainder from the edited targets */
         let performed = ex.sets.filter(isPerformed);
@@ -3673,7 +3673,7 @@ function saveAddEx()
     }
     else
     {
-        let nx = makeExercise({ name:name, mode:d.mode, setup:d.setup, restSet:restSet, restRung:restRung, ring:draftRing(d) });
+        let nx = makeExercise({ name:name, mode:d.mode, setup:d.setup, rest_set:rest_set, rest_rung:rest_rung, ring:draftRing(d) });
         if (d.mode=='ladder')
         {
             let ladder_rungs = parseLadders(d.tops); if (!ladder_rungs.length) ladder_rungs=[[1]];
@@ -3685,18 +3685,18 @@ function saveAddEx()
             nx.sets = buildSetsFromTargets(tt, 'kg');
         }
 
-        if (o.afterExId)
+        if (o.after_ex_id)
         {
             let i = w.exercises.findIndex(function(e)
             {
-                return e.id==o.afterExId;
+                return e.id==o.after_ex_id;
             });
             w.exercises.splice(i+1, 0, nx);
         }
         else w.exercises.push(nx);
         touchPreset(nx);
     }
-    ui.overlay = null; ui.painExId = null;
+    ui.overlay = null; ui.pain_ex_id = null;
     save(); render();
 }
 
@@ -3708,7 +3708,7 @@ function closeOverlay()
 
 function openWorkoutById(id)
 {
-    state.activeId = id;
+    state.active_id = id;
     ui.view = 'workout';
     save();
     render();
@@ -3717,20 +3717,20 @@ function openWorkoutById(id)
 
 function shiftCalendarMonth(delta)
 {
-    ui.calM += delta;
+    ui.cal_m += delta;
 
-    if (ui.calM < 0)
+    if (ui.cal_m < 0)
     {
-        ui.calM = 11;
-        --ui.calY;
+        ui.cal_m = 11;
+        --ui.cal_y;
     }
-    else if (ui.calM > 11)
+    else if (ui.cal_m > 11)
     {
-        ui.calM = 0;
-        ++ui.calY;
+        ui.cal_m = 0;
+        ++ui.cal_y;
     }
 
-    ui.calSel = null;
+    ui.cal_sel = null;
     render();
 }
 
@@ -3882,7 +3882,7 @@ function importBackupFile(input)
         }
         catch (e)
         {
-            ui.importMsg = { text: 'import failed: ' + e.message, kind: 'bad' };
+            ui.import_msg = { text: 'import failed: ' + e.message, kind: 'bad' };
             input.value = '';   /* let the same file be re-picked after a fix */
             render();
             return;
@@ -3890,7 +3890,7 @@ function importBackupFile(input)
 
         save();
         input.value = '';
-        ui.importMsg = { text: 'imported — ' + result.added + ' added, ' + result.replaced + ' replaced', kind: 'ok' };
+        ui.import_msg = { text: 'imported — ' + result.added + ' added, ' + result.replaced + ' replaced', kind: 'ok' };
         render();
     };
 
@@ -3902,7 +3902,7 @@ function downloadExportText(workout)
     let ext;
     let name;
 
-    if (ui.expFmt == 'backup')
+    if (ui.exp_fmt == 'backup')
     {
         ext = 'txt';
         name = 'workout-backup-' + todayISO() + '.' + ext;
@@ -3910,7 +3910,7 @@ function downloadExportText(workout)
     else
     {
         if (!workout) { return; }
-        ext = ui.expFmt == 'csv' ? 'csv' : 'txt';
+        ext = ui.exp_fmt == 'csv' ? 'csv' : 'txt';
         name = 'workout-' + workout.date + '.' + ext;
     }
 
@@ -3931,7 +3931,7 @@ document.addEventListener('click', function(ev)
     let ex;
     let hit;
     let i;
-    let rungIndex;
+    let rung_index;
     let ladder_index;
     let rung_count;
     let value;
@@ -3963,7 +3963,7 @@ document.addEventListener('click', function(ev)
             return;
 
         case 'exercise-editor-open':
-            ui.overlay = { type: 'exercise-editor', draft: buildExerciseEditorDraft(), openIdx: -1 };
+            ui.overlay = { type: 'exercise-editor', draft: buildExerciseEditorDraft(), open_idx: -1 };
             render();
             return;
 
@@ -3979,11 +3979,11 @@ document.addEventListener('click', function(ev)
                     targets: '8 / 8 / 8',
                     ladders: '3 3 2',
                     unit: '',
-                    ringType: 'none',
-                    ringRr: '',
-                    ringH: ''
+                    ring_type: 'none',
+                    ring_rr: '',
+                    ring_h: ''
                 });
-                ui.overlay.openIdx = ui.overlay.draft.length - 1;
+                ui.overlay.open_idx = ui.overlay.draft.length - 1;
                 render();
             }
             return;
@@ -3991,13 +3991,13 @@ document.addEventListener('click', function(ev)
         case 'exercise-editor-toggle':
             if (ui.overlay && ui.overlay.type == 'exercise-editor')
             {
-                if (ui.overlay.openIdx == parseInt(target.dataset.idx, 10))
+                if (ui.overlay.open_idx == parseInt(target.dataset.idx, 10))
                 {
-                    ui.overlay.openIdx = -1;
+                    ui.overlay.open_idx = -1;
                 }
                 else
                 {
-                    ui.overlay.openIdx = parseInt(target.dataset.idx, 10);
+                    ui.overlay.open_idx = parseInt(target.dataset.idx, 10);
                 }
                 render();
             }
@@ -4008,13 +4008,13 @@ document.addEventListener('click', function(ev)
             {
                 let deleted_idx = parseInt(target.dataset.idx, 10);
                 ui.overlay.draft.splice(deleted_idx, 1);
-                if (ui.overlay.openIdx == deleted_idx)
+                if (ui.overlay.open_idx == deleted_idx)
                 {
-                    ui.overlay.openIdx = -1;
+                    ui.overlay.open_idx = -1;
                 }
-                else if (ui.overlay.openIdx > deleted_idx)
+                else if (ui.overlay.open_idx > deleted_idx)
                 {
-                    --ui.overlay.openIdx;
+                    --ui.overlay.open_idx;
                 }
                 render();
             }
@@ -4089,7 +4089,7 @@ document.addEventListener('click', function(ev)
             if (!ui.overlay || ui.overlay.type != 'addex') { return; }
             draft = ui.overlay.draft;
             draft.name = target.dataset.name;
-            if (!ui.overlay.editExId)
+            if (!ui.overlay.edit_ex_id)
             {
                 applyPresetToDraft(draft);
             }
@@ -4097,10 +4097,10 @@ document.addEventListener('click', function(ev)
             return;
 
         case 'cal-apply':
-            rest_anchor = calibrateAnchor(state.rig.calX, state.rig.calY, state.rig.calRr);
+            rest_anchor = calibrateAnchor(state.rig.cal_x, state.rig.cal_y, state.rig.cal_rr);
             if (rest_anchor != null && !isNaN(rest_anchor) && rest_anchor > 0)
             {
-                state.rig.anchorHeight = Math.round(rest_anchor*10)/10;
+                state.rig.anchor_height = Math.round(rest_anchor*10)/10;
                 save();
                 render();
             }
@@ -4108,8 +4108,8 @@ document.addEventListener('click', function(ev)
 
         case 'nav-home':
             ui.view = 'home';
-            ui.menuExId = null;
-            ui.editSetId = null;
+            ui.menu_ex_id = null;
+            ui.edit_set_id = null;
             render();
             return;
 
@@ -4176,7 +4176,7 @@ document.addEventListener('click', function(ev)
             return;
 
         case 'home-tab':
-            ui.homeTab = target.dataset.t;
+            ui.home_tab = target.dataset.t;
             render();
             return;
 
@@ -4189,7 +4189,7 @@ document.addEventListener('click', function(ev)
             return;
 
         case 'cal-day':
-            ui.calSel = ui.calSel == target.dataset.d ? null : target.dataset.d;
+            ui.cal_sel = ui.cal_sel == target.dataset.d ? null : target.dataset.d;
             render();
             return;
 
@@ -4198,7 +4198,7 @@ document.addEventListener('click', function(ev)
             {
                 let now = Date.now();
                 ensureWorkoutStarted(workout, now);
-                workout.finishedAt = now;
+                workout.finished_at = now;
                 workout.finished = true;
                 stopTimer();
                 ui.view = 'home';
@@ -4210,7 +4210,7 @@ document.addEventListener('click', function(ev)
         case 'reopen-workout':
             if (workout)
             {
-                workout.finishedAt = null;
+                workout.finished_at = null;
                 workout.finished = false;
                 save();
                 render();
@@ -4218,7 +4218,7 @@ document.addEventListener('click', function(ev)
             return;
 
         case 'clone-open':
-            ui.overlay = { type: 'clone', srcId: state.workouts[0] && state.workouts[0].id, prog: true };
+            ui.overlay = { type: 'clone', src_id: state.workouts[0] && state.workouts[0].id, prog: true };
             render();
             return;
 
@@ -4227,13 +4227,13 @@ document.addEventListener('click', function(ev)
             return;
 
         case 'export-open':
-            ui.importMsg = null;
+            ui.import_msg = null;
             ui.overlay = { type: 'export', wid: workout && workout.id };
             render();
             return;
 
         case 'exp-fmt':
-            ui.expFmt = target.dataset.f;
+            ui.exp_fmt = target.dataset.f;
             render();
             return;
 
@@ -4289,17 +4289,17 @@ document.addEventListener('click', function(ev)
             return;
 
         case 'ex-menu':
-            ui.menuExId = ui.menuExId == target.dataset.ex ? null : target.dataset.ex;
+            ui.menu_ex_id = ui.menu_ex_id == target.dataset.ex ? null : target.dataset.ex;
             render();
             return;
 
         case 'ex-menu-close':
-            ui.menuExId = null;
+            ui.menu_ex_id = null;
             render();
             return;
 
         case 'ex-edit':
-            ui.menuExId = null;
+            ui.menu_ex_id = null;
             openAddEx(target.dataset.ex);
             return;
 
@@ -4307,7 +4307,7 @@ document.addEventListener('click', function(ev)
             if (workout && confirm('Delete this exercise and its sets?'))
             {
                 deleteExerciseFromWorkout(workout, target.dataset.ex);
-                ui.menuExId = null;
+                ui.menu_ex_id = null;
                 save();
                 render();
             }
@@ -4336,17 +4336,17 @@ document.addEventListener('click', function(ev)
             if (ex)
             {
                 ex.mode = 'ladder';
-                rungIndex = 1;
+                rung_index = 1;
                 for (i = 0; i < ex.sets.length; ++i)
                 {
-                    if (ex.sets[i].ladderIndex == null)
+                    if (ex.sets[i].ladder_index == null)
                     {
-                        ex.sets[i].ladderIndex = 1;
-                        ex.sets[i].rungIndex = rungIndex;
-                        ++rungIndex;
+                        ex.sets[i].ladder_index = 1;
+                        ex.sets[i].rung_index = rung_index;
+                        ++rung_index;
                     }
                 }
-                ui.menuExId = null;
+                ui.menu_ex_id = null;
                 save();
                 render();
             }
@@ -4359,10 +4359,10 @@ document.addEventListener('click', function(ev)
                 ex.mode = 'straight';
                 for (i = 0; i < ex.sets.length; ++i)
                 {
-                    ex.sets[i].ladderIndex = null;
-                    ex.sets[i].rungIndex = null;
+                    ex.sets[i].ladder_index = null;
+                    ex.sets[i].rung_index = null;
                 }
-                ui.menuExId = null;
+                ui.menu_ex_id = null;
                 save();
                 render();
             }
@@ -4373,9 +4373,9 @@ document.addEventListener('click', function(ev)
             if (ex)
             {
                 ex.stopped = true;
-                ex.stopReason = 'pain';
-                ui.painExId = ex.id;
-                ui.menuExId = null;
+                ex.stop_reason = 'pain';
+                ui.pain_ex_id = ex.id;
+                ui.menu_ex_id = null;
                 save();
                 render();
             }
@@ -4386,9 +4386,9 @@ document.addEventListener('click', function(ev)
             if (ex)
             {
                 ex.stopped = false;
-                ex.stopReason = null;
-                ui.painExId = null;
-                ui.menuExId = null;
+                ex.stop_reason = null;
+                ui.pain_ex_id = null;
+                ui.menu_ex_id = null;
                 save();
                 render();
             }
@@ -4398,10 +4398,10 @@ document.addEventListener('click', function(ev)
             ex = findEx(workout, target.dataset.ex);
             if (ex)
             {
-                ui.menuExId = null;
-                ui.painExId = null;
+                ui.menu_ex_id = null;
+                ui.pain_ex_id = null;
                 openAddEx(null, '');
-                ui.overlay.afterExId = ex.id;
+                ui.overlay.after_ex_id = ex.id;
                 ui.overlay.draft.setup = 'backoff of ' + ex.name;
                 ui.overlay.draft.mode = ex.mode == 'ladder' ? 'straight' : ex.mode;
                 render();
@@ -4409,12 +4409,12 @@ document.addEventListener('click', function(ev)
             return;
 
         case 'pain-dismiss':
-            ui.painExId = null;
+            ui.pain_ex_id = null;
             render();
             return;
 
         case 'notes-toggle':
-            ui.notesExId = ui.notesExId == target.dataset.ex ? null : target.dataset.ex;
+            ui.notes_ex_id = ui.notes_ex_id == target.dataset.ex ? null : target.dataset.ex;
             render();
             return;
 
@@ -4450,10 +4450,10 @@ document.addEventListener('click', function(ev)
                         unit: last_done.unit,
                         status: 'done_clean'
                     });
-                    repeated.doneAt = now;
+                    repeated.done_at = now;
                     ex.sets.push(repeated);
-                    repeated.restTarget = ex.restSet;
-                    startTimer(ex.restSet, ex.name + ' · set rest', repeated.id);
+                    repeated.rest_target = ex.rest_set;
+                    startTimer(ex.rest_set, ex.name + ' · set rest', repeated.id);
                     save();
                     render();
                 }
@@ -4470,13 +4470,13 @@ document.addEventListener('click', function(ev)
 
                 for (i = 0; i < ex.sets.length; ++i)
                 {
-                    if (ex.sets[i].ladderIndex != ladder_index) { continue; }
+                    if (ex.sets[i].ladder_index != ladder_index) { continue; }
 
                     /* rung_count is the highest existing POSITION, top the highest REP
                       target — the two are independent once rungs can be arbitrary */
-                    if ((ex.sets[i].rungIndex || 0) > rung_count)
+                    if ((ex.sets[i].rung_index || 0) > rung_count)
                     {
-                        rung_count = ex.sets[i].rungIndex || 0;
+                        rung_count = ex.sets[i].rung_index || 0;
                     }
 
                     value = ex.sets[i].target != null ? ex.sets[i].target : ex.sets[i].reps;
@@ -4490,8 +4490,8 @@ document.addEventListener('click', function(ev)
                   single place guaranteeing contiguous positions, so a gap inherited from
                   older data can't collide with the new rung's index */
                 ex.sets.push(makeSet({
-                    ladderIndex: ladder_index,
-                    rungIndex: rung_count + 1,
+                    ladder_index: ladder_index,
+                    rung_index: rung_count + 1,
                     target: top + 1
                 }));
                 normalizeLadders(ex);
@@ -4513,9 +4513,9 @@ document.addEventListener('click', function(ev)
                     top = 0;
                     for (i = 0; i < ladders[ladders.length - 1].sets.length; ++i)
                     {
-                        if ((ladders[ladders.length - 1].sets[i].rungIndex || 1) > top)
+                        if ((ladders[ladders.length - 1].sets[i].rung_index || 1) > top)
                         {
-                            top = ladders[ladders.length - 1].sets[i].rungIndex || 1;
+                            top = ladders[ladders.length - 1].sets[i].rung_index || 1;
                         }
                     }
                 }
@@ -4523,8 +4523,8 @@ document.addEventListener('click', function(ev)
                 for (i = 1; i <= top; ++i)
                 {
                     ex.sets.push(makeSet({
-                        ladderIndex: next_ladder,
-                        rungIndex: i,
+                        ladder_index: next_ladder,
+                        rung_index: i,
                         target: i
                     }));
                 }
@@ -4556,20 +4556,20 @@ document.addEventListener('click', function(ev)
             {
                 hit.set.status = 'planned';
                 hit.set.reps = null;
-                hit.set.doneAt = null;
-                ui.editSetId = null;
+                hit.set.done_at = null;
+                ui.edit_set_id = null;
                 save();
                 render();
             }
             return;
 
         case 'set-edit':
-            ui.editSetId = ui.editSetId == target.dataset.set ? null : target.dataset.set;
+            ui.edit_set_id = ui.edit_set_id == target.dataset.set ? null : target.dataset.set;
             render();
             return;
 
         case 'set-edit-close':
-            ui.editSetId = null;
+            ui.edit_set_id = null;
             save();
             render();
             return;
@@ -4582,8 +4582,8 @@ document.addEventListener('click', function(ev)
                 {
                     return set.id != target.dataset.set;
                 });
-                normalizeLadders(hit.ex);   /* keep rungIndex contiguous — no gaps to inherit later */
-                ui.editSetId = null;
+                normalizeLadders(hit.ex);   /* keep rung_index contiguous — no gaps to inherit later */
+                ui.edit_set_id = null;
                 save();
                 render();
             }
@@ -4704,11 +4704,11 @@ document.addEventListener('input', function(ev)
                     case 'ax-ring-h':
                         if (field == 'ax-ring-rr')
                         {
-                            draft.ringRr = target.value;
+                            draft.ring_rr = target.value;
                         }
                         else
                         {
-                            draft.ringH = target.value;
+                            draft.ring_h = target.value;
                         }
 
                         ring_readout = document.getElementById('ring_readout');
@@ -4727,19 +4727,19 @@ document.addEventListener('input', function(ev)
                 switch (field)
                 {
                     case 'ft-start-date':
-                        draft.startedDate = target.value;
+                        draft.started_date = target.value;
                         return;
 
                     case 'ft-start-time':
-                        draft.startedTime = target.value;
+                        draft.started_time = target.value;
                         return;
 
                     case 'ft-finish-date':
-                        draft.finishedDate = target.value;
+                        draft.finished_date = target.value;
                         return;
 
                     case 'ft-finish-time':
-                        draft.finishedTime = target.value;
+                        draft.finished_time = target.value;
                         return;
                 }
                 break;
@@ -4748,12 +4748,12 @@ document.addEventListener('input', function(ev)
                 switch (field)
                 {
                     case 'set-shoulder-push':
-                        state.profile.shoulderPushup = parseMaybeNumber(target.value);
+                        state.profile.shoulder_pushup = parseMaybeNumber(target.value);
                         save();
                         return;
 
                     case 'set-shoulder-row':
-                        state.profile.shoulderRow = parseMaybeNumber(target.value);
+                        state.profile.shoulder_row = parseMaybeNumber(target.value);
                         save();
                         return;
 
@@ -4763,7 +4763,7 @@ document.addEventListener('input', function(ev)
                         return;
 
                     case 'set-anchor':
-                        state.rig.anchorHeight = parseMaybeNumber(target.value);
+                        state.rig.anchor_height = parseMaybeNumber(target.value);
                         save();
                         return;
 
@@ -4775,15 +4775,15 @@ document.addEventListener('input', function(ev)
                         switch (field)
                         {
                             case 'cal-x':
-                                state.rig.calX = num;
+                                state.rig.cal_x = num;
                                 break;
 
                             case 'cal-y':
-                                state.rig.calY = num;
+                                state.rig.cal_y = num;
                                 break;
 
                             case 'cal-rr':
-                                state.rig.calRr = num;
+                                state.rig.cal_rr = num;
                                 break;
                         }
 
@@ -4844,11 +4844,11 @@ document.addEventListener('input', function(ev)
                                     break;
 
                                 case 'lib-ring-rr':
-                                    draft[parseInt(target.dataset.idx, 10)].ringRr = target.value;
+                                    draft[parseInt(target.dataset.idx, 10)].ring_rr = target.value;
                                     break;
 
                                 case 'lib-ring-h':
-                                    draft[parseInt(target.dataset.idx, 10)].ringH = target.value;
+                                    draft[parseInt(target.dataset.idx, 10)].ring_h = target.value;
                                     break;
                             }
                         }
@@ -4944,19 +4944,19 @@ document.addEventListener('change', function(ev)
                 switch (field)
                 {
                     case 'ft-start-date':
-                        ui.overlay.draft.startedDate = target.value;
+                        ui.overlay.draft.started_date = target.value;
                         break;
 
                     case 'ft-start-time':
-                        ui.overlay.draft.startedTime = target.value;
+                        ui.overlay.draft.started_time = target.value;
                         break;
 
                     case 'ft-finish-date':
-                        ui.overlay.draft.finishedDate = target.value;
+                        ui.overlay.draft.finished_date = target.value;
                         break;
 
                     case 'ft-finish-time':
-                        ui.overlay.draft.finishedTime = target.value;
+                        ui.overlay.draft.finished_time = target.value;
                         break;
                 }
             }
@@ -4965,7 +4965,7 @@ document.addEventListener('change', function(ev)
         case 'clone-src':
             if (ui.overlay)
             {
-                ui.overlay.srcId = target.value;
+                ui.overlay.src_id = target.value;
                 render();
             }
             return;
@@ -4981,7 +4981,7 @@ document.addEventListener('change', function(ev)
         case 'ax-ring-type':
             if (ui.overlay && ui.overlay.type == 'addex')
             {
-                ui.overlay.draft.ringType = target.value;
+                ui.overlay.draft.ring_type = target.value;
                 render();
             }
             return;
@@ -4997,7 +4997,7 @@ document.addEventListener('change', function(ev)
         case 'lib-ring-type':
             if (ui.overlay && ui.overlay.type == 'exercise-editor' && ui.overlay.draft[parseInt(target.dataset.idx, 10)])
             {
-                ui.overlay.draft[parseInt(target.dataset.idx, 10)].ringType = target.value;
+                ui.overlay.draft[parseInt(target.dataset.idx, 10)].ring_type = target.value;
                 render();
             }
             return;
@@ -5059,28 +5059,28 @@ function boot()
         if (state.settings.countdown == null) state.settings.countdown = false;
         if (!state.rig) state.rig = makeNullStruct(rig_fields);
         if (!state.profile) state.profile = makeNullStruct(profile_fields);
-        if (!state.exerciseLibrary)
+        if (!state.exercise_library)
         {
-            state.exerciseLibrary = cloneLibraryExercises(rawExerciseLibrary().exercises);
+            state.exercise_library = cloneLibraryExercises(rawExerciseLibrary().exercises);
         }
 
         state.workouts.forEach(function(w)
         {
             let latest_done_at;
 
-            if (!w.finishedAt)
+            if (!w.finished_at)
             {
                 latest_done_at = latestDoneAtOfWorkout(w);
-                w.finishedAt = w.finished ? (latest_done_at != null ? latest_done_at : w.startedAt) : null;
+                w.finished_at = w.finished ? (latest_done_at != null ? latest_done_at : w.started_at) : null;
             }
 
             w.exercises.forEach(function(ex)
             {
-                if (!ex.ring) ex.ring = { type:'none', Rr:null, H:null };
+                if (!ex.ring) ex.ring = { type:'none', rr:null, h:null };
                 normalizeLadders(ex);
                 ex.sets.forEach(function(s)
                 {
-                    if (!s.doneAt) { s.doneAt = null; }
+                    if (!s.done_at) { s.done_at = null; }
                 });
             });
         });
