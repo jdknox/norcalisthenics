@@ -11,8 +11,11 @@ import urllib.parse
 
 
 data_file = './data/workout-data.tsv'
-temp_file = './data/workout-data.tsv.tmp'
-backup_file = './data/workout-data.tsv.bak'
+data_temp_file = './data/workout-data.tsv.tmp'
+data_backup_file = './data/workout-data.tsv.bak'
+library_file = './data/workout-library.tsv'
+library_temp_file = './data/workout-library.tsv.tmp'
+library_backup_file = './data/workout-library.tsv.bak'
 default_host = '0.0.0.0'
 default_port = 8010
 
@@ -94,20 +97,20 @@ def writePlainText(handler, code, text, content_type):
     handler.wfile.write(body)
 
 
-def readWorkoutData():
-    if not fileExists(data_file):
+def readStorageFile(path):
+    if not fileExists(path):
         return ''
 
-    return readTextFile(data_file)
+    return readTextFile(path)
 
 
-def writeWorkoutData(text):
-    writeTextFile(temp_file, text)
+def writeStorageFile(path, temp_path, backup_path, text):
+    writeTextFile(temp_path, text)
 
-    if fileExists(data_file):
-        os.replace(data_file, backup_file)
+    if fileExists(path):
+        os.replace(path, backup_path)
 
-    os.replace(temp_file, data_file)
+    os.replace(temp_path, path)
 
 
 class WorkoutHandler(http.server.SimpleHTTPRequestHandler):
@@ -122,7 +125,11 @@ class WorkoutHandler(http.server.SimpleHTTPRequestHandler):
             return writeHtml(self, './workout-recorder.html')
 
         if path == '/api/workout-data':
-            text = readWorkoutData()
+            text = readStorageFile(data_file)
+            return writePlainText(self, 200, text, 'text/tab-separated-values; charset=utf-8')
+
+        if path == '/api/workout-library':
+            text = readStorageFile(library_file)
             return writePlainText(self, 200, text, 'text/tab-separated-values; charset=utf-8')
 
         return http.server.SimpleHTTPRequestHandler.do_GET(self)
@@ -130,12 +137,17 @@ class WorkoutHandler(http.server.SimpleHTTPRequestHandler):
     def do_PUT(self):
         path = urllib.parse.urlparse(self.path).path
 
-        if path != '/api/workout-data':
-            return writePlainText(self, 404, 'not found\n', 'text/plain; charset=utf-8')
-
         text = readRequestText(self)
-        writeWorkoutData(text)
-        return writePlainText(self, 200, 'ok\n', 'text/plain; charset=utf-8')
+
+        if path == '/api/workout-data':
+            writeStorageFile(data_file, data_temp_file, data_backup_file, text)
+            return writePlainText(self, 200, 'ok\n', 'text/plain; charset=utf-8')
+
+        if path == '/api/workout-library':
+            writeStorageFile(library_file, library_temp_file, library_backup_file, text)
+            return writePlainText(self, 200, 'ok\n', 'text/plain; charset=utf-8')
+
+        return writePlainText(self, 404, 'not found\n', 'text/plain; charset=utf-8')
 
     def do_POST(self):
         return self.do_PUT()

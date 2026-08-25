@@ -1541,39 +1541,10 @@ function bkBool(value)
     return value ? 'yes' : 'no';
 }
 
-function buildBackup(state)
+function appendLibraryBackup(lines, library_list)
 {
-    let lines = [];
-    let library_list;
-    let w;
     let ex;
-    let ordered;
-    let entry;
-    let s;
     let i;
-    let j;
-    let k;
-
-    lines.push(BACKUP_VERSION);
-    lines.push('');
-
-    library_list = state.exercise_library || cloneLibraryExercises(rawExerciseLibrary().exercises);
-
-    lines.push('[globals]');
-    lines.push(['sound', 'countdown', 'active', 'anchor', 'cal_x', 'cal_y', 'cal_rr', 'toe_shoulder', 'heel_shoulder', 'arm'].join('\t'));
-    lines.push([
-        bkBool(state.settings.sound),
-        bkBool(state.settings.countdown),
-        bkCell(state.active_id),
-        bkCell(state.rig.anchor_height),
-        bkCell(state.rig.cal_x),
-        bkCell(state.rig.cal_y),
-        bkCell(state.rig.cal_rr),
-        bkCell(state.profile.shoulder_pushup),
-        bkCell(state.profile.shoulder_row),
-        bkCell(state.profile.arm)
-    ].join('\t'));
-    lines.push('');
 
     lines.push('[library_exercises]');
     lines.push(['name', 'mode', 'rest_set', 'rest_rung', 'setup', 'unit', 'ring_type', 'ring_rr', 'foot_dist', 'default_targets', 'default_ladders'].join('\t'));
@@ -1595,6 +1566,56 @@ function buildBackup(state)
         ].join('\t'));
     }
     lines.push('');
+}
+
+function buildLibraryBackup(exercise_list)
+{
+    let lines = [];
+
+    lines.push(BACKUP_VERSION);
+    lines.push('');
+    appendLibraryBackup(lines, exercise_list || []);
+
+    return lines.join('\n');
+}
+
+function buildBackup(state, include_library)
+{
+    let lines = [];
+    let library_list;
+    let w;
+    let ex;
+    let ordered;
+    let entry;
+    let s;
+    let i;
+    let j;
+    let k;
+
+    lines.push(BACKUP_VERSION);
+    lines.push('');
+
+    lines.push('[globals]');
+    lines.push(['sound', 'countdown', 'active', 'anchor', 'cal_x', 'cal_y', 'cal_rr', 'toe_shoulder', 'heel_shoulder', 'arm'].join('\t'));
+    lines.push([
+        bkBool(state.settings.sound),
+        bkBool(state.settings.countdown),
+        bkCell(state.active_id),
+        bkCell(state.rig.anchor_height),
+        bkCell(state.rig.cal_x),
+        bkCell(state.rig.cal_y),
+        bkCell(state.rig.cal_rr),
+        bkCell(state.profile.shoulder_pushup),
+        bkCell(state.profile.shoulder_row),
+        bkCell(state.profile.arm)
+    ].join('\t'));
+    lines.push('');
+
+    if (include_library)
+    {
+        library_list = state.exercise_library || cloneLibraryExercises(rawExerciseLibrary().exercises);
+        appendLibraryBackup(lines, library_list);
+    }
 
     lines.push('[workouts]');
     lines.push(['id', 'date', 'name', 'started_at', 'finished_at', 'finished', 'notes'].join('\t'));
@@ -2240,6 +2261,11 @@ function sharedStorageAvailable()
     return window.sharedStorageLoadText && window.sharedStorageSaveText;
 }
 
+function sharedLibraryStorageAvailable()
+{
+    return window.sharedStorageLoadLibraryText && window.sharedStorageSaveLibraryText;
+}
+
 let rig_fields = ['anchor_height', 'cal_x', 'cal_y', 'cal_rr'];
 let profile_fields = ['shoulder_pushup', 'shoulder_row', 'arm'];
 
@@ -2300,14 +2326,52 @@ function stateFromBackupText(text)
     return loaded;
 }
 
+function libraryFromBackupText(text)
+{
+    if (!text || text.trim() == '') { return null; }
+
+    let parsed = parseBackup(text);
+    if (!parsed.library_seen) { return null; }
+
+    return cloneLibraryExercises(parsed.library_exercises);
+}
+
 function loadStorage()
 {
     if (sharedStorageAvailable())
     {
-        return window.sharedStorageLoadText().then(function(text)
+        return window.sharedStorageLoadText().then(function(data_text)
         {
-            setStorageStatus('ok', 'storage: server', 'shared storage server responded; loading and saving go through the server');
-            return stateFromBackupText(text);
+            let loaded = stateFromBackupText(data_text);
+
+            if (!loaded)
+            {
+                loaded = makeState();
+            }
+
+            if (!sharedLibraryStorageAvailable())
+            {
+                setStorageStatus('ok', 'storage: server', 'shared storage server responded; loading and saving go through the server');
+                return loaded;
+            }
+
+            return window.sharedStorageLoadLibraryText().then(function(library_text)
+            {
+                let library = libraryFromBackupText(library_text);
+
+                if (library)
+                {
+                    loaded.exercise_library = library;
+                }
+
+                setStorageStatus('ok', 'storage: server', 'shared storage server responded; loading and saving go through the server');
+                return loaded;
+            }, function(error)
+            {
+                let message = error && error.message ? ' (' + error.message + ')' : '';
+                setStorageStatus('warn', 'storage: partial', 'shared storage library load failed; using workout data from server and static exercise defaults' + message);
+                return loaded;
+            });
         }, function(error)
         {
             let message = error && error.message ? ' (' + error.message + ')' : '';
@@ -2342,7 +2406,7 @@ function flushStorage(data)
 
     if (sharedStorageAvailable())
     {
-        let backup_text = buildBackup(data);
+        let backup_text = buildBackup(data, false);
 
         return window.sharedStorageSaveText(backup_text).then(function()
         {
@@ -2352,6 +2416,28 @@ function flushStorage(data)
         {
             let message = error && error.message ? ' (' + error.message + ')' : '';
             setStorageStatus('warn', 'storage: browser fallback', 'shared storage save failed; using browser local storage' + message);
+            return localStorageWrite(json_text);
+        });
+    }
+
+    setStorageStatus('warn', 'storage: browser only', 'shared storage adapter missing; using browser local storage');
+    return localStorageWrite(json_text);
+}
+
+function saveExerciseLibraryStorage(exercise_list)
+{
+    let json_text = JSON.stringify(state);
+
+    if (sharedLibraryStorageAvailable())
+    {
+        return window.sharedStorageSaveLibraryText(buildLibraryBackup(exercise_list)).then(function()
+        {
+            setStorageStatus('ok', 'storage: server', 'shared storage server responded; loading and saving go through the server');
+            return null;
+        }, function(error)
+        {
+            let message = error && error.message ? ' (' + error.message + ')' : '';
+            setStorageStatus('warn', 'storage: browser fallback', 'shared storage library save failed; using browser local storage' + message);
             return localStorageWrite(json_text);
         });
     }
@@ -2997,6 +3083,7 @@ function saveExerciseEditor(draft)
     state.exercise_library = cleaned;
     pruneStalePresets();
     ui.overlay = { type: 'settings' };
+    saveExerciseLibraryStorage(cleaned);
     save();
     render();
 }
@@ -3124,7 +3211,7 @@ function refreshOverlayOutputs()
 
             if (out)
             {
-                out.value = buildBackup(state);
+                out.value = buildBackup(state, true);
             }
             return;
 
@@ -3134,14 +3221,14 @@ function refreshOverlayOutputs()
 
             if (out && ui.exp_fmt == 'backup')
             {
-                out.value = buildBackup(state);
+                out.value = buildBackup(state, true);
             }
             else if (out && w)
             {
                 switch (ui.exp_fmt)
                 {
                     case 'backup':
-                        out.value = buildBackup(state);
+                        out.value = buildBackup(state, true);
                         break;
 
                     case 'csv':

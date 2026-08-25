@@ -1,0 +1,11 @@
+workout_recorder_backup	26.0726.2015
+
+[library_exercises]
+name	mode	rest_set	rest_rung	setup	unit	ring_type	ring_rr	foot_dist	default_targets	default_ladders
+Ring Pushups Inclined	ladder	120	20	rings lower shin, body 30~45°, feet floor	-	none	-	-	-	4 4 4
+Ring Row Inclined	ladder	120	20	body 30~45° · grip neutral · range chest to rings	-	none	-	-	-	1,2,3,4 / 1,2,3,4 / 1,2,3,5
+Handle Full Pushups	ladder	120	20	-	-	none	-	-	-	3 3 3
+Floor Full Pushups	ladder	120	20	-	-	none	-	-	-	4 4 4
+Hanging Knee Raise	straight	120	20	-	-	none	-	-	6 / 6 / 6	-
+Banded Hip Bridges	weighted	120	20	band at hips · anchor floor · lying	-	none	-	-	15x8 / 10x12 / 10x10	-
+Scapular Pull-ups	weighted	120	20	-	-	none	-	-	10x12 / 10x12 / 10x12	-

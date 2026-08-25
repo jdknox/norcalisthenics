@@ -21,6 +21,7 @@ function notifyStorageStatus(kind, text, title)
 }
 
 let workout_data_url = '/api/workout-data';
+let workout_library_url = '/api/workout-library';
 
 function readStorageText(response)
 {
@@ -71,5 +72,46 @@ function sharedStorageSaveText(text)
   });
 }
 
+function sharedStorageLoadLibraryText()
+{
+  notifyStorageStatus('checking', 'storage: checking', 'checking shared storage server');
+  return fetch(workout_library_url, {
+    method: 'GET',
+    cache: 'no-store'
+  }).then(readStorageText).then(function(text)
+  {
+    notifyStorageStatus('ok', 'storage: server', 'shared storage server responded; loading and saving go through the server');
+    return text;
+  }, function(error)
+  {
+    let message = error && error.message ? ' (' + error.message + ')' : '';
+    notifyStorageStatus('warn', 'storage: browser fallback', 'shared storage library load failed; using browser local storage' + message);
+    throw error;
+  });
+}
+
+function sharedStorageSaveLibraryText(text)
+{
+  notifyStorageStatus('checking', 'storage: checking', 'saving exercise library to shared storage server');
+  return fetch(workout_library_url, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'text/tab-separated-values; charset=utf-8'
+    },
+    body: text
+  }).then(readStorageText).then(function(result)
+  {
+    notifyStorageStatus('ok', 'storage: server', 'shared storage server responded; loading and saving go through the server');
+    return result;
+  }, function(error)
+  {
+    let message = error && error.message ? ' (' + error.message + ')' : '';
+    notifyStorageStatus('warn', 'storage: browser fallback', 'shared storage library save failed; using browser local storage' + message);
+    throw error;
+  });
+}
+
 window.sharedStorageLoadText = sharedStorageLoadText;
 window.sharedStorageSaveText = sharedStorageSaveText;
+window.sharedStorageLoadLibraryText = sharedStorageLoadLibraryText;
+window.sharedStorageSaveLibraryText = sharedStorageSaveLibraryText;

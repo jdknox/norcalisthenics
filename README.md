@@ -35,6 +35,7 @@ data.
 - [workout-render.js](workout-render.js): main screen rendering
 - [workout-sheets.js](workout-sheets.js): overlay sheets and sheet-only helpers
 - [data/workout-exercises.js](data/workout-exercises.js): static exercise library defaults
+- [data/workout-library.tsv](data/workout-library.tsv): editable exercise library for shared-server use
 - [workout-sample.js](workout-sample.js): sample workout loaded from the empty state
 - [claude_changelog.md](claude_changelog.md): development history
 - [AI_AGENT_SESSIONS.md](AI_AGENT_SESSIONS.md): AI-assisted work streams and context anchors
@@ -45,9 +46,12 @@ data.
 - shared use should store data through the local Python server
 - shared server use stores the TSV backup format as the canonical data file in
   `data/workout-data.tsv`
+- shared server use stores the editable exercise library separately in
+  `data/workout-library.tsv`
 - full backups are text files produced by the app
 - backup text format is meant for round-tripping, not for hand editing
-- workout library defaults come from `data/workout-exercises.js`; once saved, the editable library lives in the canonical TSV data
+- manual full backups include the exercise library; routine server saves keep it out of `data/workout-data.tsv`
+- workout library defaults come from `data/workout-exercises.js`; shared-server edits persist to `data/workout-library.tsv`
 - the sample workout is separate from the editable exercise library and lives in `workout-sample.js`
 
 ## Local server direction
@@ -58,6 +62,8 @@ caching, and handles the simple data-file operations this app needs:
 
 - `GET /api/workout-data` returns the current TSV data file
 - `PUT` or `POST /api/workout-data` writes a new TSV body to a temporary file
+- `GET /api/workout-library` returns the current exercise library TSV
+- `PUT` or `POST /api/workout-library` writes a new library TSV body to a temporary file
 - the previous TSV is rotated to a backup
 - the temporary file is renamed into place atomically
 
@@ -78,3 +84,4 @@ from JSON storage to TSV storage.
 - `data/backups/` currently holds sample backup files, not app code
 - runtime data files such as `data/workout-data.tsv` are
   ignored because they are machine-local user data, not source
+- `data/workout-library.tsv` is tracked because it is shared structure, not the personal workout log

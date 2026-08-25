@@ -4,5 +4,7 @@ shared-storage.json
 data/workout-data.tsv
 data/workout-data.tsv.tmp
 data/workout-data.tsv.bak
+data/workout-library.tsv.tmp
+data/workout-library.tsv.bak
 __pycache__/
 *:Zone.Identifier
