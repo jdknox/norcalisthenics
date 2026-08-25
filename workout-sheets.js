@@ -258,7 +258,7 @@ function sheetSettings()
      + '</div><div class="hint">counting down shows time remaining and drains the bar; either way it keeps running past the target so you can see how long you actually took.</div></div>';
   h += '<div class="import-sec">'
      + '<div class="calib-h">backup &amp; restore</div>'
-     + '<div class="hint">Complete, lossless snapshot of <b>everything</b> — every workout, all planned and logged sets, rest config, ring geometry, and your rig + profile. Restore merges into what you already have: matching workout ids are replaced, new ones are added, and rig/profile fill only where you have not set them.</div>'
+     + '<div class="hint">Complete, lossless snapshot of <b>everything</b> — exercise library, every workout, all planned and logged sets, rest config, ring geometry, and your rig + profile. Restore merges workouts into what you already have and replaces the saved library when the file has a library section.</div>'
      + '<textarea class="exp-out" id="settings_backup_out" readonly spellcheck="false"></textarea>'
      + '<div class="foot"><span class="hint" id="settings_copymsg"></span>'
      + '<button class="btn" data-a="settings-backup-download">download</button>'
@@ -355,7 +355,7 @@ function sheetExerciseEditor(o)
   h += '<div class="btnrow"><button class="btn small" data-a="exercise-editor-add">+ add exercise</button></div>';
   h += '<div class="import-sec">'
      + '<div class="calib-h">export to js</div>'
-     + '<div class="hint">Exports the current saved exercise list as a `workout-exercises.js` file. The sample workout lives separately in `workout-sample.js`.</div>'
+     + '<div class="hint">Exports the current saved exercise list as a `workout-exercises.js` file for `data/`. The sample workout lives separately in `workout-sample.js`.</div>'
      + '<textarea class="exp-out" id="exercise_js_out" readonly spellcheck="false"></textarea>'
      + '<div class="foot"><span class="hint" id="exercise_js_copymsg"></span>'
      + '<button class="btn" data-a="exercise-js-download">download</button>'
@@ -417,7 +417,7 @@ function sheetExport(o)
 
   if (is_backup)
   {
-    h += '<div class="hint" style="margin-bottom:8px">Complete, lossless snapshot of <b>everything</b> — every workout, all planned and logged sets, rest config, ring geometry, and your rig + profile. This is the file to keep for moving devices or restoring after a reset.</div>';
+    h += '<div class="hint" style="margin-bottom:8px">Complete, lossless snapshot of <b>everything</b> — exercise library, every workout, all planned and logged sets, rest config, ring geometry, and your rig + profile. This is the file to keep for moving devices or restoring after a reset.</div>';
   }
 
   h += '<textarea class="exp-out" id="expout" readonly spellcheck="false"></textarea>';
@@ -430,7 +430,7 @@ function sheetExport(o)
   {
     h += '<div class="import-sec">'
        + '<div class="calib-h">restore from a backup</div>'
-       + '<div class="hint">Merges into what you already have: a workout with a matching id is overwritten by the file, new ones are added, and rig/profile fill only where you have not set them. Nothing is deleted.</div>'
+       + '<div class="hint">Merges workouts into what you already have: a workout with a matching id is overwritten by the file, new ones are added, and rig/profile fill only where you have not set them. If the file has an exercise library section, it replaces the saved library.</div>'
        + '<input type="file" id="importfile" accept=".txt,.tsv,text/plain" class="hidden">'
        + '<div class="btnrow" style="margin-top:8px"><button class="btn small" data-a="import-pick">load backup file…</button></div>'
        + (ui.import_msg ? '<div class="import-msg '+(ui.import_msg.kind=='bad'?'bad':'ok')+'">'+esc(ui.import_msg.text)+'</div>' : '')

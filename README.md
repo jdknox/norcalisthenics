@@ -34,7 +34,7 @@ data.
 - [workout-recorder.js](workout-recorder.js): app state, actions, storage, import/export, boot
 - [workout-render.js](workout-render.js): main screen rendering
 - [workout-sheets.js](workout-sheets.js): overlay sheets and sheet-only helpers
-- [workout-exercises.js](workout-exercises.js): static exercise library defaults
+- [data/workout-exercises.js](data/workout-exercises.js): static exercise library defaults
 - [workout-sample.js](workout-sample.js): sample workout loaded from the empty state
 - [claude_changelog.md](claude_changelog.md): development history
 - [AI_AGENT_SESSIONS.md](AI_AGENT_SESSIONS.md): AI-assisted work streams and context anchors
@@ -44,10 +44,10 @@ data.
 - direct-file use stores data in browser local storage
 - shared use should store data through the local Python server
 - shared server use stores the TSV backup format as the canonical data file in
-  `workout-data.tsv`
+  `data/workout-data.tsv`
 - full backups are text files produced by the app
 - backup text format is meant for round-tripping, not for hand editing
-- workout library defaults come from `workout-exercises.js`, but the editable saved library lives in browser storage
+- workout library defaults come from `data/workout-exercises.js`; once saved, the editable library lives in the canonical TSV data
 - the sample workout is separate from the editable exercise library and lives in `workout-sample.js`
 
 ## Local server direction
@@ -75,6 +75,6 @@ from JSON storage to TSV storage.
 ## Repo notes
 
 - `.codex` is ignored
-- `backups/` currently holds sample backup files, not app code
-- runtime data files such as `workout-data.tsv` and `shared-storage.json` are
+- `data/backups/` currently holds sample backup files, not app code
+- runtime data files such as `data/workout-data.tsv` are
   ignored because they are machine-local user data, not source

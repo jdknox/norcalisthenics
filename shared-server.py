@@ -10,9 +10,9 @@ import time
 import urllib.parse
 
 
-data_file = './workout-data.tsv'
-temp_file = './workout-data.tsv.tmp'
-backup_file = './workout-data.tsv.bak'
+data_file = './data/workout-data.tsv'
+temp_file = './data/workout-data.tsv.tmp'
+backup_file = './data/workout-data.tsv.bak'
 default_host = '0.0.0.0'
 default_port = 8010
 
@@ -57,7 +57,7 @@ def versionHtmlScripts(html_text):
     nonce = str(time.time_ns())
     script_names = [
         'shared-storage.js',
-        'workout-exercises.js',
+        'data/workout-exercises.js',
         'workout-sample.js',
         'workout-sheets.js',
         'workout-render.js',

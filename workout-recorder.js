@@ -133,6 +133,30 @@ function parseTargets(value)
     return out;
 }
 
+function targetsLabelForStorage(targets)
+{
+    let parts = [];
+    let target;
+    let i;
+
+    if (!targets) { return ''; }
+
+    for (i = 0; i < targets.length; ++i)
+    {
+        target = targets[i] || {};
+        if (target.load != null)
+        {
+            parts.push(target.load + 'x' + target.reps);
+        }
+        else if (target.reps != null)
+        {
+            parts.push(String(target.reps));
+        }
+    }
+
+    return parts.join(' / ');
+}
+
 /* "3 3 2" or "3/3/2" -> [3, 3, 2] */
 function parseTops(value)
 {
@@ -1520,6 +1544,7 @@ function bkBool(value)
 function buildBackup(state)
 {
     let lines = [];
+    let library_list;
     let w;
     let ex;
     let ordered;
@@ -1531,6 +1556,8 @@ function buildBackup(state)
 
     lines.push(BACKUP_VERSION);
     lines.push('');
+
+    library_list = state.exercise_library || cloneLibraryExercises(rawExerciseLibrary().exercises);
 
     lines.push('[globals]');
     lines.push(['sound', 'countdown', 'active', 'anchor', 'cal_x', 'cal_y', 'cal_rr', 'toe_shoulder', 'heel_shoulder', 'arm'].join('\t'));
@@ -1546,6 +1573,27 @@ function buildBackup(state)
         bkCell(state.profile.shoulder_row),
         bkCell(state.profile.arm)
     ].join('\t'));
+    lines.push('');
+
+    lines.push('[library_exercises]');
+    lines.push(['name', 'mode', 'rest_set', 'rest_rung', 'setup', 'unit', 'ring_type', 'ring_rr', 'foot_dist', 'default_targets', 'default_ladders'].join('\t'));
+    for (i = 0; i < library_list.length; ++i)
+    {
+        ex = library_list[i];
+        lines.push([
+            bkCell(ex.name),
+            bkCell(ex.mode),
+            bkCell(ex.rest_set),
+            bkCell(ex.rest_rung),
+            bkCell(ex.setup),
+            bkCell(ex.unit),
+            bkCell(ex.ring ? ex.ring.type : null),
+            bkCell(ex.ring ? ex.ring.rr : null),
+            bkCell(ex.ring ? ex.ring.h : null),
+            bkCell(targetsLabelForStorage(ex.default_targets)),
+            bkCell(ex.default_ladders && ex.default_ladders.length ? laddersLabel(ex.default_ladders) : '')
+        ].join('\t'));
+    }
     lines.push('');
 
     lines.push('[workouts]');
@@ -1682,14 +1730,14 @@ function bkColumns(header_line)
 }
 
 /* parse the whole file into flat section arrays, asserting shape as we go.
-  returns { globals, workouts, exercises, sets } as plain records. */
+  returns { globals, library_exercises, workouts, exercises, sets } as plain records. */
 function parseBackup(text)
 {
     let raw_lines = text.split(/\r?\n/);
     let lines = [];
     let section = null;
     let cols = null;
-    let out = { globals: null, workouts: [], exercises: [], sets: [] };
+    let out = { globals: null, library_seen: false, library_exercises: [], workouts: [], exercises: [], sets: [] };
     let line;
     let fields;
     let i;
@@ -1721,6 +1769,10 @@ function parseBackup(text)
         {
             section = line;
             cols = null;   /* next line in this section is its header */
+            if (section == '[library_exercises]')
+            {
+                out.library_seen = true;
+            }
             continue;
         }
 
@@ -1752,6 +1804,24 @@ function parseBackup(text)
                     shoulder_row: bkNum(fields[cols.heel_shoulder]),
                     arm: bkNum(fields[cols.arm])
                 };
+                break;
+
+            case '[library_exercises]':
+                out.library_exercises.push({
+                    name: bkStr(fields[cols.name]),
+                    mode: fields[cols.mode],
+                    setup: bkStr(fields[cols.setup]),
+                    rest_set: bkInt(fields[cols.rest_set]),
+                    rest_rung: bkInt(fields[cols.rest_rung]),
+                    default_targets: parseTargets(bkStr(fields[cols.default_targets])),
+                    default_ladders: parseLadders(bkStr(fields[cols.default_ladders])),
+                    unit: bkStrOrNull(fields[cols.unit]),
+                    ring: {
+                        type: bkStrOrNull(fields[cols.ring_type]) || 'none',
+                        rr: bkNum(fields[cols.ring_rr]),
+                        h: bkNum(fields[cols.foot_dist])
+                    }
+                });
                 break;
 
             case '[workouts]':
@@ -2208,6 +2278,10 @@ function stateFromBackupText(text)
     let loaded = makeState();
 
     loaded.workouts = rebuildWorkouts(parsed);
+    if (parsed.library_seen)
+    {
+        loaded.exercise_library = cloneLibraryExercises(parsed.library_exercises);
+    }
 
     if (g)
     {
@@ -3245,7 +3319,8 @@ function latestDoneAtOfWorkout(workout)
 /* import a backup, MERGING into current data (not replacing). a workout whose id
   already exists is overwritten by the imported copy; new ids are added. globals
   (rig, profile, sound) are only filled where the current value is unset, so an
-  import never clobbers settings you already tuned on this device.
+  import never clobbers settings you already tuned on this device. when present,
+  the exercise library section replaces the current saved library.
 
   returns a summary { added, replaced } for the confirmation message. throws on a
   malformed file — the caller shows the message and nothing is changed, because
@@ -3258,6 +3333,7 @@ function applyBackup(text)
     let existing_ids = {};
     let added = 0;
     let replaced = 0;
+    let library_replaced = false;
     let w;
     let i;
 
@@ -3300,13 +3376,19 @@ function applyBackup(text)
         if (state.profile.arm == null) state.profile.arm = g.arm;
     }
 
+    if (parsed.library_seen)
+    {
+        state.exercise_library = cloneLibraryExercises(parsed.library_exercises);
+        library_replaced = true;
+    }
+
     /* presets are derived — rebuild them from the merged set of workouts */
     for (i = 0; i < state.workouts.length; ++i)
     {
         state.workouts[i].exercises.forEach(touchPreset);
     }
 
-    return { added: added, replaced: replaced };
+    return { added: added, replaced: replaced, library_replaced: library_replaced };
 }
 
 /* ======== rest timer ======== */
@@ -3868,6 +3950,7 @@ function downloadTextAreaValue(out_id, name, mime_type)
 function importBackupFile(input)
 {
     let reader;
+    let message;
 
     if (!input.files || !input.files.length) { return; }
 
@@ -3890,7 +3973,12 @@ function importBackupFile(input)
 
         save();
         input.value = '';
-        ui.import_msg = { text: 'imported — ' + result.added + ' added, ' + result.replaced + ' replaced', kind: 'ok' };
+        message = 'imported — ' + result.added + ' added, ' + result.replaced + ' replaced';
+        if (result.library_replaced)
+        {
+            message += ', exercise library replaced';
+        }
+        ui.import_msg = { text: message, kind: 'ok' };
         render();
     };
 

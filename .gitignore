@@ -1,8 +1,8 @@
 
 .codex
 shared-storage.json
-workout-data.tsv
-workout-data.tsv.tmp
-workout-data.tsv.bak
+data/workout-data.tsv
+data/workout-data.tsv.tmp
+data/workout-data.tsv.bak
 __pycache__/
 *:Zone.Identifier
