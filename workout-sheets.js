@@ -471,6 +471,6 @@ function sheetClone(o)
   });
   h += '</div>';
   h += '<div class="foot"><button class="btn ghost" data-a="overlay-close">cancel</button>'
-     + '<button class="btn primary" data-a="clone-start" data-src="'+src.id+'">Start workout</button></div>';
+     + '<button class="btn primary" data-a="clone-start" data-src="'+src.id+'">Go to workout</button></div>';
   return h;
 }

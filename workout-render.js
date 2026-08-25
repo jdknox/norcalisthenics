@@ -54,7 +54,7 @@ function renderHome()
   h += '<p class="sub">One tap per set. Timers start themselves. Ladders are first class.</p>';
   h += '<div class="btnrow">';
   h += '<button class="btn primary" data-a="new-workout">+ New workout</button>';
-  if (state.workouts.length) h += '<button class="btn" data-a="clone-open">⟳ Clone last workout</button>';
+  if (state.workouts.length) h += '<button class="btn" data-a="clone-open">⟳ Clone a prior workout</button>';
   h += '</div>';
 
   if (!state.workouts.length)
