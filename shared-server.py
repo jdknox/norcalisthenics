@@ -10,12 +10,6 @@ import time
 import urllib.parse
 
 
-data_file = './data/workout-data.tsv'
-data_temp_file = './data/workout-data.tsv.tmp'
-data_backup_file = './data/workout-data.tsv.bak'
-library_file = './data/workout-library.tsv'
-library_temp_file = './data/workout-library.tsv.tmp'
-library_backup_file = './data/workout-library.tsv.bak'
 default_host = '0.0.0.0'
 default_port = 8010
 
@@ -104,8 +98,13 @@ def readStorageFile(path):
     return readTextFile(path)
 
 
-def writeStorageFile(path, temp_path, backup_path, text):
+def writeStorageFile(path, text):
+    temp_path, backup_path = f'{path}.tmp', f'{path}.0.bak'
     writeTextFile(temp_path, text)
+
+    if fileExists(backup_path):
+        backup_1 = f'{path}.1.bak'
+        os.replace(backup_path, backup_1)
 
     if fileExists(path):
         os.replace(path, backup_path)
@@ -140,11 +139,11 @@ class WorkoutHandler(http.server.SimpleHTTPRequestHandler):
         text = readRequestText(self)
 
         if path == '/api/workout-data':
-            writeStorageFile(data_file, data_temp_file, data_backup_file, text)
+            writeStorageFile(data_file, text)
             return writePlainText(self, 200, 'ok\n', 'text/plain; charset=utf-8')
 
         if path == '/api/workout-library':
-            writeStorageFile(library_file, library_temp_file, library_backup_file, text)
+            writeStorageFile(library_file, text)
             return writePlainText(self, 200, 'ok\n', 'text/plain; charset=utf-8')
 
         return writePlainText(self, 404, 'not found\n', 'text/plain; charset=utf-8')
@@ -152,6 +151,9 @@ class WorkoutHandler(http.server.SimpleHTTPRequestHandler):
     def do_POST(self):
         return self.do_PUT()
 
+
+data_file       = './data/workout-data.tsv'
+library_file    = './data/workout-library.tsv'
 
 def main():
     host = default_host
