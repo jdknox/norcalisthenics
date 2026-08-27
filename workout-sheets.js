@@ -83,7 +83,7 @@ function sheetAddEx(o)
     case 'row':
       pivot_word = ringPivotWord(d.ring_type);
       h += '<div class="inline2">'
-         + '<div class="frow"><label class="lab">ring rest height R<sub>r</sub> (cm)</label><input type="text" inputmode="decimal" data-field="ax-ring-rr" value="'+esc(d.ring_rr)+'" placeholder="110"></div>'
+         + '<div class="frow"><label class="lab">ring rest height R<sub>R</sub> <unit>(cm)</unit></label><input type="text" inputmode="decimal" data-field="ax-ring-rr" value="'+esc(d.ring_rr)+'" placeholder="110"></div>'
          + '<div class="frow"><label class="lab">'+pivot_word+' distance H (cm, signed)</label><input type="text" inputmode="text" data-field="ax-ring-h" value="'+esc(d.ring_h)+'" placeholder="+80"></div>'
          + '</div>'
          + '<div class="hint">Both are measured from the <b>plumb line</b> — the spot on the floor directly under the anchor, where the resting ring hangs. R<sub>r</sub> is the height of the freely hanging ring\'s <b>hand-contact point</b> (its bottom inner surface). H is how far your '+pivot_word+'s sit from the plumb line: <b>positive</b> while your '+pivot_word+'s and shoulders are on the same side of it, <b>negative</b> once the plumb line reaches or passes your '+pivot_word+'s. The angle is <b>not</b> a straight line in H — it bottoms out and climbs again on both sides — so read the live angle below rather than assuming a direction.</div>';
@@ -229,24 +229,24 @@ function sheetSettings()
      + '<button class="btn small" data-a="section-toggle" data-key="settings-rig-profile" data-default="open">'+(rig_open ? 'hide' : 'show')+'</button></div>';
   if (rig_open)
   {
-    h += '<div class="frow"><label class="lab">toe-to-shoulder S<sub>push</sub> (cm)</label>'
+    h += '<div class="frow"><label class="lab">toe-to-shoulder S<sub>push</sub> <unit>(cm)</unit></label>'
        + '<input type="text" inputmode="decimal" data-field="set-shoulder-push" value="'+esc(pr.shoulder_pushup==null?'':pr.shoulder_pushup)+'" placeholder="165">'
        + '<div class="hint">pushup body length — the <b>toe</b> is the pivot. ≈ your standing shoulder height; cleanest measured lying in a plank.</div></div>';
-    h += '<div class="frow"><label class="lab">heel-to-shoulder S<sub>row</sub> (cm)</label>'
+    h += '<div class="frow"><label class="lab">heel-to-shoulder S<sub>row</sub> <unit>(cm)</unit></label>'
        + '<input type="text" inputmode="decimal" data-field="set-shoulder-row" value="'+esc(pr.shoulder_row==null?'':pr.shoulder_row)+'" placeholder="156">'
        + '<div class="hint">row body length — the <b>heel</b> is the pivot, so this is its own measurement, shorter than S<sub>push</sub> by about a foot length. Not a reuse.</div></div>';
-    h += '<div class="frow"><label class="lab">arm length (cm)</label>'
+    h += '<div class="frow"><label class="lab">arm length <unit>(cm)</unit></label>'
        + '<input type="text" inputmode="decimal" data-field="set-arm" value="'+esc(pr.arm==null?'':pr.arm)+'" placeholder="62">'
        + '<div class="hint">shoulder joint to hand-contact point, arm straight (shoulder to the centre of a closed fist). Rows only — a pushup uses 0. Typically 60–65.</div></div>';
-    h += '<div class="frow"><label class="lab">anchor height A (cm)</label>'
+    h += '<div class="frow"><label class="lab">anchor height A <unit>(cm)</unit></label>'
        + '<input type="text" inputmode="decimal" data-field="set-anchor" value="'+esc(rg.anchor_height==null?'':rg.anchor_height)+'" placeholder="400">'
        + '<div class="hint">height of the anchor above the floor. Usually too high to tape-measure — use the helper below, or enter directly. Fixed per rig, shared by both modes.</div></div>';
     h += '<div class="calib"><div class="calib-h">calibration helper — derive A from floor measurements</div>'
-       + '<div class="hint">Pull the resting ring out to a measured floor offset x₁, then measure its height y₁ (both reachable at ground level). All three heights are of the <b>hand-contact point</b> — the bottom inner surface of the ring, where your palm sits.</div>'
+       + '<div class="hint">Measure the resting ring height <em>R</em><sub>R</sub>. Pull the resting ring out to a measured floor offset x₁, then measure its height y₁ (both reachable at ground level). All three heights are of the <b>hand-contact point</b> — the bottom inner surface of the ring, where your palm sits.</div>'
        + '<div class="inline2">'
-       + '<div class="frow"><label class="lab">x₁ (cm)</label><input type="text" inputmode="decimal" data-field="cal-x" value="'+esc(rg.cal_x==null?'':rg.cal_x)+'" placeholder="200"></div>'
-       + '<div class="frow"><label class="lab">y₁ (cm)</label><input type="text" inputmode="decimal" data-field="cal-y" value="'+esc(rg.cal_y==null?'':rg.cal_y)+'" placeholder="77"></div>'
-       + '<div class="frow"><label class="lab">Rr (cm)</label><input type="text" inputmode="decimal" data-field="cal-rr" value="'+esc(rg.cal_rr==null?'':rg.cal_rr)+'" placeholder="20"></div>'
+       + '<div class="frow"><label class="lab">x₁ <unit>(cm)</unit></label><input type="text" inputmode="decimal" data-field="cal-x" value="'+esc(rg.cal_x==null?'':rg.cal_x)+'" placeholder="200"></div>'
+       + '<div class="frow"><label class="lab">y₁ <unit>(cm)</unit></label><input type="text" inputmode="decimal" data-field="cal-y" value="'+esc(rg.cal_y==null?'':rg.cal_y)+'" placeholder="77"></div>'
+       + '<div class="frow"><label class="lab">R<sub>R</sub> <unit>(cm)</unit></label><input type="text" inputmode="decimal" data-field="cal-rr" value="'+esc(rg.cal_rr==null?'':rg.cal_rr)+'" placeholder="20"></div>'
        + '</div>'
        + '<div class="ring-readout" id="cal_readout">'+esc(calReadoutText())+'</div>'
        + '<button class="btn small primary" data-a="cal-apply">use as anchor height</button></div>';
