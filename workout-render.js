@@ -417,6 +417,7 @@ function renderOverlay()
   el.classList.remove('hidden');
   let o = ui.overlay;
   let h = '<div class="sheet">';
+  h += '<button class="btn small danger sheet-cancel" data-a="overlay-close" aria-label="cancel overlay">X cancel</button>';
 
   switch (o.type)
   {
@@ -425,7 +426,7 @@ function renderOverlay()
       break;
 
     case 'settings':
-      h += sheetSettings();
+      h += sheetSettings(o);
       break;
 
     case 'export':

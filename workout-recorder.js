@@ -2701,6 +2701,65 @@ function save()
     saveStorage(state);
 }
 
+function settingsDraftNumber(value)
+{
+    let parsed = parseFloat(value);
+    return isNaN(parsed) ? null : parsed;
+}
+
+function settingsDraftText(value)
+{
+    return value == null ? '' : String(value);
+}
+
+function buildSettingsDraft()
+{
+    return {
+        shoulder_pushup: settingsDraftText(state.profile.shoulder_pushup),
+        shoulder_row: settingsDraftText(state.profile.shoulder_row),
+        arm: settingsDraftText(state.profile.arm),
+        anchor_height: settingsDraftText(state.rig.anchor_height),
+        cal_x: settingsDraftText(state.rig.cal_x),
+        cal_y: settingsDraftText(state.rig.cal_y),
+        cal_rr: settingsDraftText(state.rig.cal_rr),
+        countdown: !!state.settings.countdown
+    };
+}
+
+function settingsDraftRig(draft)
+{
+    return {
+        anchor_height: settingsDraftNumber(draft.anchor_height),
+        cal_x: settingsDraftNumber(draft.cal_x),
+        cal_y: settingsDraftNumber(draft.cal_y),
+        cal_rr: settingsDraftNumber(draft.cal_rr)
+    };
+}
+
+function settingsDraftProfile(draft)
+{
+    return {
+        shoulder_pushup: settingsDraftNumber(draft.shoulder_pushup),
+        shoulder_row: settingsDraftNumber(draft.shoulder_row),
+        arm: settingsDraftNumber(draft.arm)
+    };
+}
+
+function applySettingsDraft(draft)
+{
+    let rig = settingsDraftRig(draft);
+    let profile = settingsDraftProfile(draft);
+
+    state.profile.shoulder_pushup = profile.shoulder_pushup;
+    state.profile.shoulder_row = profile.shoulder_row;
+    state.profile.arm = profile.arm;
+    state.rig.anchor_height = rig.anchor_height;
+    state.rig.cal_x = rig.cal_x;
+    state.rig.cal_y = rig.cal_y;
+    state.rig.cal_rr = rig.cal_rr;
+    state.settings.countdown = !!draft.countdown;
+}
+
 function buildFixTimesDraft(workout)
 {
     return {
@@ -3076,13 +3135,13 @@ function normalizeExerciseEditorDraft(draft)
     return cleaned;
 }
 
-function saveExerciseEditor(draft)
+function saveExerciseEditor(draft, settings_draft)
 {
     let cleaned = normalizeExerciseEditorDraft(draft);
 
     state.exercise_library = cleaned;
     pruneStalePresets();
-    ui.overlay = { type: 'settings' };
+    ui.overlay = { type: 'settings', draft: settings_draft || buildSettingsDraft() };
     saveExerciseLibraryStorage(cleaned);
     save();
     render();
@@ -4128,7 +4187,7 @@ document.addEventListener('click', function(ev)
             return;
 
         case 'settings-open':
-            ui.overlay = { type: 'settings' };
+            ui.overlay = { type: 'settings', draft: buildSettingsDraft() };
             render();
             return;
 
@@ -4138,7 +4197,12 @@ document.addEventListener('click', function(ev)
             return;
 
         case 'exercise-editor-open':
-            ui.overlay = { type: 'exercise-editor', draft: buildExerciseEditorDraft(), open_idx: -1 };
+            ui.overlay = {
+                type: 'exercise-editor',
+                draft: buildExerciseEditorDraft(),
+                open_idx: -1,
+                settings_draft: ui.overlay && ui.overlay.type == 'settings' ? ui.overlay.draft : null
+            };
             render();
             return;
 
@@ -4196,14 +4260,14 @@ document.addEventListener('click', function(ev)
             return;
 
         case 'exercise-editor-cancel':
-            ui.overlay = { type: 'settings' };
+            ui.overlay = { type: 'settings', draft: ui.overlay && ui.overlay.settings_draft ? ui.overlay.settings_draft : buildSettingsDraft() };
             render();
             return;
 
         case 'exercise-editor-save':
             if (ui.overlay && ui.overlay.type == 'exercise-editor')
             {
-                saveExerciseEditor(ui.overlay.draft);
+                saveExerciseEditor(ui.overlay.draft, ui.overlay.settings_draft);
             }
             return;
 
@@ -4254,8 +4318,15 @@ document.addEventListener('click', function(ev)
             return;
 
         case 'timer-dir':
-            state.settings.countdown = target.dataset.d == 'down';
-            save();
+            if (ui.overlay && ui.overlay.type == 'settings')
+            {
+                ui.overlay.draft.countdown = target.dataset.d == 'down';
+            }
+            else
+            {
+                state.settings.countdown = target.dataset.d == 'down';
+                save();
+            }
             render();
             tick();
             return;
@@ -4272,12 +4343,19 @@ document.addEventListener('click', function(ev)
             return;
 
         case 'cal-apply':
-            rest_anchor = calibrateAnchor(state.rig.cal_x, state.rig.cal_y, state.rig.cal_rr);
-            if (rest_anchor != null && !isNaN(rest_anchor) && rest_anchor > 0)
+            if (ui.overlay && ui.overlay.type == 'settings')
             {
-                state.rig.anchor_height = Math.round(rest_anchor*10)/10;
-                save();
-                render();
+                draft = ui.overlay.draft;
+                rest_anchor = calibrateAnchor(
+                    settingsDraftNumber(draft.cal_x),
+                    settingsDraftNumber(draft.cal_y),
+                    settingsDraftNumber(draft.cal_rr)
+                );
+                if (rest_anchor != null && !isNaN(rest_anchor) && rest_anchor > 0)
+                {
+                    draft.anchor_height = String(Math.round(rest_anchor*10)/10);
+                    render();
+                }
             }
             return;
 
@@ -4456,6 +4534,16 @@ document.addEventListener('click', function(ev)
 
         case 'ax-save':
             saveAddEx();
+            return;
+
+        case 'settings-save':
+            if (ui.overlay && ui.overlay.type == 'settings')
+            {
+                applySettingsDraft(ui.overlay.draft);
+                closeOverlay();
+                save();
+                render();
+            }
             return;
 
         case 'overlay-close':
@@ -4920,54 +5008,48 @@ document.addEventListener('input', function(ev)
                 break;
 
             case 'settings':
+                draft = ui.overlay.draft;
                 switch (field)
                 {
                     case 'set-shoulder-push':
-                        state.profile.shoulder_pushup = parseMaybeNumber(target.value);
-                        save();
+                        draft.shoulder_pushup = target.value;
                         return;
 
                     case 'set-shoulder-row':
-                        state.profile.shoulder_row = parseMaybeNumber(target.value);
-                        save();
+                        draft.shoulder_row = target.value;
                         return;
 
                     case 'set-arm':
-                        state.profile.arm = parseMaybeNumber(target.value);
-                        save();
+                        draft.arm = target.value;
                         return;
 
                     case 'set-anchor':
-                        state.rig.anchor_height = parseMaybeNumber(target.value);
-                        save();
+                        draft.anchor_height = target.value;
                         return;
 
                     case 'cal-x':
                     case 'cal-y':
                     case 'cal-rr':
-                        num = parseMaybeNumber(target.value);
-
                         switch (field)
                         {
                             case 'cal-x':
-                                state.rig.cal_x = num;
+                                draft.cal_x = target.value;
                                 break;
 
                             case 'cal-y':
-                                state.rig.cal_y = num;
+                                draft.cal_y = target.value;
                                 break;
 
                             case 'cal-rr':
-                                state.rig.cal_rr = num;
+                                draft.cal_rr = target.value;
                                 break;
                         }
 
                         cal_readout = document.getElementById('cal_readout');
                         if (cal_readout)
                         {
-                            cal_readout.textContent = calReadoutText();
+                            cal_readout.textContent = calReadoutText(settingsDraftRig(draft));
                         }
-                        save();
                         return;
                 }
                 break;

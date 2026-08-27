@@ -91,7 +91,7 @@ function sheetAddEx(o)
       break;
   }
   h += '</div>';
-  h += '<div class="foot"><button class="btn ghost" data-a="overlay-close">cancel</button>'
+  h += '<div class="foot"><button class="btn danger" data-a="overlay-close">cancel</button>'
      + '<button class="btn primary" data-a="ax-save">'+(o.edit_ex_id?'save':'add & go')+'</button></div>';
   return h;
 }
@@ -211,17 +211,19 @@ function ringReadoutBad(d)
 
   return false;
 }
-function calReadoutText()
+function calReadoutText(rg)
 {
-  let rg = state.rig;
+  if (!rg) { rg = state.rig; }
+
   let A = calibrateAnchor(rg.cal_x, rg.cal_y, rg.cal_rr);
   if (A==null || isNaN(A)) return 'enter x₁, y₁, Rr';
   if (A<=0) return 'check inputs — non-physical result';
   return 'computed A ≈ ' + A.toFixed(1) + ' cm';
 }
-function sheetSettings()
+function sheetSettings(o)
 {
-  let rg = state.rig, pr = state.profile;
+  let d = o && o.draft ? o.draft : buildSettingsDraft();
+  let rg = settingsDraftRig(d);
   let rig_open = sectionIsOpen('settings-rig-profile', true);
   let h = '<h2>// settings</h2>';
   h += '<div class="card" style="margin-bottom:12px">';
@@ -230,31 +232,31 @@ function sheetSettings()
   if (rig_open)
   {
     h += '<div class="frow"><label class="lab">toe-to-shoulder S<sub>push</sub> <unit>(cm)</unit></label>'
-       + '<input type="text" inputmode="decimal" data-field="set-shoulder-push" value="'+esc(pr.shoulder_pushup==null?'':pr.shoulder_pushup)+'" placeholder="165">'
+       + '<input type="text" inputmode="decimal" data-field="set-shoulder-push" value="'+esc(d.shoulder_pushup)+'" placeholder="165">'
        + '<div class="hint">pushup body length — the <b>toe</b> is the pivot. ≈ your standing shoulder height; cleanest measured lying in a plank.</div></div>';
     h += '<div class="frow"><label class="lab">heel-to-shoulder S<sub>row</sub> <unit>(cm)</unit></label>'
-       + '<input type="text" inputmode="decimal" data-field="set-shoulder-row" value="'+esc(pr.shoulder_row==null?'':pr.shoulder_row)+'" placeholder="156">'
+       + '<input type="text" inputmode="decimal" data-field="set-shoulder-row" value="'+esc(d.shoulder_row)+'" placeholder="156">'
        + '<div class="hint">row body length — the <b>heel</b> is the pivot, so this is its own measurement, shorter than S<sub>push</sub> by about a foot length. Not a reuse.</div></div>';
     h += '<div class="frow"><label class="lab">arm length <unit>(cm)</unit></label>'
-       + '<input type="text" inputmode="decimal" data-field="set-arm" value="'+esc(pr.arm==null?'':pr.arm)+'" placeholder="62">'
+       + '<input type="text" inputmode="decimal" data-field="set-arm" value="'+esc(d.arm)+'" placeholder="62">'
        + '<div class="hint">shoulder joint to hand-contact point, arm straight (shoulder to the centre of a closed fist). Rows only — a pushup uses 0. Typically 60–65.</div></div>';
     h += '<div class="frow"><label class="lab">anchor height A <unit>(cm)</unit></label>'
-       + '<input type="text" inputmode="decimal" data-field="set-anchor" value="'+esc(rg.anchor_height==null?'':rg.anchor_height)+'" placeholder="400">'
+       + '<input type="text" inputmode="decimal" data-field="set-anchor" value="'+esc(d.anchor_height)+'" placeholder="400">'
        + '<div class="hint">height of the anchor above the floor. Usually too high to tape-measure — use the helper below, or enter directly. Fixed per rig, shared by both modes.</div></div>';
     h += '<div class="calib"><div class="calib-h">calibration helper — derive A from floor measurements</div>'
        + '<div class="hint">Measure the resting ring height <em>R</em><sub>R</sub>. Pull the resting ring out to a measured floor offset x₁, then measure its height y₁ (both reachable at ground level). All three heights are of the <b>hand-contact point</b> — the bottom inner surface of the ring, where your palm sits.</div>'
        + '<div class="inline2">'
-       + '<div class="frow"><label class="lab">x₁ <unit>(cm)</unit></label><input type="text" inputmode="decimal" data-field="cal-x" value="'+esc(rg.cal_x==null?'':rg.cal_x)+'" placeholder="200"></div>'
-       + '<div class="frow"><label class="lab">y₁ <unit>(cm)</unit></label><input type="text" inputmode="decimal" data-field="cal-y" value="'+esc(rg.cal_y==null?'':rg.cal_y)+'" placeholder="77"></div>'
-       + '<div class="frow"><label class="lab">R<sub>R</sub> <unit>(cm)</unit></label><input type="text" inputmode="decimal" data-field="cal-rr" value="'+esc(rg.cal_rr==null?'':rg.cal_rr)+'" placeholder="20"></div>'
+       + '<div class="frow"><label class="lab">x₁ <unit>(cm)</unit></label><input type="text" inputmode="decimal" data-field="cal-x" value="'+esc(d.cal_x)+'" placeholder="200"></div>'
+       + '<div class="frow"><label class="lab">y₁ <unit>(cm)</unit></label><input type="text" inputmode="decimal" data-field="cal-y" value="'+esc(d.cal_y)+'" placeholder="77"></div>'
+       + '<div class="frow"><label class="lab">R<sub>R</sub> <unit>(cm)</unit></label><input type="text" inputmode="decimal" data-field="cal-rr" value="'+esc(d.cal_rr)+'" placeholder="20"></div>'
        + '</div>'
-       + '<div class="ring-readout" id="cal_readout">'+esc(calReadoutText())+'</div>'
+       + '<div class="ring-readout" id="cal_readout">'+esc(calReadoutText(rg))+'</div>'
        + '<button class="btn small primary" data-a="cal-apply">use as anchor height</button></div>';
   }
   h += '</div>';
   h += '<div class="frow"><label class="lab">rest timer display</label><div class="seg">'
-     + '<button data-a="timer-dir" data-d="up" class="'+(state.settings.countdown?'':'on')+'">count up</button>'
-     + '<button data-a="timer-dir" data-d="down" class="'+(state.settings.countdown?'on':'')+'">count down</button>'
+     + '<button data-a="timer-dir" data-d="up" class="'+(d.countdown?'':'on')+'">count up</button>'
+     + '<button data-a="timer-dir" data-d="down" class="'+(d.countdown?'on':'')+'">count down</button>'
      + '</div><div class="hint">counting down shows time remaining and drains the bar; either way it keeps running past the target so you can see how long you actually took.</div></div>';
   h += '<div class="import-sec">'
      + '<div class="calib-h">backup &amp; restore</div>'
@@ -269,7 +271,8 @@ function sheetSettings()
      + '</div>';
   h += '<div class="btnrow" style="margin-top:10px"><button class="btn small" data-a="exercise-editor-open">Edit Exercise List</button></div>';
   h += '<div class="hint">Saving the exercise list prunes learned presets that no longer exist in workout history or in the saved main list.</div>';
-  h += '<div class="foot"><button class="btn primary" data-a="overlay-close">done</button></div>';
+  h += '<div class="foot"><button class="btn danger" data-a="overlay-close">cancel</button>'
+     + '<button class="btn primary" data-a="settings-save">save</button></div>';
   return h;
 }
 
@@ -470,7 +473,7 @@ function sheetClone(o)
        + (o.prog ? '<span class="'+(sug.warn?'pw':'pr')+'">'+esc(sug.reason)+'</span>' : '')+'</div>';
   });
   h += '</div>';
-  h += '<div class="foot"><button class="btn ghost" data-a="overlay-close">cancel</button>'
+  h += '<div class="foot"><button class="btn danger" data-a="overlay-close">cancel</button>'
      + '<button class="btn primary" data-a="clone-start" data-src="'+src.id+'">Go to workout</button></div>';
   return h;
 }
