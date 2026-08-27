@@ -696,30 +696,6 @@ function rungsOf(ex)
     return out;
 }
 
-function topsOf(ex)
-{
-    let rung_lists = rungsOf(ex);
-    let tops = [];
-    let top;
-    let i;
-    let j;
-
-    for (i = 0; i < rung_lists.length; ++i)
-    {
-        top = 0;
-        for (j = 0; j < rung_lists[i].length; ++j)
-        {
-            if (rung_lists[i][j] > top)
-            {
-                top = rung_lists[i][j];
-            }
-        }
-        tops.push(top);
-    }
-
-    return tops;
-}
-
 /* ladder_index and rung_index are ordering keys only — the rep count lives in
   target. deletes and the old max+1 add-rung could leave gaps (1,2,3,5,6),
   which is what made rung_index look wrong in the CSV. renumber by sorted
@@ -792,6 +768,44 @@ function performedSetsOf(ex)
     return out;
 }
 
+function progressLadderRungs(rungs)
+{
+    let out = [];
+    let i;
+
+    if (!rungs.length)
+    {
+        return [1];
+    }
+
+    for (i = 0; i < rungs.length; ++i)
+    {
+        out.push(rungs[i] || 0);
+    }
+
+    for (i = 0; i + 1 < out.length; ++i)
+    {
+        if (out[i + 1] > out[i] + 1)
+        {
+            ++out[i];
+            return out;
+        }
+    }
+
+    if (out[0] > 1)
+    {
+        out = [];
+        for (i = 1; i <= rungs.length + 1; ++i)
+        {
+            out.push(i);
+        }
+        return out;
+    }
+
+    ++out[out.length - 1];
+    return out;
+}
+
 /* progression suggestions — transparent rules from the design doc */
 function suggestForExercise(ex)
 {
@@ -800,13 +814,12 @@ function suggestForExercise(ex)
     let any_ugly = false;
     let any_fail = false;
     let i;
-    let tops;
     let rung_lists;
     let next_ladders;
     let rungs;
     let complete;
-    let next;
-    let bumped;
+    let shortest;
+    let target_ladder;
     let base_sets;
     let targets = [];
     let all_clean;
@@ -834,11 +847,6 @@ function suggestForExercise(ex)
         {
             rung_lists = [[1]];
         }
-        tops = topsOf(ex);
-        if (!tops.length)
-        {
-            tops = [1];
-        }
 
         if (any_pain)
         {
@@ -865,39 +873,29 @@ function suggestForExercise(ex)
             };
         }
 
-        next = tops.slice();
-        bumped = false;
-
-        for (i = 1; i < next.length; ++i)
+        shortest = rung_lists[0].length;
+        target_ladder = 0;
+        for (i = 1; i < rung_lists.length; ++i)
         {
-            if (next[i] < next[0])
+            if (rung_lists[i].length < shortest)
             {
-                ++next[i];
-                bumped = true;
-                break;
+                shortest = rung_lists[i].length;
+                target_ladder = i;
             }
         }
 
-        if (!bumped)
-        {
-            ++next[0];
-        }
-
-        /* apply the bump by APPENDING one rung at the new top. for a regular ladder
-          this reproduces the old 1..top rebuild exactly; for a custom one it keeps
-          the existing rungs untouched instead of regenerating them. */
         next_ladders = [];
         for (i = 0; i < rung_lists.length; ++i)
         {
             rungs = rung_lists[i].slice();
-            if (next[i] > tops[i])
+            if (i == target_ladder)
             {
-                rungs.push(next[i]);
+                rungs = progressLadderRungs(rungs);
             }
             next_ladders.push(rungs);
         }
 
-        return { kind: 'ladder', ladders: next_ladders, reason: 'all rungs clean — +1 rung' };
+        return { kind: 'ladder', ladders: next_ladders, reason: 'all rungs clean — progress ladder ' + (target_ladder + 1) };
     }
 
     base_sets = performed.length ? performed : ex.sets;
