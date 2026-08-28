@@ -13,7 +13,14 @@ let month_names = ['January', 'February', 'March', 'April', 'May', 'June', 'July
 
 function uid()
 {
-    return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+    // (fmtDateTime(Date.now()).replaceAll('-', '').replace(' ', '').replace(':', '')/100 - 2000000000).toFixed()
+    let date = new Date();
+    let base =  (date.getYear() - 100)  *100000000
+              + (date.getMonth() + 1)   *1000000
+              +  date.getDate()         *10000
+              +  date.getHours()        *100
+              +  date.getMinutes();
+    return base.toFixed() + '.' + Math.random().toString(36).slice(2, 6);
 }
 
 function esc(value)

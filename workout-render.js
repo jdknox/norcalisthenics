@@ -208,9 +208,11 @@ function renderWorkout(w)
 function renderCard(w, ex)
 {
   let open = sectionIsOpen(workoutExerciseSectionKey(w.id, ex.id), false);
+  let rep_total = exerciseRepTotal(ex);
   let h = '<section class="card'+(ex.stopped?' stopped':'')+'">';
   h += '<div class="card-h"><div class="exname">'+esc(ex.name)
-     + '<span class="modechip">'+esc(ex.mode)+'</span></div>'
+     + '<span class="modechip">'+esc(ex.mode)+'</span>'
+     + renderExerciseRepTotal(rep_total)+'</div>'
      + '<button class="btn small ghost" data-a="exercise-toggle" data-ex="'+ex.id+'">'+(open ? 'hide' : 'show')+'</button>'
      + '<button class="iconbtn" data-a="ex-menu" data-ex="'+ex.id+'" aria-label="exercise menu">⋯</button></div>';
   if (ex.setup) h += '<div class="setupline">setup: '+esc(ex.setup)+'</div>';
@@ -285,6 +287,57 @@ function renderCard(w, ex)
   }
   h += '</section>';
   return h;
+}
+
+function exerciseRepTotal(ex)
+{
+  let done = 0;
+  let target = 0;
+  let set;
+  let set_target;
+  let set_done;
+  let complete = ex.sets.length > 0;
+  let i;
+
+  for (i = 0; i < ex.sets.length; ++i)
+  {
+    set = ex.sets[i];
+    set_target = set.target != null ? set.target : set.reps;
+    set_done = set.reps != null ? set.reps : set_target;
+
+    target += set_target || 0;
+
+    if (isDone(set))
+    {
+      done += set_done || 0;
+    }
+    else
+    {
+      complete = false;
+    }
+  }
+
+  if (done < target)
+  {
+    complete = false;
+  }
+
+  return { done: done, target: target, complete: complete };
+}
+
+function renderExerciseRepTotal(total)
+{
+  if (!total.target)
+  {
+    return '';
+  }
+
+  if (total.complete)
+  {
+    return '<span class="repcounter complete">'+total.done+'/'+total.target+'</span>';
+  }
+
+  return '<span class="repcounter"><span class="repdone">'+total.done+'</span>/<span class="reptarget">'+total.target+'</span></span>';
 }
 
 function renderSetRow(ex, s)
