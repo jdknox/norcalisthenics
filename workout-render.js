@@ -10,8 +10,35 @@ function render()
   app.innerHTML = ui.view=='workout' && activeWorkout() ? renderWorkout(activeWorkout()) : renderHome();
   renderOverlay();
   document.getElementById('soundbtn').textContent = state.settings.sound ? '♪ on' : '♪ off';
+  renderEnvironmentStatus();
   renderStorageStatus();
   syncWorkoutDurationHandle();
+}
+
+function renderEnvironmentStatus()
+{
+  let el = document.getElementById('env_status');
+  let info;
+
+  if (!el || typeof environmentStatus != 'function')
+  {
+    return;
+  }
+
+  info = environmentStatus();
+  if (!info)
+  {
+    document.body.classList.remove('not-main-env');
+    el.className = 'env-status';
+    el.textContent = '';
+    el.title = '';
+    return;
+  }
+
+  document.body.classList.add('not-main-env');
+  el.className = 'env-status on';
+  el.textContent = info.text;
+  el.title = info.title;
 }
 
 function renderStorageStatus()
@@ -187,10 +214,10 @@ function renderWorkout(w)
     + (!w.finished ? '<button class="btn small" data-a="finish-workout">✓ Finish</button>' : '<button class="btn small ghost" data-a="reopen-workout">reopen</button>')
     + '<button class="btn small ghost" data-a="workout-menu-open">⋯</button>'
     + '</div>';
-  h += '<div class="sub mono" style="display:flex;align-items:center;gap:8px;margin:0 0 14px">'
-    + '<span>Duration: <span id="workout_duration_label">'+esc(workoutDurationLabel(w))+'</span></span>'
+  h += '<div class="workout-meta sub mono">'
+    + '<span class="workout-duration">Duration: <span id="workout_duration_label">'+esc(workoutDurationLabel(w))+'</span></span>'
     + renderWeekSwatch(w.date)
-    + '<span style="flex:1"></span>'
+    + '<span class="workout-meta-spacer"></span>'
     + '<button class="btn small ghost" data-a="workout-show-all">show all</button>'
     + '<button class="btn small ghost" data-a="workout-hide-all">hide all</button>'
     + '</div>';

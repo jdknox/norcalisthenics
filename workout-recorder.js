@@ -2271,6 +2271,23 @@ function sharedLibraryStorageAvailable()
     return window.sharedStorageLoadLibraryText && window.sharedStorageSaveLibraryText;
 }
 
+function environmentStatus()
+{
+    let host = window.location && window.location.hostname ? window.location.hostname : '';
+    let protocol = window.location && window.location.protocol ? window.location.protocol : '';
+    let label = host || protocol || 'unknown';
+
+    if (host == 'workout.proovd.com' || host == 'rpi')
+    {
+        return null;
+    }
+
+    return {
+        text: 'not main: ' + label,
+        title: 'This page is not being served from workout.proovd.com or hostname rpi'
+    };
+}
+
 let rig_fields = ['anchor_height', 'cal_x', 'cal_y', 'cal_rr'];
 let profile_fields = ['shoulder_pushup', 'shoulder_row', 'arm'];
 

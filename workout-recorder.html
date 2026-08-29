@@ -43,6 +43,9 @@ body{
   font-family:var(--sans);font-size:15px;line-height:1.45;
   padding-bottom:calc(84px + env(safe-area-inset-bottom,0px));
 }
+body.not-main-env{background:#808080;}
+body.not-main-env::before{content:"";position:fixed;inset:0;pointer-events:none;
+  border:4px solid var(--blue);}
 button{font:inherit;color:inherit;background:none;border:none;padding:0;cursor:pointer;touch-action:manipulation}
 input,textarea,select{font:inherit;color:var(--text);background:var(--panel2);border:1px solid var(--line2);border-radius:4px;padding:7px 9px;outline:none}
 input:focus,textarea:focus,select:focus{border-color:var(--orange)}
@@ -62,6 +65,9 @@ input:focus,textarea:focus,select:focus{border-color:var(--orange)}
 .storage-status.ok{color:var(--green);border-color:#40532f;background:#232a1d}
 .storage-status.warn{color:var(--red);border-color:#5a3230;background:#2c2020}
 .storage-status.checking{color:var(--amber);border-color:#5d4a1e;background:#2b2519}
+.env-status{display:none;font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--amber);border:1px solid #5d4a1e;border-radius:999px;padding:6px 9px;background:#2b2519}
+.env-status.on{display:block}
 .iconbtn{font-family:var(--mono);font-size:12px;color:var(--muted);border:1px solid var(--line);
   border-radius:4px;padding:6px 10px;background:var(--panel)}
 .iconbtn:hover{color:var(--text);border-color:var(--line2)}
@@ -146,7 +152,10 @@ h1.page{font-family:var(--mono);font-size:20px;font-weight:600;margin:6px 0 2px;
   font-family:var(--mono);font-size:12px;color:var(--muted);padding:6px 8px;color-scheme:dark}
 .whead input.wdate-input:focus{border-color:var(--orange);color:var(--text)}
 .whead .wdate{font-family:var(--mono);font-size:12px;color:var(--muted)}
-.weekswatch{display:inline-flex;align-items:center;gap:4px;margin-left:8px}
+.workout-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 14px}
+.workout-duration{white-space:nowrap}
+.workout-meta-spacer{flex:1 1 24px;min-width:24px}
+.weekswatch{display:inline-flex;align-items:center;gap:4px;margin-left:8px;white-space:nowrap}
 .weekswatch-wk{display:inline-flex;align-items:center;justify-content:center;min-width:32px;height:18px;
   border:1px solid var(--line);border-radius:999px;padding:0 6px;font-size:10px;letter-spacing:.05em;color:var(--muted)}
 .weekswatch-d{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;
@@ -327,6 +336,88 @@ h1.page{font-family:var(--mono);font-size:20px;font-weight:600;margin:6px 0 2px;
 .timerbar .tstop{font-family:var(--mono);font-size:12px;border:1px solid #6a5030;border-radius:4px;
   padding:8px 12px;color:#e8d5b8;background:rgba(0,0,0,.25)}
 .hidden{display:none!important}
+
+@media (min-width:700px) and (max-width:1180px) and (pointer:coarse)
+{
+  body{font-size:1px;padding-bottom:calc(108px + env(safe-area-inset-bottom,0px))}
+  body.not-main-env::before{border-color:var(--red)}
+  main{max-width:920px;padding:22px 22px 32px}
+  .topbar{padding:14px 20px;gap:14px}
+  .brand{font-size:18px}
+  .storage-status{font-size:12px;padding:8px 11px}
+  .env-status{font-size:12px;padding:8px 11px}
+  .iconbtn{font-size:15px;padding:8px 12px}
+  .eyebrow{font-size:13px}
+  h1.page{font-size:28px}
+  .sub{font-size:20px;margin-bottom:20px}
+  .btn{font-size:16px;min-height:48px;padding:12px 16px}
+  .btn.small{font-size:20px;min-height:42px;padding:9px 13px}
+  .btnrow{gap:10px}
+  .witem{padding:16px 18px;gap:14px}
+  .witem .wdate{font-size:15px;min-width:108px}
+  .witem .wsum{font-size:15px}
+  .witem .tag-live{font-size:12px;padding:3px 8px}
+  .empty{font-size:17px;padding:34px 22px}
+  .hometabs button{font-size:15px;padding:11px 22px}
+  .cal-h .mo{font-size:22px;min-width:200px}
+  .cal-h .nav{font-size:22px;width:48px;height:48px}
+  .cal-h .stat{font-size:13px}
+  .cal-grid{gap:7px}
+  .cal-dow{font-size:12px}
+  .cal-cell{font-size:20px;gap:6px}
+  .cal-cell.today::after{font-size:9px;bottom:5px}
+  .cal-cell .cnt{font-size:10px;top:5px;right:7px}
+  .cal-day-panel{padding:16px 18px}
+  .cal-day-panel .pd{font-size:15px}
+  .whead{gap:12px;margin-bottom:18px}
+  .whead input.wname{font-size:24px;min-width:260px}
+  .whead input.wdate-input{font-size:15px;padding:9px 11px}
+  .workout-meta{gap:10px;margin-bottom:18px}
+  .weekswatch{gap:5px}
+  .weekswatch-wk{min-width:42px;height:24px;font-size:18px}
+  .weekswatch-d{min-width:24px;height:24px;font-size:18px}
+  .card{margin-bottom:16px}
+  .card-h{padding:16px 16px 0;gap:10px}
+  .card-h .exname{font-size:30px}
+  .card-h .exname .modechip{font-size:18px}
+  .card-h .exname .repcounter{font-size:18px}
+  .setupline,.ringline{font-size:18px;padding-left:16px;padding-right:16px}
+  .restline{font-size:16px;padding-left:16px;padding-right:16px}
+  .nextline{font-size:14px;padding:8px 16px 0}
+  .card-body{padding:10px 10px 6px}
+  .card-f{gap:8px;padding:8px 10px 14px}
+  .ladder{margin:8px 5px}
+  .ladder-h{font-size:20px;padding:9px 12px 3px}
+  .set{gap:10px;padding:8px 8px}
+  .set .actions{gap:8px}
+  .set .idx{font-size:18px;width:34px}
+  .set .val{font-size:24px;min-width:82px;padding:12px 12px; border-width: 1.5px;}
+  .set .val .u{font-size:28px}
+  .set .stp{width:52px;height:60px;font-size:22px}
+  .set .done-btn{font-size:26px;min-height:50px;padding:12px 20px}
+  .set .minor{font-size:22px;padding:7px 9px}
+  .chip{font-size:14px;min-height:40px;padding:8px 10px}
+  .status-word{font-size:14px}
+  .setedit{padding:12px}
+  .setedit label{font-size:13px}
+  .setedit .timing{font-size:14px}
+  .exnotes textarea{font-size:16px;min-height:78px}
+  .sheet h2{font-size:20px}
+  .sheet label.lab{font-size:13px}
+  .sheet .frow input,.sheet .frow textarea,.sheet .frow select{font-size:17px;padding:10px 12px}
+  .exitem{font-size:16px;padding:10px 12px}
+  .seg button{font-size:15px;padding:11px 16px}
+  .hint,.notice,.import-msg{font-size:14px}
+  .clone-prev .pl{font-size:15px}
+  .clone-prev .pr,.clone-prev .pw{font-size:13px}
+  .timerbar .fillwrap,.timerbar .content{height:82px}
+  .timerbar .fillwrap{max-width:920px}
+  .timerbar .content{gap:14px;padding:0 20px}
+  .timerbar .tlab{font-size:12px;max-width:42%}
+  .timerbar .tmain{font-size:34px}
+  .timerbar .ttarget{font-size:15px}
+  .timerbar .tstop{font-size:15px;padding:10px 14px}
+}
 </style>
 </head>
 <body>
@@ -334,6 +425,7 @@ h1.page{font-family:var(--mono);font-size:20px;font-weight:600;margin:6px 0 2px;
 <header class="topbar">
   <div class="brand"><span class="dot">●</span> workout_recorder</div>
   <div class="spacer"></div>
+  <div id="env_status" class="env-status" aria-live="polite"></div>
   <div id="storage_status" class="storage-status checking" title="checking shared storage" aria-live="polite">storage: checking</div>
   <button class="iconbtn" data-a="settings-open" title="rigging & profile" aria-label="rigging and profile settings">⚙ setup</button>
   <button class="iconbtn" id="soundbtn" data-a="sound-toggle" title="timer sound">♪ on</button>
