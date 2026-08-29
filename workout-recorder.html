@@ -71,6 +71,10 @@ input:focus,textarea:focus,select:focus{border-color:var(--orange)}
 .iconbtn{font-family:var(--mono);font-size:12px;color:var(--muted);border:1px solid var(--line);
   border-radius:4px;padding:6px 10px;background:var(--panel)}
 .iconbtn:hover{color:var(--text);border-color:var(--line2)}
+.wakebtn{display:none}
+.wakebtn.on{color:var(--green);border-color:#40532f;background:#232a1d}
+.wakebtn.warn{color:var(--red);border-color:#5a3230;background:#2c2020}
+@media (pointer:coarse){.wakebtn{display:inline-flex}}
 
 main{max-width:680px;margin:0 auto;padding:16px 14px 24px}
 
@@ -429,6 +433,7 @@ h1.page{font-family:var(--mono);font-size:20px;font-weight:600;margin:6px 0 2px;
   <div id="storage_status" class="storage-status checking" title="checking shared storage" aria-live="polite">storage: checking</div>
   <button class="iconbtn" data-a="settings-open" title="rigging & profile" aria-label="rigging and profile settings">⚙ setup</button>
   <button class="iconbtn" id="soundbtn" data-a="sound-toggle" title="timer sound">♪ on</button>
+  <button class="iconbtn wakebtn" id="wakelockbtn" data-a="wake-lock-toggle" title="keep screen awake" aria-label="keep screen awake" aria-pressed="false">☀ awake</button>
 </header>
 
 <main id="app"></main>

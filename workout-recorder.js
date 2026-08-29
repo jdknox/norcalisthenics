@@ -2288,6 +2288,163 @@ function environmentStatus()
     };
 }
 
+let wake_lock = null;
+let wake_lock_wanted = false;
+let wake_lock_error = null;
+
+function wakeLockSupported()
+{
+    return window.navigator && window.navigator.wakeLock && window.navigator.wakeLock.request;
+}
+
+function wakeLockButtonInfo()
+{
+    if (!wakeLockSupported())
+    {
+        return {
+            class_name: 'iconbtn wakebtn warn',
+            text: '☀ no lock',
+            title: 'Screen wake lock is not available in this browser or context',
+            disabled: true,
+            pressed: false
+        };
+    }
+
+    if (wake_lock)
+    {
+        return {
+            class_name: 'iconbtn wakebtn on',
+            text: '☀ awake',
+            title: 'Screen wake lock is active',
+            disabled: false,
+            pressed: true
+        };
+    }
+
+    if (wake_lock_error)
+    {
+        return {
+            class_name: 'iconbtn wakebtn warn',
+            text: '☀ failed',
+            title: wake_lock_error,
+            disabled: false,
+            pressed: false
+        };
+    }
+
+    if (wake_lock_wanted)
+    {
+        return {
+            class_name: 'iconbtn wakebtn',
+            text: '☀ waking',
+            title: 'Screen wake lock is being requested',
+            disabled: false,
+            pressed: true
+        };
+    }
+
+    return {
+        class_name: 'iconbtn wakebtn',
+        text: '☀ awake',
+        title: 'Keep the screen awake while this tab is visible',
+        disabled: false,
+        pressed: wake_lock_wanted
+    };
+}
+
+function updateWakeLockButton()
+{
+    if (typeof renderWakeLockStatus == 'function')
+    {
+        renderWakeLockStatus();
+    }
+}
+
+function requestWakeLock()
+{
+    if (!wake_lock_wanted)
+    {
+        updateWakeLockButton();
+        return Promise.resolve(null);
+    }
+
+    if (!wakeLockSupported())
+    {
+        wake_lock = null;
+        wake_lock_wanted = false;
+        wake_lock_error = 'Screen wake lock is not available in this browser or context';
+        updateWakeLockButton();
+        return Promise.resolve(null);
+    }
+
+    if (wake_lock)
+    {
+        wake_lock_error = null;
+        updateWakeLockButton();
+        return Promise.resolve(wake_lock);
+    }
+
+    return window.navigator.wakeLock.request('screen').then(function(lock)
+    {
+        wake_lock = lock;
+        wake_lock_error = null;
+        wake_lock.addEventListener('release', function()
+        {
+            wake_lock = null;
+            updateWakeLockButton();
+        });
+        updateWakeLockButton();
+        return lock;
+    }, function(error)
+    {
+        wake_lock = null;
+        wake_lock_wanted = false;
+        wake_lock_error = error && error.message ? error.message : 'Screen wake lock request failed';
+        updateWakeLockButton();
+        return null;
+    });
+}
+
+function releaseWakeLock()
+{
+    wake_lock_wanted = false;
+    wake_lock_error = null;
+
+    if (wake_lock && wake_lock.release)
+    {
+        return wake_lock.release().then(function()
+        {
+            wake_lock = null;
+            updateWakeLockButton();
+            return null;
+        }, function(error)
+        {
+            wake_lock = null;
+            wake_lock_error = error && error.message ? error.message : 'Screen wake lock release failed';
+            updateWakeLockButton();
+            return null;
+        });
+    }
+
+    wake_lock = null;
+    updateWakeLockButton();
+    return Promise.resolve(null);
+}
+
+function toggleWakeLock()
+{
+    if (wake_lock_wanted || wake_lock)
+    {
+        releaseWakeLock();
+        return;
+    }
+
+    wake_lock_wanted = true;
+    wake_lock_error = null;
+    updateWakeLockButton();
+    requestWakeLock();
+}
+
 let rig_fields = ['anchor_height', 'cal_x', 'cal_y', 'cal_rr'];
 let profile_fields = ['shoulder_pushup', 'shoulder_row', 'arm'];
 
@@ -2481,6 +2638,12 @@ document.addEventListener('visibilitychange', function()
     if (document.visibilityState == 'hidden')
     {
         flushStorage();
+        return;
+    }
+
+    if (wake_lock_wanted && !wake_lock)
+    {
+        requestWakeLock();
     }
 });
 window.addEventListener('pagehide', function()
@@ -4206,6 +4369,10 @@ document.addEventListener('click', function(ev)
             state.settings.sound = !state.settings.sound;
             save();
             render();
+            return;
+
+        case 'wake-lock-toggle':
+            toggleWakeLock();
             return;
 
         case 'settings-open':

@@ -11,8 +11,27 @@ function render()
   renderOverlay();
   document.getElementById('soundbtn').textContent = state.settings.sound ? '♪ on' : '♪ off';
   renderEnvironmentStatus();
+  renderWakeLockStatus();
   renderStorageStatus();
   syncWorkoutDurationHandle();
+}
+
+function renderWakeLockStatus()
+{
+  let el = document.getElementById('wakelockbtn');
+  let info;
+
+  if (!el || typeof wakeLockButtonInfo != 'function')
+  {
+    return;
+  }
+
+  info = wakeLockButtonInfo();
+  el.className = info.class_name;
+  el.textContent = info.text;
+  el.title = info.title;
+  el.disabled = info.disabled;
+  el.setAttribute('aria-pressed', info.pressed ? 'true' : 'false');
 }
 
 function renderEnvironmentStatus()
