@@ -1563,9 +1563,9 @@ function appendLibraryBackup(lines, library_list)
             bkCell(ex.rest_rung),
             bkCell(ex.setup),
             bkCell(ex.unit),
-            bkCell(ex.ring ? ex.ring.type : null),
-            bkCell(ex.ring ? ex.ring.rr : null),
-            bkCell(ex.ring ? ex.ring.h : null),
+            bkCell(ex.ring && ex.ring.type != 'none' ? ex.ring.type : null),
+            bkCell(ex.ring && ex.ring.type != 'none' ? ex.ring.rr : null),
+            bkCell(ex.ring && ex.ring.type != 'none' ? ex.ring.h : null),
             bkCell(targetsLabelForStorage(ex.default_targets)),
             bkCell(ex.default_ladders && ex.default_ladders.length ? laddersLabel(ex.default_ladders) : '')
         ].join('\t'));
