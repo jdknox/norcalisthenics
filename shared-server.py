@@ -5,6 +5,7 @@
 
 import http.server
 import glob
+import json
 import os
 import time
 import urllib.parse
@@ -58,7 +59,8 @@ def versionHtmlScripts(html_text):
         'workout-sample.js',
         'workout-sheets.js',
         'workout-render.js',
-        'workout-recorder.js'
+        'workout-recorder.js',
+        'protein-shared-storage.js'
     ]
     i = 0
 
@@ -91,6 +93,11 @@ def writePlainText(handler, code, text, content_type):
     handler.wfile.write(body)
 
 
+def writeJsonText(handler, code, value):
+    text = json.dumps(value)
+    return writePlainText(handler, code, text, 'application/json; charset=utf-8')
+
+
 def readStorageFile(path):
     if not fileExists(path):
         return ''
@@ -112,6 +119,39 @@ def writeStorageFile(path, text):
     os.replace(temp_path, path)
 
 
+def readSharedStorageFile():
+    if not fileExists(shared_storage_file):
+        return {}
+
+    text = readTextFile(shared_storage_file)
+    if not text.strip():
+        return {}
+
+    return json.loads(text)
+
+
+def writeSharedStorageFile(data):
+    text = json.dumps(data, indent=2, sort_keys=True) + '\n'
+    writeStorageFile(shared_storage_file, text)
+
+
+def validStorageKey(key):
+    if not key:
+        return False
+
+    for ch in key:
+        if ch.isalnum() or ch in '-_:./':
+            continue
+        return False
+
+    return True
+
+
+def requestHost(handler):
+    host = handler.headers.get('Host', '')
+    return host.split(':')[0].lower()
+
+
 class WorkoutHandler(http.server.SimpleHTTPRequestHandler):
     def end_headers(self):
         noCacheHeaders(self)
@@ -119,9 +159,16 @@ class WorkoutHandler(http.server.SimpleHTTPRequestHandler):
 
     def do_GET(self):
         path = urllib.parse.urlparse(self.path).path
+        host = requestHost(self)
+
+        if path == '/' and host == 'protein.proovd.com':
+            return writeHtml(self, './protein-loadout.html')
 
         if path == '/' or path == '/workout-recorder.html':
             return writeHtml(self, './workout-recorder.html')
+
+        if path == '/protein-loadout.html':
+            return writeHtml(self, './protein-loadout.html')
 
         if path == '/api/workout-data':
             text = readStorageFile(data_file)
@@ -130,6 +177,16 @@ class WorkoutHandler(http.server.SimpleHTTPRequestHandler):
         if path == '/api/workout-library':
             text = readStorageFile(library_file)
             return writePlainText(self, 200, text, 'text/tab-separated-values; charset=utf-8')
+
+        if path == '/api/storage':
+            query = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+            key = query.get('key', [''])[0]
+            if not validStorageKey(key):
+                return writeJsonText(self, 400, {'error': 'invalid key'})
+
+            data = readSharedStorageFile()
+            value = data.get(key, None)
+            return writeJsonText(self, 200, {'value': value})
 
         return http.server.SimpleHTTPRequestHandler.do_GET(self)
 
@@ -146,6 +203,17 @@ class WorkoutHandler(http.server.SimpleHTTPRequestHandler):
             writeStorageFile(library_file, text)
             return writePlainText(self, 200, 'ok\n', 'text/plain; charset=utf-8')
 
+        if path == '/api/storage':
+            query = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+            key = query.get('key', [''])[0]
+            if not validStorageKey(key):
+                return writeJsonText(self, 400, {'error': 'invalid key'})
+
+            data = readSharedStorageFile()
+            data[key] = text
+            writeSharedStorageFile(data)
+            return writeJsonText(self, 200, {'ok': True})
+
         return writePlainText(self, 404, 'not found\n', 'text/plain; charset=utf-8')
 
     def do_POST(self):
@@ -154,6 +222,7 @@ class WorkoutHandler(http.server.SimpleHTTPRequestHandler):
 
 data_file       = './data/workout-data.tsv'
 library_file    = './data/workout-library.tsv'
+shared_storage_file = './data/shared-storage.json'
 
 def main():
     host = default_host

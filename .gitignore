@@ -2,6 +2,7 @@
 .codex
 archive/
 shared-storage.json
+data/shared-storage.json
 data/workout-data.tsv*
 data/workout-library.tsv.*
 __pycache__/
