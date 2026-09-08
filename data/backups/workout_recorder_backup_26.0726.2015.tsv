@@ -1,0 +1,238 @@
+workout_recorder_backup	26.0726.2015
+
+[globals]
+sound	countdown	active	anchor	cal_x	cal_y	cal_rr	toe_shoulder	heel_shoulder	arm
+yes	yes	mt8zrkwxxfypao	452.3	303	151	25	165	156	60
+
+[library_exercises]
+name	mode	rest_set	rest_rung	setup	unit	ring_type	ring_rr	foot_dist	default_targets	default_ladders
+Ring Pushups Inclined	ladder	120	20	rings lower shin, body 30~45°, feet floor	-	none	-	-	-	4 4 4
+Ring Row Inclined	ladder	120	20	body 30~45° · grip neutral · range chest to rings	-	none	-	-	-	1,2,3,4 / 1,2,3,4 / 1,2,3,5
+Handle Full Pushups	ladder	120	20	-	-	none	-	-	-	3 3 3
+Floor Full Pushups	ladder	120	20	-	-	none	-	-	-	4 4 4
+Hanging Knee Raise	straight	120	20	-	-	none	-	-	6 / 6 / 6	-
+Banded Hip Bridges	weighted	120	20	band at hips · anchor floor · lying	-	none	-	-	15x8 / 10x12 / 10x10	-
+Scapular Pull-ups	weighted	120	20	-	-	none	-	-	10x12 / 10x12 / 10x12	-
+Leg-assisted Pull-ups	ladder	120	20	-	-	row	350	90	-	3 3 3
+
+[workouts]
+id	date	name	started_at	finished_at	finished	notes
+2608272007.ucfk	2026-08-27	Monday Upper	-	-	no	-
+mtc6n4krax0lqo	2026-08-01	Travel Workout	1785603600000	1785605100000	yes	-
+mt8zrkwxxfypao	2026-08-25	Monday Upper	-	-	no	-
+mt8zmeh9jsb766	2026-08-25	Workout	-	-	no	-
+mrxu66efkbyjzc	2026-07-23	Upper	1784831400000	1784833200000	yes	-
+mrlhva2m8iegs0	2026-07-15	Monday Upper	1784140200000	1784145180000	yes	-
+mri3hf7gmiihj2	2026-07-12	Monday Workout	1783881000000	1783882620000	yes	-
+mrh7jgxxtzombq	2026-07-12	Workout (test)	1783881000000	1783883700000	yes	-
+mrh7jdz42ap0lp	2026-07-10	Friday Upper	1783709700000	1783712400000	yes	-
+mrh7am8iq0ysd4	2026-07-10	Friday Upper	1783703700000	1783705400000	yes	-
+
+[exercises]
+id	workout	name	mode	rest_set	rest_rung	stop_reason	setup	notes	ring_type	ring_rr	foot_dist
+2608272007.hwo5	2608272007.ucfk	Ring Pushups Inclined	ladder	120	20	-	rings lower shin, body ~45°, feet floor	-	pushup	20	63
+2608272007.llk8	2608272007.ucfk	Ring Row Inclined	ladder	120	20	-	body 30~45°	-	row	110	24
+2608272007.3do2	2608272007.ucfk	Hanging Knee Raise	straight	120	20	-	-	-	none	-	-
+mtc6o2732c10aw	mtc6n4krax0lqo	Floor Full Pushups	ladder	120	20	-	-	-	none	-	-
+mt8zrkwxsq6dba	mt8zrkwxxfypao	Ring Pushups Inclined	ladder	120	20	-	rings lower shin, body ~45°, feet floor	-	pushup	20	63
+mt8zrkwxyxntie	mt8zrkwxxfypao	Ring Row Inclined	ladder	120	20	-	body 30~45°	-	row	110	24
+mt8zrkwy7h2m5s	mt8zrkwxxfypao	Hanging Knee Raise	straight	120	20	-	-	-	none	-	-
+2608272101.ysci	mt8zrkwxxfypao	Leg-assisted Pull-ups	ladder	120	20	-	-	-	row	162	-80
+mrxu7029ualuvc	mrxu66efkbyjzc	Floor Full Pushups	ladder	120	20	-	wide hands	-	none	-	-
+mrlhva2ndque02	mrlhva2m8iegs0	Ring Pushups Inclined	ladder	120	20	-	rings lower shin, body ~45°, feet floor	-	pushup	20	63
+mrlhva2nx9fy6z	mrlhva2m8iegs0	Ring Row Inclined	ladder	120	20	-	body 30~45°	-	row	110	24
+mrlhva2n16et29	mrlhva2m8iegs0	Hanging Knee Raise	straight	120	20	-	-	-	none	-	-
+mri3jvjqk1qnjx	mri3hf7gmiihj2	Handle Full Pushups	ladder	150	20	-	wide handles	-	none	-	-
+mrlarx05yucr3x	mrh7jgxxtzombq	Ring Pushups Inclined	straight	150	20	-	-	-	pushup	20	66.6
+mrh7jdz4nse4t4	mrh7jdz42ap0lp	Ring Pushups Inclined	ladder	150	20	-	rings lower shin, body ~45°, feet floor	-	none	-	-
+mrh7jdz44ihvxd	mrh7jdz42ap0lp	Ring Pushups Inclined	straight	150	20	-	body ~30° · grip neutral · range chest to rings	-	pushup	20	66.6
+mrh7jdz5aerhq1	mrh7jdz42ap0lp	Handle Full Pushups	ladder	150	20	-	-	-	none	-	-
+mrh7jdz5ebwvxv	mrh7jdz42ap0lp	Hanging Knee Raise	straight	120	20	-	-	-	none	-	-
+mrh7jdz5tlphge	mrh7jdz42ap0lp	Banded Hip Bridges	weighted	120	20	-	band at hips · anchor floor · lying	-	none	-	-
+mrkz56cog3jt5f	mrh7jdz42ap0lp	Ring Row Inclined	straight	150	20	-	body ~30° · grip neutral · range chest to rings	-	pushup	20	66.6
+mrh7am8i8kc2oz	mrh7am8iq0ysd4	Ring Pushups Inclined	ladder	150	20	-	rings lower shin, body ~45°, feet floor	-	none	-	-
+mrh7am8ia30dra	mrh7am8iq0ysd4	Ring Row Inclined	straight	150	20	-	body ~45° · grip neutral · range chest to rings	-	none	-	-
+mrh7am8im1umwh	mrh7am8iq0ysd4	Handle Full Pushups	ladder	150	20	-	-	-	none	-	-
+mrh7am8ijp9slr	mrh7am8iq0ysd4	Hanging Knee Raise	straight	120	20	-	-	-	none	-	-
+mrh7am8irt23u7	mrh7am8iq0ysd4	Banded Hip Bridges	weighted	120	20	-	band at hips · anchor floor · lying	-	none	-	-
+
+[sets]
+exercise	ladder	rung	target	reps	load	unit	status	rest_target	done_at	note
+2608272007.hwo5	1	1	1	-	-	-	planned	-	-	-
+2608272007.hwo5	1	2	2	-	-	-	planned	-	-	-
+2608272007.hwo5	1	3	4	-	-	-	planned	-	-	-
+2608272007.hwo5	1	4	5	-	-	-	planned	-	-	-
+2608272007.hwo5	2	1	1	-	-	-	planned	-	-	-
+2608272007.hwo5	2	2	2	-	-	-	planned	-	-	-
+2608272007.hwo5	2	3	4	-	-	-	planned	-	-	-
+2608272007.hwo5	2	4	5	-	-	-	planned	-	-	-
+2608272007.hwo5	3	1	1	-	-	-	planned	-	-	-
+2608272007.hwo5	3	2	2	-	-	-	planned	-	-	-
+2608272007.hwo5	3	3	3	-	-	-	planned	-	-	-
+2608272007.hwo5	3	4	4	-	-	-	planned	-	-	-
+2608272007.llk8	1	1	1	-	-	-	planned	-	-	-
+2608272007.llk8	1	2	3	-	-	-	planned	-	-	-
+2608272007.llk8	1	3	4	-	-	-	planned	-	-	-
+2608272007.llk8	1	4	5	-	-	-	planned	-	-	-
+2608272007.llk8	2	1	1	-	-	-	planned	-	-	-
+2608272007.llk8	2	2	2	-	-	-	planned	-	-	-
+2608272007.llk8	2	3	4	-	-	-	planned	-	-	-
+2608272007.llk8	2	4	5	-	-	-	planned	-	-	-
+2608272007.llk8	3	1	1	-	-	-	planned	-	-	-
+2608272007.llk8	3	2	2	-	-	-	planned	-	-	-
+2608272007.llk8	3	3	3	-	-	-	planned	-	-	-
+2608272007.llk8	3	4	4	-	-	-	planned	-	-	-
+2608272007.3do2	-	-	6	-	-	-	planned	-	-	-
+2608272007.3do2	-	-	6	-	-	-	planned	-	-	-
+2608272007.3do2	-	-	6	-	-	-	planned	-	-	-
+mtc6o2732c10aw	1	1	1	1	-	-	done_clean	20	1787875095457	-
+mtc6o2732c10aw	1	2	2	2	-	-	done_clean	20	1787875104340	-
+mtc6o2732c10aw	1	3	3	3	-	-	done_clean	20	1787875104789	-
+mtc6o2732c10aw	1	4	4	4	-	-	done_clean	120	1787875105161	-
+mtc6o2732c10aw	2	1	1	1	-	-	done_clean	20	1787875105677	-
+mtc6o2732c10aw	2	2	2	2	-	-	done_clean	20	1787875106463	-
+mtc6o2732c10aw	2	3	3	3	-	-	done_clean	20	1787875106838	-
+mtc6o2732c10aw	2	4	4	4	-	-	done_clean	120	1787875107283	-
+mtc6o2732c10aw	3	1	1	1	-	-	done_clean	20	1787875107803	-
+mtc6o2732c10aw	3	2	2	2	-	-	done_clean	20	1787875108606	-
+mtc6o2732c10aw	3	3	3	3	-	-	done_clean	20	1787875109023	-
+mtc6o2732c10aw	3	4	4	4	-	-	done_clean	120	1787875109441	-
+mt8zrkwxsq6dba	1	1	1	-	-	-	planned	-	-	-
+mt8zrkwxsq6dba	1	2	2	-	-	-	planned	-	-	-
+mt8zrkwxsq6dba	1	3	4	-	-	-	planned	-	-	-
+mt8zrkwxsq6dba	1	4	5	-	-	-	planned	-	-	-
+mt8zrkwxsq6dba	2	1	1	-	-	-	planned	-	-	-
+mt8zrkwxsq6dba	2	2	2	-	-	-	planned	-	-	-
+mt8zrkwxsq6dba	2	3	4	-	-	-	planned	-	-	-
+mt8zrkwxsq6dba	2	4	5	-	-	-	planned	-	-	-
+mt8zrkwxsq6dba	3	1	1	-	-	-	planned	-	-	-
+mt8zrkwxsq6dba	3	2	2	-	-	-	planned	-	-	-
+mt8zrkwxsq6dba	3	3	3	-	-	-	planned	-	-	-
+mt8zrkwxsq6dba	3	4	4	-	-	-	planned	-	-	-
+mt8zrkwxyxntie	1	1	1	-	-	-	planned	-	-	-
+mt8zrkwxyxntie	1	2	2	-	-	-	planned	-	-	-
+mt8zrkwxyxntie	1	3	4	-	-	-	planned	-	-	-
+mt8zrkwxyxntie	1	4	5	-	-	-	planned	-	-	-
+mt8zrkwxyxntie	2	1	1	-	-	-	planned	-	-	-
+mt8zrkwxyxntie	2	2	2	-	-	-	planned	-	-	-
+mt8zrkwxyxntie	2	3	4	-	-	-	planned	-	-	-
+mt8zrkwxyxntie	2	4	5	-	-	-	planned	-	-	-
+mt8zrkwxyxntie	3	1	1	-	-	-	planned	-	-	-
+mt8zrkwxyxntie	3	2	2	-	-	-	planned	-	-	-
+mt8zrkwxyxntie	3	3	3	-	-	-	planned	-	-	-
+mt8zrkwxyxntie	3	4	4	-	-	-	planned	-	-	-
+mt8zrkwxyxntie	3	5	5	-	-	-	planned	-	-	-
+mt8zrkwy7h2m5s	-	-	6	-	-	-	planned	-	-	-
+mt8zrkwy7h2m5s	-	-	6	-	-	-	planned	-	-	-
+mt8zrkwy7h2m5s	-	-	6	-	-	-	planned	-	-	-
+2608272101.ysci	1	1	1	-	-	-	planned	-	-	-
+2608272101.ysci	1	2	2	-	-	-	planned	-	-	-
+2608272101.ysci	1	3	3	-	-	-	planned	-	-	-
+2608272101.ysci	2	1	1	-	-	-	planned	-	-	-
+2608272101.ysci	2	2	2	-	-	-	planned	-	-	-
+2608272101.ysci	2	3	3	-	-	-	planned	-	-	-
+2608272101.ysci	3	1	1	-	-	-	planned	-	-	-
+2608272101.ysci	3	2	2	-	-	-	planned	-	-	-
+2608272101.ysci	3	3	3	-	-	-	planned	-	-	-
+mrxu7029ualuvc	1	1	1	1	-	-	done_clean	20	1784831015145	-
+mrxu7029ualuvc	1	2	2	2	-	-	done_clean	20	1784831044457	-
+mrxu7029ualuvc	1	3	3	3	-	-	done_clean	20	1784831077795	-
+mrxu7029ualuvc	1	4	4	4	-	-	done_clean	120	1784831113138	-
+mrxu7029ualuvc	2	1	1	1	-	-	done_clean	20	1784831244380	-
+mrxu7029ualuvc	2	2	2	2	-	-	done_clean	20	1784831273738	-
+mrxu7029ualuvc	2	3	3	3	-	-	done_clean	20	1784831310197	-
+mrxu7029ualuvc	2	4	4	4	-	-	done_clean	120	1784831349184	-
+mrxu7029ualuvc	3	1	1	1	-	-	done_clean	20	1784831478221	-
+mrxu7029ualuvc	3	2	2	2	-	-	done_clean	20	1784831507829	-
+mrxu7029ualuvc	3	3	3	3	-	-	done_clean	20	1784831542853	-
+mrxu7029ualuvc	3	4	4	4	-	-	done_ugly	120	1784831592580	-
+mrlhva2ndque02	1	1	1	1	-	-	done_clean	20	-	-
+mrlhva2ndque02	1	2	2	2	-	-	done_clean	20	-	-
+mrlhva2ndque02	1	3	4	4	-	-	done_clean	20	1784830479918	-
+mrlhva2ndque02	1	4	5	5	-	-	done_clean	120	1784830492540	-
+mrlhva2ndque02	2	1	1	1	-	-	done_clean	20	-	-
+mrlhva2ndque02	2	2	2	2	-	-	done_clean	20	-	-
+mrlhva2ndque02	2	3	4	-	-	-	planned	-	-	-
+mrlhva2ndque02	2	4	5	-	-	-	planned	-	-	-
+mrlhva2ndque02	3	1	1	1	-	-	done_clean	20	-	-
+mrlhva2ndque02	3	2	2	2	-	-	done_clean	20	-	-
+mrlhva2ndque02	3	3	3	3	-	-	done_clean	20	-	-
+mrlhva2ndque02	3	4	4	4	-	-	done_clean	120	-	-
+mrlhva2nx9fy6z	1	1	1	1	-	-	done_clean	20	-	-
+mrlhva2nx9fy6z	1	2	2	2	-	-	done_clean	20	-	-
+mrlhva2nx9fy6z	1	3	4	4	-	-	done_clean	20	-	-
+mrlhva2nx9fy6z	1	4	5	5	-	-	done_clean	150	-	-
+mrlhva2nx9fy6z	2	1	1	1	-	-	done_clean	20	-	-
+mrlhva2nx9fy6z	2	2	2	2	-	-	done_clean	20	-	-
+mrlhva2nx9fy6z	2	3	4	4	-	-	done_clean	20	-	-
+mrlhva2nx9fy6z	2	4	5	5	-	-	done_clean	120	-	-
+mrlhva2nx9fy6z	3	1	1	1	-	-	done_clean	20	-	-
+mrlhva2nx9fy6z	3	2	2	2	-	-	done_clean	20	-	-
+mrlhva2nx9fy6z	3	3	3	3	-	-	done_clean	20	-	-
+mrlhva2nx9fy6z	3	4	4	4	-	-	done_clean	150	-	-
+mrlhva2n16et29	-	-	6	6	-	-	done_clean	120	-	-
+mrlhva2n16et29	-	-	6	6	-	-	done_ugly	120	-	-
+mrlhva2n16et29	-	-	6	6	-	-	done_ugly	120	-	-
+mri3jvjqk1qnjx	1	1	1	-	-	-	planned	-	-	-
+mri3jvjqk1qnjx	1	2	2	-	-	-	planned	-	-	-
+mri3jvjqk1qnjx	1	3	3	-	-	-	planned	-	-	-
+mri3jvjqk1qnjx	1	4	4	-	-	-	planned	-	-	-
+mri3jvjqk1qnjx	2	1	1	-	-	-	planned	-	-	-
+mri3jvjqk1qnjx	2	2	2	-	-	-	planned	-	-	-
+mri3jvjqk1qnjx	2	3	3	-	-	-	planned	-	-	-
+mri3jvjqk1qnjx	2	4	4	-	-	-	planned	-	-	-
+mri3jvjqk1qnjx	3	1	1	-	-	-	planned	-	-	-
+mri3jvjqk1qnjx	3	2	2	-	-	-	planned	-	-	-
+mri3jvjqk1qnjx	3	3	3	-	-	-	planned	-	-	-
+mri3jvjqk1qnjx	3	4	4	-	-	-	planned	-	-	-
+mrlarx05yucr3x	-	-	9	-	-	-	planned	-	-	-
+mrh7jdz4nse4t4	1	1	1	-	-	-	planned	-	-	-
+mrh7jdz4nse4t4	1	2	2	-	-	-	planned	-	-	-
+mrh7jdz4nse4t4	1	3	3	-	-	-	planned	-	-	-
+mrh7jdz4nse4t4	2	1	1	-	-	-	planned	-	-	-
+mrh7jdz4nse4t4	2	2	2	-	-	-	planned	-	-	-
+mrh7jdz4nse4t4	2	3	3	-	-	-	planned	-	-	-
+mrh7jdz4nse4t4	3	1	1	-	-	-	planned	-	-	-
+mrh7jdz4nse4t4	3	2	2	-	-	-	planned	-	-	-
+mrh7jdz4nse4t4	3	3	3	-	-	-	planned	-	-	-
+mrh7jdz44ihvxd	-	-	9	-	-	-	planned	-	-	-
+mrh7jdz5aerhq1	1	1	1	-	-	-	planned	-	-	-
+mrh7jdz5aerhq1	1	2	2	-	-	-	planned	-	-	-
+mrh7jdz5aerhq1	1	3	3	-	-	-	planned	-	-	-
+mrh7jdz5aerhq1	2	1	1	-	-	-	planned	-	-	-
+mrh7jdz5aerhq1	2	2	2	-	-	-	planned	-	-	-
+mrh7jdz5aerhq1	2	3	3	-	-	-	planned	-	-	-
+mrh7jdz5aerhq1	3	1	1	-	-	-	planned	-	-	-
+mrh7jdz5aerhq1	3	2	2	-	-	-	planned	-	-	-
+mrh7jdz5ebwvxv	-	-	6	-	-	-	planned	-	-	-
+mrh7jdz5ebwvxv	-	-	6	-	-	-	planned	-	-	-
+mrh7jdz5ebwvxv	-	-	6	-	-	-	planned	-	-	-
+mrh7jdz5tlphge	-	-	8	-	15	kg	planned	-	-	-
+mrh7jdz5tlphge	-	-	12	-	10	kg	planned	-	-	-
+mrh7jdz5tlphge	-	-	10	-	10	kg	planned	-	-	-
+mrkz56cog3jt5f	-	-	8	-	-	-	planned	-	-	-
+mrh7am8i8kc2oz	1	1	1	1	-	-	done_clean	20	-	-
+mrh7am8i8kc2oz	1	2	2	2	-	-	done_clean	20	-	-
+mrh7am8i8kc2oz	1	3	3	3	-	-	done_clean	150	-	-
+mrh7am8i8kc2oz	2	1	1	1	-	-	done_clean	20	-	-
+mrh7am8i8kc2oz	2	2	2	2	-	-	done_clean	20	-	-
+mrh7am8i8kc2oz	2	3	3	3	-	-	done_clean	150	-	-
+mrh7am8i8kc2oz	3	1	1	1	-	-	done_clean	20	-	-
+mrh7am8i8kc2oz	3	2	2	2	-	-	done_clean	150	-	-
+mrh7am8ia30dra	-	-	8	8	-	-	done_clean	150	-	-
+mrh7am8ia30dra	-	-	8	-	-	-	planned	-	-	-
+mrh7am8ia30dra	-	-	8	-	-	-	planned	-	-	-
+mrh7am8im1umwh	1	1	1	-	-	-	planned	-	-	-
+mrh7am8im1umwh	1	2	2	-	-	-	planned	-	-	-
+mrh7am8im1umwh	1	3	3	-	-	-	planned	-	-	-
+mrh7am8im1umwh	2	1	1	-	-	-	planned	-	-	-
+mrh7am8im1umwh	2	2	2	-	-	-	planned	-	-	-
+mrh7am8im1umwh	2	3	3	-	-	-	planned	-	-	-
+mrh7am8im1umwh	3	1	1	-	-	-	planned	-	-	-
+mrh7am8im1umwh	3	2	2	-	-	-	planned	-	-	-
+mrh7am8ijp9slr	-	-	6	-	-	-	planned	-	-	-
+mrh7am8ijp9slr	-	-	6	-	-	-	planned	-	-	-
+mrh7am8ijp9slr	-	-	6	-	-	-	planned	-	-	-
+mrh7am8irt23u7	-	-	8	-	15	kg	planned	-	-	-
+mrh7am8irt23u7	-	-	12	-	10	kg	planned	-	-	-
+mrh7am8irt23u7	-	-	10	-	10	kg	planned	-	-	-

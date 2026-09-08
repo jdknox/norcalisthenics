@@ -1,0 +1,2836 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>protein_loadout</title>
+<style>
+:root{
+  --bg:#171b1a;
+  --panel:#1f2422;
+  --panel2:#262c29;
+  --line:#333a37;
+  --line2:#454e4a;
+  --text:#e7e9e6;
+  --muted:#9aa19c;
+  --faint:#666e69;
+  --green:#7fae7a;
+  --green-hi:#95c78f;
+  --coral:#e08a6f;
+  --red:#d17a6f;
+  --mono:ui-monospace,'Cascadia Code','JetBrains Mono','Fira Code',Menlo,Consolas,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:15px;line-height:1.45;padding-bottom:40px}
+input{font:inherit;color:var(--text);background:var(--panel2);border:1px solid var(--line2);border-radius:4px;padding:6px 8px;outline:none;font-family:var(--mono)}
+input:focus{border-color:var(--green)}
+main{max-width:760px;margin:0 auto;padding:20px 16px}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
+h1{font-family:var(--mono);font-size:20px;font-weight:600;margin:6px 0 18px;letter-spacing:.01em}
+.targetrow{display:flex;align-items:center;gap:10px;margin-bottom:18px;flex-wrap:wrap}
+.targetrow label{font-family:var(--mono);font-size:12px;color:var(--faint);letter-spacing:.08em;text-transform:uppercase}
+.targetrow input{width:80px;text-align:center;font-size:15px}
+.summary{display:flex;gap:0;border:1px solid var(--line);border-radius:8px;overflow:hidden;margin-bottom:24px}
+.summary .cell{flex:1;padding:14px 16px;border-right:1px solid var(--line)}
+.summary .cell:last-child{border-right:none}
+.summary .lab{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin-bottom:4px}
+.summary .val{font-family:var(--mono);font-size:22px;font-weight:700}
+.summary .val.over{color:var(--green-hi)}
+.summary .val.under{color:var(--coral)}
+table{width:100%;border-collapse:collapse;margin-bottom:20px}
+th{text-align:left;font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);padding:0 8px 8px;font-weight:400}
+th.num,td.num{text-align:right}
+td{padding:9px 8px;border-top:1px solid var(--line);vertical-align:middle}
+tr.food td{background:var(--panel)}
+tr.food:first-child td{border-top:none}
+.foodname{font-weight:600;font-size:13.5px}
+.foodname .unit{display:block;font-family:var(--mono);font-size:10.5px;color:var(--faint);font-weight:400;margin-top:1px}
+td input{width:64px}
+td.pack input{width:64px}
+.protein-out{font-family:var(--mono);color:var(--green-hi);font-weight:700}
+.pack-out{font-family:var(--mono);color:var(--muted);font-size:12.5px}
+tfoot td{border-top:2px solid var(--line2);font-family:var(--mono);font-weight:700;padding-top:12px}
+.note{font-size:12px;color:var(--faint);margin-top:-8px;margin-bottom:20px}
+.reset{font-family:var(--mono);font-size:11px;color:var(--faint);border:1px solid var(--line);border-radius:4px;padding:6px 10px;background:var(--panel);cursor:pointer}
+.reset:hover{color:var(--text);border-color:var(--line2)}
+.smallbtn{font-family:var(--mono);font-size:11px;color:var(--faint);border:1px solid var(--line);border-radius:4px;padding:6px 9px;background:var(--panel);cursor:pointer}
+.smallbtn:hover{color:var(--text);border-color:var(--line2)}
+.smallbtn:disabled{opacity:.4;cursor:default}
+.datenav{display:flex;align-items:center;gap:10px;margin:28px 0 12px}
+.tagfilterbar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.debugbox{border:1px solid var(--coral);border-radius:6px;background:var(--panel);padding:12px;margin-bottom:14px}
+.debugpre{font-family:var(--mono);font-size:11.5px;line-height:1.5;color:var(--muted);background:#12100f;border:1px solid var(--line);border-radius:4px;padding:10px;max-height:320px;overflow:auto;white-space:pre-wrap;word-break:break-word;margin:0 0 8px}
+.tagfilterbtn{font-family:var(--mono);font-size:11px;color:var(--muted);border:1px solid var(--line);border-radius:14px;padding:6px 12px;background:var(--panel);cursor:pointer}
+.tagfilterbtn:hover{color:var(--text);border-color:var(--line2)}
+.tagfilterbtn.on{background:var(--green);color:#132014;border-color:var(--green);font-weight:700}
+.tagfilterbtn.flattenbtn{margin-left:6px;border-style:dashed}
+.tagfilterbtn.flattenbtn.on{background:var(--orange);color:var(--orange-ink);border-color:var(--orange);border-style:solid}
+.datelabel{font-family:var(--mono);font-size:13px;color:var(--muted)}
+.scoopactions{display:grid;grid-template-columns:60px 26px 42px 92px;gap:5px;align-items:center}
+.scoopactions .smallbtn{width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-left:0;padding-right:0;text-align:center}
+.btnslot{display:block}
+.editbtn{font-size:11px;color:var(--faint);background:none;border:none;cursor:pointer;padding:0 2px;vertical-align:middle}
+.editbtn:hover{color:var(--text)}
+.editrow{background:var(--panel2)}
+.editrow td{border-top:none}
+.scalepanel{padding:4px 2px}
+.scalerow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.scalelab{font-family:var(--mono);font-size:11px;color:var(--faint);letter-spacing:.05em}
+.scalerow input[type=text]{width:80px}
+.scalerow input[type=range]{flex:1;min-width:120px;accent-color:var(--green)}
+.scale-entry-list{display:flex;flex-direction:column;gap:4px}
+.scale-entry{display:flex;align-items:center;justify-content:space-between;gap:8px;font-family:var(--mono);font-size:12px;color:var(--muted);background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:5px 8px}
+.scoopcount{font-family:var(--mono);font-weight:700;color:var(--green-hi)}
+.groupheader td{background:#20241f;border-top:1px solid var(--line);padding-top:8px;padding-bottom:8px}
+.grouptoggle{font-family:var(--mono);font-weight:700;color:var(--green-hi);background:none;border:none;cursor:pointer;font-size:13px;padding:0;display:inline-flex;align-items:center;gap:6px}
+.grouptoggle:hover{color:var(--green)}
+.groupmember td:first-child{padding-left:22px}
+.groupmember td:first-child .foodname{font-weight:500}
+.customrow td{background:#23201a;border-bottom:1px solid #4a3a24}
+.customrow .foodname{color:var(--orange)}
+.fetchstatus{font-size:11.5px;color:var(--faint);padding:2px 8px 12px}
+.addform{display:flex;gap:8px;flex-wrap:wrap;border:1px solid var(--line);border-radius:6px;background:var(--panel);padding:10px;margin-bottom:16px}
+.addform input{width:120px}
+.tagwrap{position:relative}
+.tagwrap input{width:260px}
+.tagsuggest{display:none;position:absolute;left:0;top:100%;z-index:5;margin-top:4px;max-height:180px;overflow:auto;background:var(--panel);border:1px solid var(--line2);border-radius:6px;box-shadow:0 8px 24px rgba(0,0,0,.4);min-width:220px}
+.tagsuggest.open{display:block}
+.tagsuggestitem{display:block;width:100%;text-align:left;font-family:var(--sans);font-size:13px;padding:8px 11px;color:var(--text);border:none;border-bottom:1px solid var(--line);background:none;cursor:pointer}
+.tagsuggestitem:last-child{border-bottom:none}
+.tagsuggestitem:hover{background:var(--orange);color:var(--orange-ink)}
+.btnrow2{display:flex;gap:8px;margin:12px 0 16px;flex-wrap:wrap;align-items:center}
+.exportbox{border:1px solid var(--line);border-radius:6px;background:var(--panel);padding:12px;margin-bottom:16px}
+.exp-tabs{display:flex;gap:6px;margin-bottom:10px}
+.exp-tabs .smallbtn.on{background:var(--green);color:#132014;border-color:var(--green);font-weight:700}
+.exp-out{width:100%;min-height:220px;font-family:var(--mono);font-size:12px;line-height:1.5;background:#12100f;border-color:var(--line);white-space:pre;overflow:auto}
+#printlist{display:none}
+@media print{
+  html,body{background:#fff!important;color:#000!important}
+  main{display:none}
+  #printlist{display:block;color:#000;background:#fff;font-family:var(--sans);padding:0}
+  #printlist h2{font-family:var(--mono);font-size:15px;color:#000;margin:0 0 10px}
+  #printlist table{width:100%;border-collapse:collapse}
+  #printlist th,#printlist td{border:1px solid #000;padding:4px 6px;font-size:12px;text-align:left;color:#000;background:#fff}
+  #printlist th{font-family:var(--mono);font-weight:700}
+}
+</style>
+</head>
+<body>
+<main id="app"></main>
+<div id="printlist"></div>
+
+<script>
+'use strict';
+
+function esc(value)
+{
+  let text = String(value == null ? '' : value);
+  let out = '';
+  let i;
+  let ch;
+
+  for (i = 0; i < text.length; ++i)
+  {
+    ch = text.charAt(i);
+
+    switch (ch)
+    {
+      case '&':
+        out += '&amp;';
+        break;
+      case '<':
+        out += '&lt;';
+        break;
+      case '>':
+        out += '&gt;';
+        break;
+      case '"':
+        out += '&quot;';
+        break;
+      case "'":
+        out += '&#39;';
+        break;
+      default:
+        out += ch;
+        break;
+    }
+  }
+
+  return out;
+}
+
+function uid()
+{
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+}
+
+function todayISO()
+{
+  let d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
+function shiftDateISO(iso, delta)
+{
+  let d = new Date(iso + 'T00:00:00');
+  d.setDate(d.getDate() + delta);
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
+let g_storage_key = 'protein-loadout:v1';
+
+let g_foods = [
+  { key:'egg',          name:'Egg',                     kind:'unit', unit_grams:50,  unit_protein:6,  daily:2,   price:null, package_units:12 },
+  { key:'seitan',       name:'Seitan',                  kind:'bulk', package_grams:227, package_protein:72, daily:96,  price:null },
+  { key:'pink_salmon',  name:'Pink salmon (canned)',     kind:'bulk', package_grams:170, package_protein:36, daily:170, price:3.40 },
+  { key:'edamame',      name:'Edamame (shelled)',        kind:'bulk', package_grams:283, package_protein:36, daily:80,  price:null },
+  { key:'barramundi',   name:'Barramundi',               kind:'bulk', package_grams:340, package_protein:63, daily:70,  price:null },
+  { key:'skyr',         name:'Skyr',                     kind:'bulk', package_grams:680, package_protein:76, daily:200, price:null },
+  { key:'rice',         name:'Rice (dry, uncooked)',     kind:'bulk', package_grams:2250, package_protein:160, daily:57, price:15 }
+];
+
+let g_target = 128;
+let g_target_raw = String(g_target);
+
+{
+  let i;
+
+  for (i = 0; i < g_foods.length; ++i)
+  {
+    g_foods[i].daily_raw = String(g_foods[i].daily);
+    g_foods[i].price_raw = g_foods[i].price != null ? String(g_foods[i].price) : '';
+    if (g_foods[i].package_units != null) g_foods[i].package_units_raw = String(g_foods[i].package_units);
+  }
+}
+
+/* ======== scoop log ======== */
+/* canonical reference data — merged into g_scoop_items on every load.
+   never overwrites a field that's already non-null, so user edits to
+   scoop_g/protein_g/kcal survive; only fills gaps and adds missing items. */
+let g_known_items = [
+  { key:'00505154',     barcode:'00505154',     name:'Cashew pieces',    brand:"Trader Joe's",     volume_ml:80,   volume_label:null,   scoop_g:48,  protein_g:8,  kcal:275, protein_100g:16.6667, kcal_100g:572.9167 },
+  { key:'855140002991', barcode:'855140002991', name:'Granola; M.A.B.',  brand:'purely elizabeth',  volume_ml:120,  volume_label:null,   scoop_g:40,  protein_g:4,  kcal:175, protein_100g:10, kcal_100g:437.5 },
+  { key:'099482477196', barcode:'099482477196', name:'Flaxseed; ground', brand:'365',               volume_ml:23,   volume_label:null,   scoop_g:12,  protein_g:2,  kcal:65, protein_100g:16.6667, kcal_100g:541.6667 },
+  { key:'898248001428', barcode:'898248001428', name:'Skyr; vanilla 0%', brand:"siggi's",           volume_ml:null, volume_label:'BOWL', scoop_g:250, protein_g:25, kcal:180, protein_100g:10, kcal_100g:72 },
+  { key:'898248001411', barcode:'898248001411', name:'Skyr; plain 0%',   brand:"siggi's",           volume_ml:null, volume_label:'BOWL', scoop_g:250, protein_g:28, kcal:150, protein_100g:11.2, kcal_100g:60 },
+  { key:'00914055',     barcode:'00914055',     name:'Salmon; AK',       brand:"Trader Joe's",      volume_ml:null, volume_label:'CAN',  scoop_g:170, protein_g:34, kcal:220, protein_100g:20, kcal_100g:129.4118 },
+  { key:'829696000473', barcode:'829696000473', name:'Salmon; pink',     brand:"Gus's",             volume_ml:null, volume_label:'CAN',  scoop_g:170, protein_g:36, kcal:180, protein_100g:21.1765, kcal_100g:105.8824 },
+  { key:'011152066301', barcode:'011152066301', name:'Rice; sushi',      brand:'Nishiki',           volume_ml:null, volume_label:'BOWL', scoop_g:150, protein_g:4,  kcal:215, protein_100g:2.6667, kcal_100g:143.3333 },
+  { key:'099482479657', barcode:'099482479657', name:'Granola; M.A.B.',  brand:'365',               volume_ml:120,  volume_label:null,   scoop_g:44,  protein_g:6,  kcal:200, protein_100g:13.6364, kcal_100g:454.5455 },
+  { key:'705105357713', barcode:'705105357713', name:'Seitan; traditional', brand:"Upton's Naturals", volume_ml:80,  volume_label:null,   scoop_g:40,  protein_g:12.6, kcal:63, protein_100g:31.5, kcal_100g:157.5 },
+  { key:'638031605026', barcode:'638031605026', name:'Deli slices; M&B', brand:'Field Roast',       volume_ml:null, volume_label:'3 SLICES', scoop_g:55, protein_g:17, kcal:120, protein_100g:30.9091, kcal_100g:218.1818 },
+  { key:'042563007805', barcode:'042563007805', name:'Edamame; shelled', brand:'Woodstock',         volume_ml:120,  volume_label:null,   scoop_g:80,  protein_g:10.4, kcal:113, protein_100g:13, kcal_100g:141.25 }
+];
+
+/* the original seed shipped 2 of these items with guessed brand text and no barcode —
+   this maps their old internal keys to the correct barcode so the merge below
+   recognizes them as the same product instead of adding duplicates. */
+let g_legacy_key_barcode_fixups = { granola_pe:'855140002991', skyr_siggis:'898248001411' };
+let g_legacy_key_brand_fixups = { granola_pe:'purely elizabeth' };
+let g_legacy_key_name_fixups = { skyr_siggis:'Skyr; plain 0%' };
+
+let g_scoop_items = [];
+
+function cloneKnownItem(known)
+{
+  let item = {
+    key: known.key, barcode: known.barcode, name: known.name, brand: known.brand,
+    volume_ml: known.volume_ml, volume_label: known.volume_label,
+    scoop_g: known.scoop_g, protein_g: known.protein_g, kcal: known.kcal,
+    protein_100g: known.protein_100g != null ? known.protein_100g : null,
+    kcal_100g: known.kcal_100g != null ? known.kcal_100g : null,
+    tags: Array.isArray(known.tags) ? known.tags.slice() : []
+  };
+
+  item.scoop_g_raw = item.scoop_g != null ? String(item.scoop_g) : '';
+  item.protein_g_raw = item.protein_g != null ? String(item.protein_g) : '';
+  item.kcal_raw = item.kcal != null ? String(item.kcal) : '';
+
+  return item;
+}
+
+function mergeKnownItems()
+{
+  let i;
+  let j;
+  let known;
+  let existing;
+  let found;
+
+  for (i = 0; i < g_scoop_items.length; ++i)
+  {
+    existing = g_scoop_items[i];
+    if (existing.barcode == null && g_legacy_key_barcode_fixups[existing.key]) existing.barcode = g_legacy_key_barcode_fixups[existing.key];
+    if (g_legacy_key_brand_fixups[existing.key]) existing.brand = g_legacy_key_brand_fixups[existing.key];
+    if (g_legacy_key_name_fixups[existing.key]) existing.name = g_legacy_key_name_fixups[existing.key];
+  }
+
+  for (i = 0; i < g_known_items.length; ++i)
+  {
+    known = g_known_items[i];
+    found = null;
+
+    for (j = 0; j < g_scoop_items.length; ++j)
+    {
+      if (g_scoop_items[j].barcode == known.barcode)
+      {
+        found = g_scoop_items[j];
+        break;
+      }
+    }
+
+    if (found)
+    {
+      if (found.volume_ml == null && found.volume_label == null)
+      {
+        found.volume_ml = known.volume_ml;
+        found.volume_label = known.volume_label;
+      }
+      if (found.protein_100g == null && known.protein_100g != null) found.protein_100g = known.protein_100g;
+      if (found.kcal_100g == null && known.kcal_100g != null) found.kcal_100g = known.kcal_100g;
+      continue;
+    }
+
+    g_scoop_items.push(cloneKnownItem(known));
+  }
+}
+
+function sortedScoopItems()
+{
+  let copy = g_scoop_items.slice();
+
+  copy.sort(function(a, b)
+  {
+    let an = a.name.toLowerCase();
+    let bn = b.name.toLowerCase();
+    if (an < bn) return -1;
+    if (an > bn) return 1;
+    return 0;
+  });
+
+  return copy;
+}
+
+function itemTags(item)
+{
+  return Array.isArray(item.tags) ? item.tags : [];
+}
+
+function parseTagsInput(text)
+{
+  let parts = text.split(',');
+  let seen = {};
+  let out = [];
+  let i;
+  let t;
+  let key;
+
+  for (i = 0; i < parts.length; ++i)
+  {
+    t = parts[i].trim();
+    if (!t) continue;
+
+    key = t.toLowerCase();
+    if (seen[key]) continue;
+
+    seen[key] = true;
+    out.push(t);
+  }
+
+  return out;
+}
+
+function distinctTagNames()
+{
+  let seen = {};
+  let out = [];
+  let i;
+  let j;
+  let tags;
+  let key;
+
+  for (i = 0; i < g_scoop_items.length; ++i)
+  {
+    tags = itemTags(g_scoop_items[i]);
+    for (j = 0; j < tags.length; ++j)
+    {
+      key = tags[j].toLowerCase();
+      if (seen[key]) continue;
+      seen[key] = true;
+      out.push(tags[j]);
+    }
+  }
+
+  out.sort(function(a, b)
+  {
+    return a.toLowerCase() < b.toLowerCase() ? -1 : a.toLowerCase() > b.toLowerCase() ? 1 : 0;
+  });
+
+  return out;
+}
+
+/* returns the text after the last comma — the tag currently being typed,
+   as opposed to the full comma-separated field value. */
+function currentTagFragment(value)
+{
+  let idx = value.lastIndexOf(',');
+  return idx >= 0 ? value.slice(idx + 1).trim() : value.trim();
+}
+
+function updateTagSuggestions(el)
+{
+  let list = document.getElementById('tag-suggest');
+  let fragment;
+  let names;
+  let matches;
+  let i;
+
+  if (!list) return;
+
+  fragment = currentTagFragment(el.value).toLowerCase();
+  if (!fragment)
+  {
+    list.classList.remove('open');
+    list.innerHTML = '';
+    return;
+  }
+
+  names = distinctTagNames();
+  matches = [];
+  for (i = 0; i < names.length; ++i)
+  {
+    if (names[i].toLowerCase().indexOf(fragment) >= 0) matches.push(names[i]);
+  }
+
+  if (!matches.length)
+  {
+    list.classList.remove('open');
+    list.innerHTML = '';
+    return;
+  }
+
+  list.innerHTML = matches.map(function(n)
+  {
+    return '<button type="button" class="tagsuggestitem" data-a="tag-suggest-pick" data-tag="' + esc(n) + '">' + esc(n) + '</button>';
+  }).join('');
+  list.classList.add('open');
+}
+
+function pickTagSuggestion(tag)
+{
+  let input = document.querySelector('[data-editdraft="tags"]');
+  let list = document.getElementById('tag-suggest');
+  let value;
+  let idx;
+  let prefix;
+  let new_value;
+
+  if (!input || !g_edit_draft) return;
+
+  value = input.value;
+  idx = value.lastIndexOf(',');
+  prefix = idx >= 0 ? value.slice(0, idx + 1) + ' ' : '';
+  new_value = prefix + tag + ', ';
+
+  input.value = new_value;
+  g_edit_draft.tags = new_value;
+
+  if (list)
+  {
+    list.classList.remove('open');
+    list.innerHTML = '';
+  }
+
+  input.focus();
+}
+
+/* an item can carry multiple tags and renders as a member under EVERY tag that
+   currently has 2+ members (same underlying item, same key, at each appearance —
+   not a data duplicate, just rendered more than once). a tag with only one
+   current member doesn't count as a group; items with no qualifying tag render
+   standalone exactly once. */
+function tagsMatchActive(tags)
+{
+  let i;
+
+  for (i = 0; i < tags.length; ++i)
+  {
+    if (g_active_tags[tags[i].toLowerCase()]) return true;
+  }
+
+  return false;
+}
+
+function groupedNodes()
+{
+  let sorted = sortedScoopItems();
+  let tag_counts = {};
+  let tag_display = {};
+  let groups = {};
+  let nodes = [];
+  let i;
+  let j;
+  let item;
+  let tags;
+  let tag_key;
+  let has_qualifying;
+  let key;
+
+  for (i = 0; i < sorted.length; ++i)
+  {
+    tags = itemTags(sorted[i]);
+    for (j = 0; j < tags.length; ++j)
+    {
+      tag_key = tags[j].toLowerCase();
+      tag_counts[tag_key] = (tag_counts[tag_key] || 0) + 1;
+      if (!tag_display[tag_key]) tag_display[tag_key] = tags[j];
+    }
+  }
+
+  for (i = 0; i < sorted.length; ++i)
+  {
+    item = sorted[i];
+    tags = itemTags(item);
+    for (j = 0; j < tags.length; ++j)
+    {
+      tag_key = tags[j].toLowerCase();
+      if (tag_counts[tag_key] < 2) continue;
+      if (!groups[tag_key]) groups[tag_key] = { key:tag_key, name:tag_display[tag_key], members:[] };
+      groups[tag_key].members.push(item);
+    }
+  }
+
+  for (i = 0; i < sorted.length; ++i)
+  {
+    item = sorted[i];
+    tags = itemTags(item);
+    has_qualifying = false;
+    for (j = 0; j < tags.length; ++j)
+    {
+      if (tag_counts[tags[j].toLowerCase()] >= 2)
+      {
+        has_qualifying = true;
+        break;
+      }
+    }
+    if (!has_qualifying) nodes.push({ type:'item', item:item, sortname:(tagsMatchActive(tags) ? '0_' : '1_') + item.name.toLowerCase() });
+  }
+
+  for (key in groups)
+  {
+    nodes.push({ type:'group', group:groups[key], sortname:(g_active_tags[key] ? '0_' : '1_') + groups[key].name.toLowerCase() });
+  }
+
+  nodes.sort(function(a, b)
+  {
+    return a.sortname < b.sortname ? -1 : a.sortname > b.sortname ? 1 : 0;
+  });
+
+  return nodes;
+}
+
+function formatVolume(item)
+{
+  if (item.volume_ml != null) return item.volume_ml + ' mL';
+  if (item.volume_label) return item.volume_label;
+  return '—';
+}
+
+function round1(n)
+{
+  return Math.round(n*10)/10;
+}
+
+/* old format: g_log[date] = { item_key: count }. new format: g_log[date] = [entry, ...].
+   converts in place; safe to call repeatedly (already-migrated days are arrays and skipped). */
+/* old format: item.group = string|null. new format: item.tags = [string, ...].
+   safe to call repeatedly — already-migrated items (tags is an array) are skipped. */
+function migrateTagsFormat()
+{
+  let i;
+  let item;
+
+  for (i = 0; i < g_scoop_items.length; ++i)
+  {
+    item = g_scoop_items[i];
+    if (Array.isArray(item.tags)) continue;
+
+    item.tags = item.group ? [item.group] : [];
+    delete item.group;
+  }
+}
+
+function migrateLogFormat()
+{
+  let date;
+  let day;
+  let key;
+  let item;
+  let count;
+  let i;
+  let entries;
+
+  for (date in g_log)
+  {
+    day = g_log[date];
+    if (Array.isArray(day)) continue;
+
+    entries = [];
+    for (key in day)
+    {
+      item = findScoopItem(key);
+      count = day[key];
+      for (i = 0; i < count; ++i)
+      {
+        entries.push({
+          id: uid(), item_key: key, scale: 1,
+          grams: item ? item.scoop_g : null,
+          protein_g: item ? item.protein_g : null,
+          kcal: item ? item.kcal : null
+        });
+      }
+    }
+    g_log[date] = entries;
+  }
+}
+
+let g_log = {};                 /* isoDate -> { item_key: count } */
+let g_view_date = todayISO();   /* editing only allowed when this == todayISO() */
+let g_fetch_status = {};        /* item_key -> transient status text, not persisted */
+let g_fetch_pending = {};       /* item_key -> true while awaiting in-page overwrite confirmation */
+let g_fetch_context = {};       /* item_key -> which rendered context ('standalone' or a group key) triggered the fetch */
+let g_scoop_add_draft = null;   /* { barcode, name, brand, scoop_g, protein_100g, kcal_100g } while the add-item form is open */
+let g_add_item_status = '';     /* transient feedback for the add-item form's O.F.F. lookup */
+let g_last_lookup_debug = null; /* raw response text when the web-search fallback returns something unparseable/unexpected, not persisted */
+let g_print_status = null;      /* transient feedback for the print button, not persisted */
+let g_edit_item_key = null;     /* which item's metadata edit panel is open */
+let g_edit_context = null;      /* 'standalone' or a group key — which rendered context the panel is attached to */
+let g_edit_draft = null;        /* { name, brand, barcode, volume, scoop_g, protein_g, kcal, tags } while editing */
+let g_scale_item_key = null;    /* which item's scale/log panel is open */
+let g_scale_context = null;     /* 'standalone' or a group key — which rendered context the panel is attached to */
+let g_scale_draft = null;       /* { scale, grams_raw, protein_g, protein_g_raw, kcal, kcal_raw } while scaling */
+let g_custom_protein_raw = '';  /* transient, not persisted — scratch input for the Custom row */
+let g_custom_status = '';
+let g_collapsed_groups = {};    /* lowercase group name -> true if collapsed */
+let g_active_tags = {};         /* lowercase tag key -> true if active as a float-to-top filter (not persisted) */
+let g_flatten_view = false;     /* true = ignore grouping entirely, show every item as a flat list (not persisted) */
+let g_group_rename_key = null;  /* lowercase group key currently being renamed, or null */
+let g_group_rename_draft = '';
+let g_export_open = false;
+let g_export_fmt = 'diary';     /* 'diary' | 'json' */
+let g_copy_status = '';
+let g_import_open = false;
+let g_import_text = '';
+let g_import_pending = null;    /* parsed object awaiting confirmation, or null */
+let g_import_status = '';
+
+function proteinPerGram(food)
+{
+  if (food.kind == 'unit') return food.unit_protein/food.unit_grams;
+  return food.package_protein/food.package_grams;
+}
+
+function dailyProtein(food)
+{
+  if (food.kind == 'unit') return food.daily*food.unit_protein;
+  return food.daily*proteinPerGram(food);
+}
+
+function weeklyAmount(food)
+{
+  return food.daily*7;
+}
+
+function packagesPerWeek(food)
+{
+  if (food.kind == 'unit') return food.package_units != null ? weeklyAmount(food)/food.package_units : null;
+  return weeklyAmount(food)/food.package_grams;
+}
+
+function monthlyCost(food)
+{
+  if (food.price == null) return null;
+  if (food.kind == 'unit') return food.package_units != null ? (food.daily*30/food.package_units)*food.price : food.daily*30*food.price;
+  return (food.daily*30/food.package_grams)*food.price;
+}
+
+function totalDailyProtein()
+{
+  let total = 0;
+  let i;
+
+  for (i = 0; i < g_foods.length; ++i)
+  {
+    total += dailyProtein(g_foods[i]);
+  }
+
+  return total;
+}
+
+function totalMonthlyCost()
+{
+  let total = 0;
+  let i;
+  let cost;
+
+  for (i = 0; i < g_foods.length; ++i)
+  {
+    cost = monthlyCost(g_foods[i]);
+    if (cost != null) total += cost;
+  }
+
+  return total;
+}
+
+function findScoopItem(key)
+{
+  let i;
+
+  for (i = 0; i < g_scoop_items.length; ++i)
+  {
+    if (g_scoop_items[i].key == key) return g_scoop_items[i];
+  }
+
+  return null;
+}
+
+function logCount(date, key)
+{
+  let day = g_log[date];
+  let i;
+  let n = 0;
+
+  if (!day) return 0;
+
+  for (i = 0; i < day.length; ++i)
+  {
+    if (day[i].item_key == key) ++n;
+  }
+
+  return n;
+}
+
+function addScoop(key)
+{
+  let item = findScoopItem(key);
+  if (!item) return;
+
+  pushLogEntry(key, item.scoop_g, item.protein_g, item.kcal, 1);
+}
+
+function pushLogEntry(key, grams, protein_g, kcal, scale)
+{
+  let day = g_log[g_view_date];
+
+  if (!day)
+  {
+    day = [];
+    g_log[g_view_date] = day;
+  }
+
+  day.push({ id:uid(), item_key:key, grams:grams, protein_g:protein_g, kcal:kcal, scale:scale });
+}
+
+function removeScoop(key)
+{
+  let day = g_log[g_view_date];
+  let i;
+
+  if (!day) return;
+
+  for (i = day.length - 1; i >= 0; --i)
+  {
+    if (day[i].item_key == key)
+    {
+      day.splice(i, 1);
+      return;
+    }
+  }
+}
+
+function logCustomEntry()
+{
+  let num;
+
+  if (g_view_date != todayISO()) return;
+
+  num = parseFloat(g_custom_protein_raw);
+  if (isNaN(num) || num <= 0)
+  {
+    g_custom_status = 'enter a protein amount first';
+    render();
+    return;
+  }
+
+  num = round1(num);
+  pushLogEntry('custom', null, num, Math.round(23*num), null);
+  g_custom_protein_raw = '';
+  g_custom_status = '';
+  render();
+  save();
+}
+
+function removeLogEntry(entry_id)
+{
+  let day = g_log[g_view_date];
+  let i;
+
+  if (!day) return;
+
+  for (i = 0; i < day.length; ++i)
+  {
+    if (day[i].id == entry_id)
+    {
+      day.splice(i, 1);
+      return;
+    }
+  }
+}
+
+function entriesForItem(date, key)
+{
+  let day = g_log[date] || [];
+  let out = [];
+  let i;
+
+  for (i = 0; i < day.length; ++i)
+  {
+    if (day[i].item_key == key) out.push(day[i]);
+  }
+
+  return out;
+}
+
+function dayTotals(date)
+{
+  let day = g_log[date];
+  let protein = 0;
+  let kcal = 0;
+  let i;
+
+  if (!day) return { protein:0, kcal:0 };
+
+  for (i = 0; i < day.length; ++i)
+  {
+    if (day[i].protein_g != null) protein += day[i].protein_g;
+    if (day[i].kcal != null) kcal += day[i].kcal;
+  }
+
+  return { protein:protein, kcal:kcal };
+}
+
+function saveAddItemDraft()
+{
+  let d = g_scoop_add_draft;
+  let num;
+  let item;
+  let protein_100g;
+  let kcal_100g;
+  let macros;
+
+  if (!d) return;
+  if (!d.name.trim()) return;
+
+  num = parseFloat(d.scoop_g);
+  protein_100g = parseFloat(d.protein_100g);
+  kcal_100g = parseFloat(d.kcal_100g);
+  protein_100g = isNaN(protein_100g) ? null : protein_100g;
+  kcal_100g = isNaN(kcal_100g) ? null : kcal_100g;
+  macros = computeMacrosFromDensity(isNaN(num) ? null : num, protein_100g, kcal_100g);
+
+  item = {
+    key: uid(),
+    barcode: d.barcode.trim() ? d.barcode.trim() : null,
+    name: d.name.trim(),
+    brand: d.brand.trim(),
+    scoop_g: isNaN(num) ? null : num,
+    protein_g: macros.protein_g,
+    kcal: macros.kcal,
+    protein_100g: protein_100g,
+    kcal_100g: kcal_100g,
+    tags: []
+  };
+  item.scoop_g_raw = item.scoop_g != null ? String(item.scoop_g) : '';
+  item.protein_g_raw = item.protein_g != null ? String(item.protein_g) : '';
+  item.kcal_raw = item.kcal != null ? String(item.kcal) : '';
+
+  g_scoop_items.push(item);
+  g_scoop_add_draft = null;
+  render();
+  save();
+}
+
+function addItemMacroPreviewText(d)
+{
+  let scoop_g = parseFloat(d.scoop_g);
+  let protein_100g = parseFloat(d.protein_100g);
+  let kcal_100g = parseFloat(d.kcal_100g);
+  let macros;
+
+  if (isNaN(scoop_g) || (isNaN(protein_100g) && isNaN(kcal_100g))) return 'enter scoop g and at least one per-100g value to preview';
+
+  macros = computeMacrosFromDensity(scoop_g, isNaN(protein_100g) ? null : protein_100g, isNaN(kcal_100g) ? null : kcal_100g);
+
+  return 'at ' + scoop_g + ' g: ' + (macros.protein_g != null ? macros.protein_g + ' g protein' : '— g protein')
+    + ' / ' + (macros.kcal != null ? macros.kcal + ' kcal' : '— kcal');
+}
+
+function lookupOFFForAddItem()
+{
+  let d = g_scoop_add_draft;
+  let barcode;
+
+  if (!d) return;
+
+  barcode = d.barcode.trim();
+  if (!barcode)
+  {
+    g_add_item_status = 'enter a barcode first';
+    render();
+    return;
+  }
+
+  g_add_item_status = 'looking up… (may take longer if O.F.F. is unreachable and it falls back to a web search)';
+  render();
+
+  fetchOFFProduct(barcode, function(result)
+  {
+    if (!g_scoop_add_draft) return; // form was closed while the fetch was in flight
+
+    if (!result.found)
+    {
+      g_add_item_status = result.reason;
+      render();
+      return;
+    }
+
+    if (!g_scoop_add_draft.name.trim() && result.name) g_scoop_add_draft.name = result.name;
+    if (!g_scoop_add_draft.brand.trim() && result.brand) g_scoop_add_draft.brand = result.brand;
+    if (result.protein_100g != null) g_scoop_add_draft.protein_100g = String(result.protein_100g);
+    if (result.kcal_100g != null) g_scoop_add_draft.kcal_100g = String(result.kcal_100g);
+
+    g_add_item_status = formatOFFMatchStatus(result);
+    render();
+  });
+}
+
+function openScoopEdit(key, context)
+{
+  let item = findScoopItem(key);
+  if (!item) return;
+
+  g_edit_item_key = key;
+  g_edit_context = context || 'standalone';
+  g_edit_draft = {
+    name: item.name,
+    brand: item.brand || '',
+    barcode: item.barcode || '',
+    volume: item.volume_ml != null ? String(item.volume_ml) : (item.volume_label || ''),
+    scoop_g: item.scoop_g != null ? String(item.scoop_g) : '',
+    protein_g: item.protein_g != null ? String(item.protein_g) : '',
+    kcal: item.kcal != null ? String(item.kcal) : '',
+    protein_100g: item.protein_100g != null ? String(item.protein_100g) : '',
+    kcal_100g: item.kcal_100g != null ? String(item.kcal_100g) : '',
+    tags: itemTags(item).join(', ')
+  };
+  render();
+}
+
+function cancelScoopEdit()
+{
+  g_edit_item_key = null;
+  g_edit_context = null;
+  g_edit_draft = null;
+  render();
+}
+
+function saveScoopEdit()
+{
+  let item = findScoopItem(g_edit_item_key);
+  let d = g_edit_draft;
+  let vol_text;
+  let num;
+
+  if (!item || !d) return;
+  if (!d.name.trim()) return;
+
+  item.name = d.name.trim();
+  item.brand = d.brand.trim();
+  item.barcode = d.barcode.trim() ? d.barcode.trim() : null;
+  item.tags = parseTagsInput(d.tags);
+
+  num = parseFloat(d.scoop_g);
+  item.scoop_g = isNaN(num) ? null : num;
+
+  num = parseFloat(d.protein_g);
+  item.protein_g = isNaN(num) ? null : num;
+
+  num = parseFloat(d.kcal);
+  item.kcal = isNaN(num) ? null : num;
+
+  num = parseFloat(d.protein_100g);
+  item.protein_100g = isNaN(num) ? null : num;
+
+  num = parseFloat(d.kcal_100g);
+  item.kcal_100g = isNaN(num) ? null : num;
+
+  vol_text = d.volume.trim();
+  num = parseFloat(vol_text);
+
+  if (!vol_text)
+  {
+    item.volume_ml = null;
+    item.volume_label = null;
+  }
+  else if (!isNaN(num))
+  {
+    item.volume_ml = num;
+    item.volume_label = null;
+  }
+  else
+  {
+    item.volume_ml = null;
+    item.volume_label = vol_text.toUpperCase();
+  }
+
+  g_edit_item_key = null;
+  g_edit_context = null;
+  g_edit_draft = null;
+  render();
+  save();
+}
+
+function recomputeEditDraftMacros()
+{
+  let d = g_edit_draft;
+  let scoop_g = parseFloat(d.scoop_g);
+  let protein_100g = parseFloat(d.protein_100g);
+  let kcal_100g = parseFloat(d.kcal_100g);
+  let macros;
+
+  if (isNaN(scoop_g) || (isNaN(protein_100g) && isNaN(kcal_100g))) return;
+
+  macros = computeMacrosFromDensity(scoop_g, isNaN(protein_100g) ? null : protein_100g, isNaN(kcal_100g) ? null : kcal_100g);
+
+  if (macros.protein_g != null) d.protein_g = String(macros.protein_g);
+  if (macros.kcal != null) d.kcal = String(macros.kcal);
+}
+
+function renderScoopEditRow(item)
+{
+  let d = g_edit_draft;
+  let h = '';
+
+  h += '<tr class="editrow"><td colspan="7">';
+  h += '<div class="addform">';
+  h += '<input type="text" data-editdraft="name" placeholder="name" value="' + esc(d.name) + '">';
+  h += '<input type="text" data-editdraft="brand" placeholder="brand" value="' + esc(d.brand) + '">';
+  h += '<input type="text" data-editdraft="barcode" placeholder="barcode" value="' + esc(d.barcode) + '">';
+  h += '<input type="text" data-editdraft="volume" placeholder="volume (mL, or BOWL/CAN)" value="' + esc(d.volume) + '">';
+  h += '<input type="text" inputmode="decimal" data-editdraft="scoop_g" placeholder="scoop g" value="' + esc(d.scoop_g) + '">';
+  h += '<input type="text" inputmode="decimal" data-editdraft="protein_100g" placeholder="protein / 100g" value="' + esc(d.protein_100g) + '">';
+  h += '<input type="text" inputmode="decimal" data-editdraft="kcal_100g" placeholder="kcal / 100g" value="' + esc(d.kcal_100g) + '">';
+  h += '<input type="text" inputmode="decimal" data-editdraft="protein_g" placeholder="protein g" value="' + esc(d.protein_g) + '">';
+  h += '<input type="text" inputmode="decimal" data-editdraft="kcal" placeholder="kcal" value="' + esc(d.kcal) + '">';
+  h += '<span class="tagwrap">';
+  h += '<input type="text" data-editdraft="tags" autocomplete="off" placeholder="tags, comma separated (e.g. Skyr bowl, Snack mix)" value="' + esc(d.tags) + '">';
+  h += '<div class="tagsuggest" id="tag-suggest"></div>';
+  h += '</span>';
+  h += '<button class="smallbtn" data-a="scoop-edit-save">save</button>';
+  h += '<button class="smallbtn" data-a="scoop-edit-cancel">cancel</button>';
+  h += '<div class="hint" style="width:100%;margin-top:2px">This permanently corrects the pantry item\'s base values (used as the default the next time you log or scale a scoop). It does not change days already logged. If protein/kcal per 100g are set, changing scoop g (or the per-100g values) recomputes protein g / kcal automatically — you can still type over the result manually afterward. An item can carry multiple tags (comma separated) — suggestions match whichever tag you\'re currently typing. Two or more items sharing a tag collapse together in the list; an item can appear under more than one tag.</div>';
+  h += '</div>';
+  h += '</td></tr>';
+
+  return h;
+}
+
+function openScaleEdit(key, context)
+{
+  let item = findScoopItem(key);
+  if (!item) return;
+
+  g_scale_item_key = key;
+  g_scale_context = context || 'standalone';
+  g_scale_draft = null;
+  resetScaleDraft();
+  render();
+}
+
+function closeScaleEdit()
+{
+  g_scale_item_key = null;
+  g_scale_context = null;
+  g_scale_draft = null;
+  render();
+}
+
+function resetScaleDraft()
+{
+  let item = findScoopItem(g_scale_item_key);
+  if (!item) return;
+
+  g_scale_draft = {
+    scale: 1,
+    grams_raw: item.scoop_g != null ? String(item.scoop_g) : '0',
+    protein_g: item.protein_g,
+    protein_g_raw: item.protein_g != null ? String(item.protein_g) : '',
+    kcal: item.kcal,
+    kcal_raw: item.kcal != null ? String(item.kcal) : ''
+  };
+}
+
+/* source: 'scale' (slider moved) or 'grams' (typed directly). either way, cascades
+   to protein/kcal via the item's base per-gram density. protein/kcal fields are
+   still independently editable afterward — typing into them does not call this. */
+/* pure DOM write, no render() — called on every 'input' tick while dragging the
+   slider, so numbers update live without rebuilding the DOM (which would break
+   the drag gesture on the range input). does not touch g_scale_draft; the real
+   commit happens once on 'change' via recomputeScaleDraft. */
+function liveScalePreview(new_scale)
+{
+  let item = findScoopItem(g_scale_item_key);
+  let base_scoop;
+  let new_grams;
+  let label_el;
+  let vol_el;
+  let grams_el;
+  let protein_el;
+  let kcal_el;
+  let vol_text;
+
+  if (!item) return;
+
+  base_scoop = item.scoop_g || 0;
+  new_grams = round1(base_scoop*new_scale);
+
+  label_el = document.getElementById('scale-label');
+  if (label_el) label_el.textContent = new_scale.toFixed(2) + '× → ' + new_grams + ' g';
+
+  vol_el = document.getElementById('scale-volume-preview');
+  if (vol_el)
+  {
+    vol_text = item.volume_ml != null ? round1(item.volume_ml*new_scale) + ' mL' : formatVolume(item);
+    vol_el.textContent = vol_text;
+  }
+
+  grams_el = document.querySelector('[data-scaledraft="grams"]');
+  if (grams_el) grams_el.value = new_grams;
+
+  if (base_scoop > 0)
+  {
+    protein_el = document.querySelector('[data-scaledraft="protein_g"]');
+    if (protein_el && item.protein_g != null) protein_el.value = round1(item.protein_g/base_scoop*new_grams);
+
+    kcal_el = document.querySelector('[data-scaledraft="kcal"]');
+    if (kcal_el && item.kcal != null) kcal_el.value = Math.round(item.kcal/base_scoop*new_grams);
+  }
+}
+
+function recomputeScaleDraft(source)
+{
+  let item = findScoopItem(g_scale_item_key);
+  let d = g_scale_draft;
+  let base_scoop;
+  let new_grams;
+  let new_scale;
+  let num;
+
+  if (!item || !d) return;
+
+  base_scoop = item.scoop_g || 0;
+
+  if (source == 'scale')
+  {
+    new_scale = d.scale;
+    new_grams = base_scoop*new_scale;
+  }
+  else
+  {
+    num = parseFloat(d.grams_raw);
+    new_grams = isNaN(num) ? base_scoop : num;
+    new_scale = base_scoop > 0 ? new_grams/base_scoop : 1;
+  }
+
+  d.scale = new_scale;
+  d.grams_raw = String(round1(new_grams));
+
+  if (item.protein_g != null && base_scoop > 0)
+  {
+    d.protein_g = round1(item.protein_g/base_scoop*new_grams);
+    d.protein_g_raw = String(d.protein_g);
+  }
+
+  if (item.kcal != null && base_scoop > 0)
+  {
+    d.kcal = Math.round(item.kcal/base_scoop*new_grams);
+    d.kcal_raw = String(d.kcal);
+  }
+}
+
+function logScaledEntry()
+{
+  let item = findScoopItem(g_scale_item_key);
+  let d = g_scale_draft;
+  let grams;
+  let protein_g;
+  let kcal;
+
+  if (!item || !d) return;
+  if (g_view_date != todayISO()) return;
+
+  grams = parseFloat(d.grams_raw);
+  protein_g = d.protein_g_raw.trim() === '' ? null : parseFloat(d.protein_g_raw);
+  kcal = d.kcal_raw.trim() === '' ? null : parseFloat(d.kcal_raw);
+
+  pushLogEntry(g_scale_item_key, isNaN(grams) ? null : grams, isNaN(protein_g) ? null : protein_g, isNaN(kcal) ? null : kcal, d.scale);
+
+  resetScaleDraft();
+  render();
+  save();
+}
+
+function renderScalePanel(item)
+{
+  let d = g_scale_draft;
+  let is_today = g_view_date == todayISO();
+  let today_entries = entriesForItem(g_view_date, item.key);
+  let volume_preview;
+  let h = '';
+  let i;
+  let e;
+
+  h += '<tr class="editrow"><td colspan="7">';
+  h += '<div class="scalepanel">';
+
+  h += '<div class="scalerow">';
+  h += '<label class="scalelab" id="scale-label">' + d.scale.toFixed(2) + '× → ' + d.grams_raw + ' g</label>';
+  h += '<input type="range" min="0.5" max="2" step="0.05" value="' + d.scale + '" data-scaledraft="scale">';
+  h += '</div>';
+
+  if (item.volume_ml != null)
+  {
+    volume_preview = round1(item.volume_ml*d.scale) + ' mL';
+  }
+  else
+  {
+    volume_preview = formatVolume(item);
+  }
+  h += '<div class="hint" style="margin:2px 0 8px">volume at this scale: <span id="scale-volume-preview">' + esc(volume_preview) + '</span></div>';
+
+  h += '<div class="scalerow">';
+  h += '<label class="scalelab">scoop g</label><input type="text" inputmode="decimal" data-scaledraft="grams" value="' + esc(d.grams_raw) + '">';
+  h += '<label class="scalelab">protein g</label><input type="text" inputmode="decimal" data-scaledraft="protein_g" value="' + esc(d.protein_g_raw) + '">';
+  h += '<label class="scalelab">kcal</label><input type="text" inputmode="decimal" data-scaledraft="kcal" value="' + esc(d.kcal_raw) + '">';
+  h += '</div>';
+
+  h += '<div class="btnrow2">';
+  h += '<button class="smallbtn" data-a="scoop-scale-log"' + (!is_today ? ' disabled' : '') + '>log this</button>';
+  h += '<button class="smallbtn" data-a="scoop-scale-reset">reset to 1×</button>';
+  h += '<button class="smallbtn" data-a="scoop-scale-close">close</button>';
+  h += '</div>';
+
+  if (today_entries.length)
+  {
+    h += '<div class="hint" style="margin-top:8px">logged today:</div>';
+    h += '<div class="scale-entry-list">';
+    for (i = 0; i < today_entries.length; ++i)
+    {
+      e = today_entries[i];
+      h += '<div class="scale-entry">';
+      h += '<span>' + (e.grams != null ? e.grams + ' g' : '—') + ' — '
+         + (e.protein_g != null ? e.protein_g + ' g protein' : '—') + ' / '
+         + (e.kcal != null ? e.kcal + ' kcal' : '—') + '</span>';
+      h += '<button class="smallbtn" data-a="scoop-entry-delete" data-entry="' + e.id + '">remove</button>';
+      h += '</div>';
+    }
+    h += '</div>';
+  }
+
+  h += '</div>';
+  h += '</td></tr>';
+
+  return h;
+}
+
+/* OFF pre-population — manual, per-row, never automatic (tool must work offline).
+   Note: browsers treat User-Agent as a restricted fetch header and may silently
+   drop it regardless of what's set here — there's no way to guarantee OFF's
+   requested identification from pure client-side JS without a backend. */
+function requestFetchOFF(key, context)
+{
+  let item = findScoopItem(key);
+  let has_existing;
+
+  if (!item || !item.barcode) return;
+
+  g_fetch_context[key] = context || 'standalone';
+
+  has_existing = item.protein_g != null || item.kcal != null;
+  if (has_existing && !g_fetch_pending[key])
+  {
+    g_fetch_pending[key] = true;
+    g_fetch_status[key] = 'already has values — "confirm overwrite" replaces them with O.F.F. data, or "cancel" to keep what\'s here.';
+    render();
+    return;
+  }
+
+  g_fetch_pending[key] = false;
+  doFetchOFF(key);
+}
+
+function cancelFetchOFF(key)
+{
+  g_fetch_pending[key] = false;
+  g_fetch_status[key] = null;
+  render();
+}
+
+/* shared calculator: given a scoop mass and per-100g density, compute the
+   macros for that specific mass. used at add-time, at edit-time when scoop_g
+   changes, and (implicitly) by the scale panel's own density-based cascade. */
+function computeMacrosFromDensity(scoop_g, protein_100g, kcal_100g)
+{
+  let scale = (scoop_g || 0)/100;
+
+  return {
+    protein_g: protein_100g != null ? round1(protein_100g*scale) : null,
+    kcal: kcal_100g != null ? Math.round(kcal_100g*scale) : null
+  };
+}
+
+/* recomputes an item's protein_g/kcal (and raw mirrors) from its own stored
+   density fields and current scoop_g. no-op if density isn't known. */
+function recomputeItemMacrosFromDensity(item)
+{
+  let result;
+
+  if (item.protein_100g == null && item.kcal_100g == null) return;
+
+  result = computeMacrosFromDensity(item.scoop_g, item.protein_100g, item.kcal_100g);
+
+  if (result.protein_g != null)
+  {
+    item.protein_g = result.protein_g;
+    item.protein_g_raw = String(item.protein_g);
+  }
+  if (result.kcal != null)
+  {
+    item.kcal = result.kcal;
+    item.kcal_raw = String(item.kcal);
+  }
+}
+
+/* low-level OFF lookup, callback-style to match the rest of this file's .then()
+   chains. calls onResult with either { found:true, name, brand, protein_100g,
+   kcal_100g } or { found:false, reason }. never throws — network/parse errors
+   are reported through onResult instead. */
+function fetchOFFProduct(barcode, onResult)
+{
+  let url = 'https://world.openfoodfacts.org/api/v2/product/' + barcode + '.json';
+
+  try
+  {
+    fetch(url, { headers: { 'User-Agent':'protein-loadout-tracker/1.0 (personal local tool)' } }).then(function(resp)
+    {
+      return resp.json();
+    }).then(function(data)
+    {
+      let nutriments;
+
+      if (!data || data.status == 0 || !data.product)
+      {
+        /* genuinely not on O.F.F. — try the broader web-search fallback rather
+           than giving up, same as manually searching elsewhere would */
+        fetchViaClaudeWebSearch(barcode, onResult);
+        return;
+      }
+
+      nutriments = data.product.nutriments || {};
+      onResult({
+        found: true,
+        source: 'off',
+        name: data.product.product_name || null,
+        brand: data.product.brands || null,
+        protein_100g: nutriments.proteins_100g != null ? nutriments.proteins_100g : null,
+        kcal_100g: nutriments['energy-kcal_100g'] != null ? nutriments['energy-kcal_100g'] : null
+      });
+    }).catch(function()
+    {
+      /* direct fetch blocked (e.g. artifact sandbox CSP) — fall back */
+      fetchViaClaudeWebSearch(barcode, onResult);
+    });
+  }
+  catch (e)
+  {
+    fetchViaClaudeWebSearch(barcode, onResult);
+  }
+}
+
+/* fallback for when direct fetch() to a third-party domain is blocked (the
+   artifact sandbox only allows the artifact to call api.anthropic.com itself)
+   or when O.F.F. genuinely doesn't have the barcode. Asks a fresh Claude
+   instance, with web search enabled, to look the barcode up and return
+   structured JSON — the only network call this makes is to Anthropic's own
+   API, which artifacts are permitted to call directly. */
+/* the model doesn't always follow 'respond with ONLY JSON' — it sometimes reasons
+   in prose first (e.g. working out a per-serving-to-per-100g conversion) and puts
+   the JSON object at the end. JSON.parse requires the whole string to be valid,
+   so pull just the {...} substring out rather than assuming the text is clean. */
+function extractJSONObject(text)
+{
+  let match = text.match(/\{[\s\S]*\}/);
+  return match ? match[0] : text;
+}
+
+/* compact, human-readable view of an API response for the debug box — the raw
+   response can run to 100+ KB dominated by opaque encrypted_content blobs from
+   search results, which aren't useful for diagnosing a parse failure. */
+function summarizeAPIResponse(data)
+{
+  let lines = [];
+  let i;
+  let j;
+  let block;
+  let result;
+
+  if (!data || !Array.isArray(data.content)) return 'no content array in response:\n' + JSON.stringify(data, null, 2).slice(0, 2000);
+
+  for (i = 0; i < data.content.length; ++i)
+  {
+    block = data.content[i];
+
+    if (block.type == 'text')
+    {
+      lines.push('[text]\n' + block.text);
+    }
+    else if (block.type == 'server_tool_use')
+    {
+      lines.push('[web_search query] ' + JSON.stringify(block.input));
+    }
+    else if (block.type == 'web_search_tool_result')
+    {
+      lines.push('[web_search_tool_result] ' + (Array.isArray(block.content) ? block.content.length : 0) + ' result(s):');
+      if (Array.isArray(block.content))
+      {
+        for (j = 0; j < block.content.length; ++j)
+        {
+          result = block.content[j];
+          lines.push('  - ' + (result.title || '(no title)') + ' — ' + (result.url || ''));
+        }
+      }
+    }
+    else
+    {
+      lines.push('[' + block.type + ']');
+    }
+  }
+
+  return lines.join('\n\n');
+}
+
+function fetchViaClaudeWebSearch(barcode, onResult)
+{
+  let prompt = 'Search the web (Open Food Facts, manufacturer sites, and nutrition databases) for the packaged food product with barcode/UPC "' + barcode + '". '
+    + 'Find its protein and calories per 100g, and its name/brand if available. Do any reasoning or unit conversion silently — '
+    + 'your entire reply must be ONLY the raw JSON object below, nothing before it and nothing after it, no markdown, no code fences, no explanation. '
+    + 'Shape: {"found":true,"name":"...","brand":"...","protein_100g":<number or null>,"kcal_100g":<number or null>} '
+    + 'or {"found":false} if you cannot find reliable data. Do not guess or estimate — only report numbers found from an actual source.';
+
+  try
+  {
+    fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1000,
+        messages: [{ role:'user', content: prompt }],
+        tools: [{ type:'web_search_20250305', name:'web_search' }]
+      })
+    }).then(function(resp)
+    {
+      return resp.json();
+    }).then(function(data)
+    {
+      let text;
+      let parsed;
+
+      if (!data || !Array.isArray(data.content))
+      {
+        g_last_lookup_debug = 'unexpected response shape from api.anthropic.com:\n\n' + summarizeAPIResponse(data);
+        onResult({ found:false, reason:'lookup unavailable — O.F.F. unreachable and the web-search fallback returned nothing usable (see debug box)' });
+        return;
+      }
+
+      text = data.content.filter(function(block) { return block.type == 'text'; }).map(function(block) { return block.text; }).join('\n');
+      text = text.replace(/```json|```/g, '').trim();
+
+      try
+      {
+        parsed = JSON.parse(extractJSONObject(text));
+      }
+      catch (e)
+      {
+        g_last_lookup_debug = 'could not find a valid JSON object in the response:\n\n' + summarizeAPIResponse(data);
+        onResult({ found:false, reason:'lookup unavailable — O.F.F. unreachable, web-search fallback returned an unparseable response (see debug box)' });
+        return;
+      }
+
+      if (!parsed.found)
+      {
+        onResult({ found:false, reason:'not found on O.F.F. or via web search' });
+        return;
+      }
+
+      onResult({
+        found: true,
+        source: 'ai_search',
+        name: parsed.name || null,
+        brand: parsed.brand || null,
+        protein_100g: parsed.protein_100g != null ? parsed.protein_100g : null,
+        kcal_100g: parsed.kcal_100g != null ? parsed.kcal_100g : null
+      });
+    }).catch(function(e)
+    {
+      onResult({ found:false, reason:'lookup failed — O.F.F. and the web-search fallback both failed (' + e.message + ')' });
+    });
+  }
+  catch (e)
+  {
+    onResult({ found:false, reason:'lookup failed to start — ' + e.message });
+  }
+}
+
+function formatOFFMatchStatus(result)
+{
+  let name_part = result.name ? 'matched: ' + result.name : 'matched (no product name on file)';
+
+  if (result.source == 'ai_search')
+  {
+    return name_part + ' — found via web search, not O.F.F.\'s own database; verify against the label if precision matters. Values are editable.';
+  }
+
+  return name_part + ' — values are editable, O.F.F. data is label-rounded (~±10%)';
+}
+
+function doFetchOFF(key)
+{
+  let item = findScoopItem(key);
+
+  if (!item || !item.barcode) return;
+
+  g_fetch_status[key] = 'looking up… (may take longer if O.F.F. is unreachable and it falls back to a web search)';
+  render();
+
+  fetchOFFProduct(item.barcode, function(result)
+  {
+    if (!result.found)
+    {
+      g_fetch_status[key] = result.reason;
+      render();
+      return;
+    }
+
+    if (result.protein_100g != null) item.protein_100g = result.protein_100g;
+    if (result.kcal_100g != null) item.kcal_100g = result.kcal_100g;
+    recomputeItemMacrosFromDensity(item);
+
+    g_fetch_status[key] = formatOFFMatchStatus(result);
+    render();
+    save();
+  });
+}
+
+function buildDiaryText()
+{
+  let lines = [];
+  let sorted = sortedScoopItems();
+  let dates = Object.keys(g_log).sort();
+  let i;
+  let item;
+  let d;
+  let day;
+  let entry;
+  let totals;
+
+  lines.push('PANTRY ITEMS');
+  lines.push('');
+
+  for (i = 0; i < sorted.length; ++i)
+  {
+    item = sorted[i];
+    lines.push(item.name + (item.brand ? ' — ' + item.brand : '') + (item.barcode ? ' [' + item.barcode + ']' : ''));
+    lines.push('  ' + formatVolume(item)
+      + ' · ' + (item.scoop_g != null ? item.scoop_g + ' g' : '— g')
+      + ' · ' + (item.protein_g != null ? item.protein_g + ' g protein' : '— g protein')
+      + ' · ' + (item.kcal != null ? item.kcal + ' kcal' : '— kcal'));
+  }
+
+  lines.push('');
+  lines.push('FOOD DIARY');
+  lines.push('');
+
+  if (!dates.length) lines.push('(no logged days yet)');
+
+  for (d = 0; d < dates.length; ++d)
+  {
+    day = g_log[dates[d]] || [];
+    totals = dayTotals(dates[d]);
+    lines.push(dates[d] + ' — ' + fmt1(totals.protein) + ' g protein / ' + fmt1(totals.kcal) + ' kcal (target ' + g_target + ' g)');
+
+    for (i = 0; i < day.length; ++i)
+    {
+      entry = day[i];
+      item = findScoopItem(entry.item_key);
+      lines.push('  ' + (item ? item.name : (entry.item_key == 'custom' ? 'Custom' : entry.item_key))
+        + (entry.grams != null ? ' (' + entry.grams + ' g' + (entry.scale != null && entry.scale != 1 ? ', ' + entry.scale.toFixed(2) + '×' : '') + ')' : '')
+        + (entry.protein_g != null ? ' — ' + fmt1(entry.protein_g) + ' g' : '')
+        + (entry.kcal != null ? ' / ' + fmt1(entry.kcal) + ' kcal' : ''));
+    }
+
+    lines.push('');
+  }
+
+  return lines.join('\n');
+}
+
+function buildExportJSON()
+{
+  return JSON.stringify({ target:g_target, foods:g_foods, scoop_items:g_scoop_items, log:g_log, collapsed_groups:g_collapsed_groups }, null, 2);
+}
+
+function parseImportText()
+{
+  let parsed;
+
+  g_import_pending = null;
+
+  if (!g_import_text.trim())
+  {
+    g_import_status = 'paste JSON or choose a file first';
+    render();
+    return;
+  }
+
+  try
+  {
+    parsed = JSON.parse(g_import_text);
+  }
+  catch (e)
+  {
+    g_import_status = 'not valid JSON — ' + e.message;
+    render();
+    return;
+  }
+
+  if (!parsed || typeof parsed != 'object' || !Array.isArray(parsed.foods) || !Array.isArray(parsed.scoop_items))
+  {
+    g_import_status = 'this doesn\'t look like a protein-loadout export — missing foods/scoop_items';
+    render();
+    return;
+  }
+
+  g_import_pending = parsed;
+  g_import_status = 'ready to import: ' + parsed.foods.length + ' loadout foods, ' + parsed.scoop_items.length + ' pantry items, '
+    + Object.keys(parsed.log || {}).length + ' logged day(s). This will replace everything currently in the app.';
+  render();
+}
+
+function applyImport()
+{
+  let parsed = g_import_pending;
+  let i;
+
+  if (!parsed) return;
+
+  if (parsed.target != null)
+  {
+    g_target = parsed.target;
+    g_target_raw = String(g_target);
+  }
+
+  if (Array.isArray(parsed.foods))
+  {
+    g_foods = parsed.foods;
+    for (i = 0; i < g_foods.length; ++i)
+    {
+      g_foods[i].daily_raw = g_foods[i].daily != null ? String(g_foods[i].daily) : '0';
+      g_foods[i].price_raw = g_foods[i].price != null ? String(g_foods[i].price) : '';
+      if (g_foods[i].package_units != null) g_foods[i].package_units_raw = String(g_foods[i].package_units);
+    }
+  }
+
+  if (Array.isArray(parsed.scoop_items))
+  {
+    g_scoop_items = parsed.scoop_items;
+    for (i = 0; i < g_scoop_items.length; ++i)
+    {
+      g_scoop_items[i].scoop_g_raw = g_scoop_items[i].scoop_g != null ? String(g_scoop_items[i].scoop_g) : '';
+      g_scoop_items[i].protein_g_raw = g_scoop_items[i].protein_g != null ? String(g_scoop_items[i].protein_g) : '';
+      g_scoop_items[i].kcal_raw = g_scoop_items[i].kcal != null ? String(g_scoop_items[i].kcal) : '';
+    }
+  }
+
+  if (parsed.log && typeof parsed.log == 'object') g_log = parsed.log;
+  if (parsed.collapsed_groups && typeof parsed.collapsed_groups == 'object') g_collapsed_groups = parsed.collapsed_groups;
+
+  mergeKnownItems(); /* pick up any known items added to this tool since the backup was made */
+  migrateLogFormat();
+  migrateTagsFormat();
+
+  g_import_pending = null;
+  g_import_text = '';
+  g_import_status = 'imported ✓';
+  g_import_open = false;
+  render();
+  save();
+}
+
+function cancelImport()
+{
+  g_import_pending = null;
+  g_import_status = '';
+  render();
+}
+
+function readImportFile(file)
+{
+  let reader = new FileReader();
+
+  reader.onload = function()
+  {
+    g_import_text = String(reader.result || '');
+    parseImportText();
+  };
+  reader.onerror = function()
+  {
+    g_import_status = 'could not read that file';
+    render();
+  };
+
+  reader.readAsText(file);
+}
+
+function copyText(text)
+{
+  function fallback()
+  {
+    let temp = document.createElement('textarea');
+    temp.value = text;
+    temp.style.position = 'fixed';
+    temp.style.opacity = '0';
+    document.body.appendChild(temp);
+    temp.focus();
+    temp.select();
+
+    try
+    {
+      document.execCommand('copy');
+      g_copy_status = 'copied ✓';
+    }
+    catch (e)
+    {
+      g_copy_status = 'copy failed — select the text manually';
+    }
+
+    document.body.removeChild(temp);
+    render();
+  }
+
+  if (navigator.clipboard && navigator.clipboard.writeText)
+  {
+    navigator.clipboard.writeText(text).then(function()
+    {
+      g_copy_status = 'copied ✓';
+      render();
+    }, fallback);
+    return;
+  }
+
+  fallback();
+}
+
+function downloadText(filename, mime, text)
+{
+  let blob = new Blob([text], { type:mime });
+  let link = document.createElement('a');
+
+  link.href = URL.createObjectURL(blob);
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+
+  setTimeout(function()
+  {
+    URL.revokeObjectURL(link.href);
+  }, 4000);
+}
+
+function fmt1(n)
+{
+  return n.toFixed(1);
+}
+
+function fmt2(n)
+{
+  return n.toFixed(2);
+}
+
+function save()
+{
+  let payload = { target:g_target, foods:g_foods, scoop_items:g_scoop_items, log:g_log, collapsed_groups:g_collapsed_groups };
+  let json_text = JSON.stringify(payload);
+
+  try
+  {
+    localStorage.setItem(g_storage_key, json_text);
+  }
+  catch (e)
+  {}
+
+  if (window.storage && window.storage.set)
+  {
+    window.storage.set(g_storage_key, json_text).catch(function(){});
+  }
+}
+
+function load()
+{
+  function applyLoaded(payload)
+  {
+    let i;
+    let j;
+
+    if (!payload) return;
+    if (payload.target != null)
+    {
+      g_target = payload.target;
+      g_target_raw = String(g_target);
+    }
+
+    for (i = 0; i < payload.foods.length; ++i)
+    {
+      for (j = 0; j < g_foods.length; ++j)
+      {
+        if (g_foods[j].key == payload.foods[i].key)
+        {
+          g_foods[j].daily = payload.foods[i].daily;
+          g_foods[j].price = payload.foods[i].price;
+          g_foods[j].daily_raw = String(g_foods[j].daily);
+          g_foods[j].price_raw = g_foods[j].price != null ? String(g_foods[j].price) : '';
+          if (payload.foods[i].package_units != null)
+          {
+            g_foods[j].package_units = payload.foods[i].package_units;
+            g_foods[j].package_units_raw = String(g_foods[j].package_units);
+          }
+        }
+      }
+    }
+
+    if (payload.scoop_items)
+    {
+      g_scoop_items = payload.scoop_items;
+
+      for (i = 0; i < g_scoop_items.length; ++i)
+      {
+        g_scoop_items[i].scoop_g_raw = g_scoop_items[i].scoop_g != null ? String(g_scoop_items[i].scoop_g) : '';
+        g_scoop_items[i].protein_g_raw = g_scoop_items[i].protein_g != null ? String(g_scoop_items[i].protein_g) : '';
+        g_scoop_items[i].kcal_raw = g_scoop_items[i].kcal != null ? String(g_scoop_items[i].kcal) : '';
+      }
+    }
+
+    if (payload.log) g_log = payload.log;
+    if (payload.collapsed_groups) g_collapsed_groups = payload.collapsed_groups;
+  }
+
+  function readLocal()
+  {
+    let stored_value;
+
+    try
+    {
+      stored_value = localStorage.getItem(g_storage_key);
+      return stored_value ? JSON.parse(stored_value) : null;
+    }
+    catch (e)
+    {
+      return null;
+    }
+  }
+
+  if (window.storage && window.storage.get)
+  {
+    window.storage.get(g_storage_key).then(function(result)
+    {
+      if (result && result.value) applyLoaded(JSON.parse(result.value));
+      else applyLoaded(readLocal());
+      mergeKnownItems();
+      migrateLogFormat();
+      migrateTagsFormat();
+      render();
+    }, function()
+    {
+      applyLoaded(readLocal());
+      mergeKnownItems();
+      migrateLogFormat();
+      migrateTagsFormat();
+      render();
+    });
+    return;
+  }
+
+  applyLoaded(readLocal());
+  mergeKnownItems();
+  migrateLogFormat();
+  migrateTagsFormat();
+  render();
+}
+
+function render()
+{
+  let app = document.getElementById('app');
+  let total = totalDailyProtein();
+  let diff = total - g_target;
+  let cost = totalMonthlyCost();
+  let h = '';
+  let i;
+  let food;
+  let per_gram;
+  let daily_protein;
+  let weekly;
+  let packs;
+
+  h += '<div class="eyebrow">// daily protein loadout</div>';
+  h += '<h1>protein_loadout</h1>';
+
+  h += '<div class="targetrow">';
+  h += '<label>target g/day</label>';
+  h += '<input type="text" inputmode="decimal" id="target-input" value="'+g_target_raw+'">';
+  h += '<button class="reset" data-a="reset">reset to defaults</button>';
+  h += '</div>';
+
+  h += '<div class="summary">';
+  h += '<div class="cell"><div class="lab">total protein</div><div class="val">'+fmt1(total)+' g</div></div>';
+  h += '<div class="cell"><div class="lab">'+(diff >= 0 ? 'over target' : 'under target')+'</div>'
+     + '<div class="val '+(diff >= 0 ? 'over' : 'under')+'">'+(diff >= 0 ? '+' : '')+fmt1(diff)+' g</div></div>';
+  h += '<div class="cell"><div class="lab">est. monthly cost</div><div class="val">'+(cost > 0 ? '$'+fmt2(cost) : '—')+'</div></div>';
+  h += '</div>';
+
+  h += '<table><thead><tr>';
+  h += '<th>food</th><th class="num">daily</th><th class="num">protein/day</th><th class="num">per week</th><th class="num">units/pkg</th><th class="num">price/pkg</th>';
+  h += '</tr></thead><tbody>';
+
+  for (i = 0; i < g_foods.length; ++i)
+  {
+    food = g_foods[i];
+    per_gram = proteinPerGram(food);
+    daily_protein = dailyProtein(food);
+    weekly = weeklyAmount(food);
+    packs = packagesPerWeek(food);
+
+    h += '<tr class="food">';
+    h += '<td><span class="foodname">'+food.name+'<span class="unit">'
+       + (food.kind == 'unit' ? fmt1(per_gram*food.unit_grams)+' g protein/egg' : fmt1(per_gram*100)+' g protein/100g')
+       + '</span></span></td>';
+
+    h += '<td class="num"><input type="text" inputmode="decimal" data-key="'+food.key+'" data-field="daily" value="'+food.daily_raw+'"> '
+       + (food.kind == 'unit' ? 'eggs' : 'g') + '</td>';
+
+    h += '<td class="num protein-out">'+fmt1(daily_protein)+' g</td>';
+
+    h += '<td class="num pack-out">';
+    if (food.no_package)
+    {
+      h += fmt1(weekly)+' g/wk';
+    }
+    else if (packs != null)
+    {
+      h += fmt2(packs)+' pkg/wk';
+    }
+    else
+    {
+      h += fmt1(weekly)+' '+(food.kind == 'unit' ? 'eggs/wk' : 'g/wk');
+    }
+    h += '</td>';
+
+    h += '<td class="num">';
+    if (food.package_units != null)
+    {
+      h += '<input type="text" inputmode="decimal" data-key="'+food.key+'" data-field="units" value="'+food.package_units_raw+'">';
+    }
+    else
+    {
+      h += '<span class="pack-out">—</span>';
+    }
+    h += '</td>';
+
+    h += '<td class="num pack">';
+    if (!food.no_package)
+    {
+      h += '<input type="text" inputmode="decimal" data-key="'+food.key+'" data-field="price" value="'+food.price_raw+'" placeholder="—">';
+    }
+    else
+    {
+      h += '<span class="pack-out">—</span>';
+    }
+    h += '</td>';
+
+    h += '</tr>';
+  }
+
+  h += '</tbody></table>';
+
+  h += '<div class="note">Package sizes and protein content are fixed per your on-hand packaging. Edit daily amount (grams, or eggs for eggs) and package price to update totals. Data persists locally.</div>';
+
+  h += renderScoopSection();
+
+  app.innerHTML = h;
+  renderPrintList();
+}
+
+function renderItemRow(item, is_today, indent, context)
+{
+  let count = logCount(g_view_date, item.key);
+  let h = '';
+
+  h += '<tr class="scooprow' + (indent ? ' groupmember' : '') + '">';
+  h += '<td><span class="foodname">' + esc(item.name)
+     + ' <button class="editbtn" data-a="scoop-edit-open" data-key="' + item.key + '" data-context="' + esc(context) + '" title="edit name/brand/barcode/volume/scoop/protein/kcal/tags">✎</button>'
+     + '<span class="unit">' + esc(item.brand || '') + (item.barcode ? ' · ' + esc(item.barcode) : '') + '</span></span></td>';
+  h += '<td class="num pack-out">' + esc(formatVolume(item)) + '</td>';
+  h += '<td class="num pack-out">' + (item.scoop_g != null ? esc(item.scoop_g) + ' g' : '—') + '</td>';
+  h += '<td class="num pack-out">' + (item.protein_g != null ? esc(item.protein_g) + ' g' : '—') + '</td>';
+  h += '<td class="num pack-out">' + (item.kcal != null ? esc(item.kcal) : '—') + '</td>';
+  h += '<td class="num scoopcount">' + count + '</td>';
+  h += '<td class="scoopactions">';
+  h += '<button class="smallbtn" data-a="scoop-add" data-key="' + item.key + '"' + (!is_today ? ' disabled' : '') + '>+ scoop</button>';
+  if (count > 0) h += '<button class="smallbtn" data-a="scoop-remove" data-key="' + item.key + '"' + (!is_today ? ' disabled' : '') + '>−</button>';
+  else h += '<span class="btnslot"></span>';
+  h += '<button class="smallbtn" data-a="scoop-scale-open" data-key="' + item.key + '" data-context="' + esc(context) + '">edit</button>';
+  if (item.barcode) h += '<button class="smallbtn" data-a="scoop-fetch" data-key="' + item.key + '" data-context="' + esc(context) + '"' + (g_fetch_pending[item.key] ? ' disabled' : '') + '>fetch O.F.F.</button>';
+  else h += '<span class="btnslot"></span>';
+  h += '</td>';
+  h += '</tr>';
+
+  if ((g_fetch_pending[item.key] || g_fetch_status[item.key]) && (g_fetch_context[item.key] || 'standalone') == context)
+  {
+    if (g_fetch_pending[item.key])
+    {
+      h += '<tr class="scoopstatusrow"><td colspan="7" class="fetchstatus">';
+      h += esc(g_fetch_status[item.key] || '') + ' ';
+      h += '<button class="smallbtn" data-a="scoop-fetch-confirm" data-key="' + item.key + '">confirm overwrite</button> ';
+      h += '<button class="smallbtn" data-a="scoop-fetch-cancel" data-key="' + item.key + '">cancel</button>';
+      h += '</td></tr>';
+    }
+    else
+    {
+      h += '<tr class="scoopstatusrow"><td colspan="7" class="fetchstatus">' + esc(g_fetch_status[item.key]) + '</td></tr>';
+    }
+  }
+
+  if (g_edit_item_key == item.key && g_edit_context == context) h += renderScoopEditRow(item);
+  if (g_scale_item_key == item.key && g_scale_context == context) h += renderScalePanel(item);
+
+  return h;
+}
+
+function renderGroupHeader(g)
+{
+  let collapsed = !!g_collapsed_groups[g.key];
+  let h = '';
+  let i;
+  let total_protein = 0;
+  let total_kcal = 0;
+
+  for (i = 0; i < g.members.length; ++i)
+  {
+    if (g.members[i].protein_g != null) total_protein += g.members[i].protein_g;
+    if (g.members[i].kcal != null) total_kcal += g.members[i].kcal;
+  }
+
+  h += '<tr class="groupheader">';
+  h += '<td colspan="4"><button class="grouptoggle" data-a="group-toggle" data-group="' + esc(g.key) + '">'
+     + (collapsed ? '▸' : '▾') + ' ' + esc(g.name) + '<span class="unit">' + g.members.length + ' items</span></button>'
+     + ' <button class="editbtn" data-a="group-rename-open" data-group="' + esc(g.key) + '" data-name="' + esc(g.name) + '" title="rename group">✎</button></td>';
+  h += '<td class="num pack-out">' + fmt1(total_protein) + ' g / ' + fmt1(total_kcal) + ' kcal</td>';
+  h += '<td colspan="2"></td>';
+  h += '</tr>';
+
+  if (g_group_rename_key == g.key)
+  {
+    h += '<tr class="editrow"><td colspan="7"><div class="addform">';
+    h += '<input type="text" data-grouprename="1" value="' + esc(g_group_rename_draft) + '">';
+    h += '<button class="smallbtn" data-a="group-rename-save">save</button>';
+    h += '<button class="smallbtn" data-a="group-rename-cancel">cancel</button>';
+    h += '<div class="hint" style="width:100%;margin-top:2px">Renames the group tag on all ' + g.members.length + ' member items at once.</div>';
+    h += '</div></td></tr>';
+  }
+
+  return h;
+}
+
+function renderGroupedItems(is_today)
+{
+  let h = '';
+  let i;
+  let n;
+  let j;
+  let flat;
+
+  if (g_flatten_view)
+  {
+    flat = sortedScoopItems().map(function(item)
+    {
+      return { item:item, sortname:(tagsMatchActive(itemTags(item)) ? '0_' : '1_') + item.name.toLowerCase() };
+    });
+
+    flat.sort(function(a, b)
+    {
+      return a.sortname < b.sortname ? -1 : a.sortname > b.sortname ? 1 : 0;
+    });
+
+    for (i = 0; i < flat.length; ++i) h += renderItemRow(flat[i].item, is_today, false, 'standalone');
+    return h;
+  }
+
+  let nodes = groupedNodes();
+
+  for (i = 0; i < nodes.length; ++i)
+  {
+    n = nodes[i];
+    if (n.type == 'item')
+    {
+      h += renderItemRow(n.item, is_today, false, 'standalone');
+      continue;
+    }
+
+    h += renderGroupHeader(n.group);
+    if (!g_collapsed_groups[n.group.key])
+    {
+      for (j = 0; j < n.group.members.length; ++j) h += renderItemRow(n.group.members[j], is_today, true, n.group.key);
+    }
+  }
+
+  return h;
+}
+
+function toggleFlattenView()
+{
+  g_flatten_view = !g_flatten_view;
+  g_edit_item_key = null;
+  g_edit_context = null;
+  g_edit_draft = null;
+  g_scale_item_key = null;
+  g_scale_context = null;
+  g_scale_draft = null;
+  render();
+}
+
+function toggleGroupCollapse(key)
+{
+  g_collapsed_groups[key] = !g_collapsed_groups[key];
+  render();
+  save();
+}
+
+function openGroupRename(key, currentName)
+{
+  g_group_rename_key = key;
+  g_group_rename_draft = currentName;
+  render();
+}
+
+function cancelGroupRename()
+{
+  g_group_rename_key = null;
+  g_group_rename_draft = '';
+  render();
+}
+
+function saveGroupRename()
+{
+  let new_name = g_group_rename_draft.trim();
+  let new_key;
+  let i;
+  let j;
+  let tags;
+
+  if (!new_name) return;
+
+  new_key = new_name.toLowerCase();
+
+  for (i = 0; i < g_scoop_items.length; ++i)
+  {
+    tags = itemTags(g_scoop_items[i]);
+    for (j = 0; j < tags.length; ++j)
+    {
+      if (tags[j].toLowerCase() == g_group_rename_key) tags[j] = new_name;
+    }
+    g_scoop_items[i].tags = tags;
+  }
+
+  if (new_key != g_group_rename_key && g_collapsed_groups[g_group_rename_key] != null)
+  {
+    g_collapsed_groups[new_key] = g_collapsed_groups[g_group_rename_key];
+    delete g_collapsed_groups[g_group_rename_key];
+  }
+
+  g_group_rename_key = null;
+  g_group_rename_draft = '';
+  render();
+  save();
+}
+
+function renderCustomRow()
+{
+  let is_today = g_view_date == todayISO();
+  let count = logCount(g_view_date, 'custom');
+  let num = parseFloat(g_custom_protein_raw);
+  let kcal_preview = !isNaN(num) && num > 0 ? Math.round(23*num) : null;
+  let h = '';
+
+  h += '<tr class="scooprow customrow">';
+  h += '<td><span class="foodname">Custom<span class="unit">quick estimate — kcal ≈ 23 × protein g</span></span></td>';
+  h += '<td class="num pack-out">—</td>';
+  h += '<td class="num pack-out">—</td>';
+  h += '<td class="num"><input type="text" inputmode="decimal" data-custom="protein" placeholder="g protein" value="' + esc(g_custom_protein_raw) + '"></td>';
+  h += '<td class="num pack-out">' + (kcal_preview != null ? kcal_preview : '—') + '</td>';
+  h += '<td class="num scoopcount">' + count + '</td>';
+  h += '<td class="scoopactions">';
+  h += '<button class="smallbtn" data-a="custom-log"' + (!is_today ? ' disabled' : '') + '>log</button>';
+  if (count > 0) h += '<button class="smallbtn" data-a="custom-remove"' + (!is_today ? ' disabled' : '') + '>−</button>';
+  else h += '<span class="btnslot"></span>';
+  h += '<span class="btnslot"></span>';
+  h += '<span class="btnslot"></span>';
+  h += '</td>';
+  h += '</tr>';
+
+  if (g_custom_status) h += '<tr class="scoopstatusrow"><td colspan="7" class="fetchstatus">' + esc(g_custom_status) + '</td></tr>';
+
+  return h;
+}
+
+function renderTagFilterBar()
+{
+  let names = distinctTagNames();
+  let h = '';
+  let i;
+  let key;
+
+  h += '<div class="tagfilterbar">';
+
+  for (i = 0; i < names.length; ++i)
+  {
+    key = names[i].toLowerCase();
+    h += '<button class="tagfilterbtn' + (g_active_tags[key] ? ' on' : '') + '" data-a="tag-filter-toggle" data-tag="' + esc(key) + '">' + esc(names[i]) + '</button>';
+  }
+
+  h += '<button class="tagfilterbtn flattenbtn' + (g_flatten_view ? ' on' : '') + '" data-a="flatten-toggle">' + (g_flatten_view ? 'show grouped' : 'show all') + '</button>';
+  h += '</div>';
+
+  return h;
+}
+
+function renderScoopSection()
+{
+  let h = '';
+  let is_today = g_view_date == todayISO();
+  let totals = dayTotals(g_view_date);
+  let tdiff = totals.protein - g_target;
+  let i;
+  let item;
+  let count;
+  let d;
+
+  h += '<div class="eyebrow" style="margin-top:8px">// scoop log</div>';
+  h += '<h1 style="font-size:17px;margin-top:2px">pantry log</h1>';
+
+  h += '<div class="datenav">';
+  h += '<button class="smallbtn" data-a="date-prev">‹</button>';
+  h += '<span class="datelabel">' + (is_today ? 'today · ' : '') + esc(g_view_date) + '</span>';
+  h += '<button class="smallbtn" data-a="date-next"' + (g_view_date >= todayISO() ? ' disabled' : '') + '>›</button>';
+  if (!is_today) h += '<button class="smallbtn" data-a="date-today">back to today</button>';
+  h += '</div>';
+
+  h += '<div class="summary">';
+  h += '<div class="cell"><div class="lab">logged protein</div><div class="val">' + fmt1(totals.protein) + ' g</div></div>';
+  h += '<div class="cell"><div class="lab">' + (tdiff >= 0 ? 'over target' : 'under target') + '</div>'
+     + '<div class="val ' + (tdiff >= 0 ? 'over' : 'under') + '">' + (tdiff >= 0 ? '+' : '') + fmt1(tdiff) + ' g</div></div>';
+  h += '<div class="cell"><div class="lab">kcal</div><div class="val">' + fmt1(totals.kcal) + '</div></div>';
+  h += '</div>';
+
+  h += renderTagFilterBar();
+
+  if (g_last_lookup_debug)
+  {
+    h += '<div class="debugbox">';
+    h += '<div class="hint" style="margin:0 0 6px">raw response from the last O.F.F./web-search lookup that didn\'t parse cleanly:</div>';
+    h += '<pre class="debugpre">' + esc(g_last_lookup_debug) + '</pre>';
+    h += '<button class="smallbtn" data-a="lookup-debug-clear">clear debug</button>';
+    h += '</div>';
+  }
+
+  h += '<table><thead><tr>';
+  h += '<th>item</th><th class="num">volume</th><th class="num">scoop g</th><th class="num">protein g</th><th class="num">kcal</th><th class="num">today</th><th></th>';
+  h += '</tr></thead><tbody>';
+
+  h += renderCustomRow();
+
+  h += renderGroupedItems(is_today);
+
+  h += '</tbody></table>';
+
+  h += '<div class="btnrow2">';
+  h += '<button class="smallbtn" data-a="scoop-add-item-open">+ add pantry item</button>';
+  h += '<button class="smallbtn" data-a="print-scoop">print fridge list</button>';
+  h += '<button class="smallbtn" data-a="export-toggle">' + (g_export_open ? 'hide export' : 'export data') + '</button>';
+  h += '<button class="smallbtn" data-a="import-toggle">' + (g_import_open ? 'hide import' : 'import data') + '</button>';
+  h += '</div>';
+
+  if (g_print_status) h += '<div class="fetchstatus">' + esc(g_print_status) + '</div>';
+
+  if (g_scoop_add_draft)
+  {
+    d = g_scoop_add_draft;
+    h += '<div class="addform">';
+    h += '<input type="text" data-adddraft="barcode" placeholder="barcode" value="' + esc(d.barcode) + '">';
+    h += '<button class="smallbtn" data-a="addex-lookup-off">look up on O.F.F.</button>';
+    h += '<input type="text" data-adddraft="name" placeholder="name" value="' + esc(d.name) + '">';
+    h += '<input type="text" data-adddraft="brand" placeholder="brand" value="' + esc(d.brand) + '">';
+    h += '<input type="text" inputmode="decimal" data-adddraft="scoop_g" placeholder="scoop g" value="' + esc(d.scoop_g) + '">';
+    h += '<input type="text" inputmode="decimal" data-adddraft="protein_100g" placeholder="protein / 100g" value="' + esc(d.protein_100g) + '">';
+    h += '<input type="text" inputmode="decimal" data-adddraft="kcal_100g" placeholder="kcal / 100g" value="' + esc(d.kcal_100g) + '">';
+    h += '<span class="hint" id="addex-macro-preview" style="width:100%">' + esc(addItemMacroPreviewText(d)) + '</span>';
+    h += '<button class="smallbtn" data-a="scoop-add-item-save">save</button>';
+    h += '<button class="smallbtn" data-a="scoop-add-item-cancel">cancel</button>';
+    if (g_add_item_status) h += '<div class="fetchstatus" style="width:100%">' + esc(g_add_item_status) + '</div>';
+    h += '<div class="hint" style="width:100%;margin-top:2px">Enter a barcode and look it up on O.F.F. to auto-fill name/brand/protein-per-100g/kcal-per-100g, or type per-100g values yourself. Set any scoop mass and protein/kcal are computed automatically — changing the scoop mass later (via ✎) keeps recomputing them.</div>';
+    h += '</div>';
+  }
+
+  if (g_export_open)
+  {
+    h += '<div class="exportbox">';
+    h += '<div class="exp-tabs">';
+    h += '<button class="smallbtn' + (g_export_fmt == 'diary' ? ' on' : '') + '" data-a="export-fmt" data-f="diary">diary (text)</button>';
+    h += '<button class="smallbtn' + (g_export_fmt == 'json' ? ' on' : '') + '" data-a="export-fmt" data-f="json">full backup (json)</button>';
+    h += '</div>';
+    h += '<textarea class="exp-out" readonly spellcheck="false">' + esc(g_export_fmt == 'json' ? buildExportJSON() : buildDiaryText()) + '</textarea>';
+    h += '<div class="btnrow2">';
+    h += '<button class="smallbtn" data-a="export-copy">copy</button>';
+    h += '<button class="smallbtn" data-a="export-download">download</button>';
+    if (g_copy_status) h += '<span class="fetchstatus" style="padding:6px 0 0">' + esc(g_copy_status) + '</span>';
+    h += '</div>';
+    h += '</div>';
+  }
+
+  if (g_import_open)
+  {
+    h += '<div class="exportbox">';
+    h += '<div class="hint" style="margin-top:0">Restore a "full backup (json)" export from another machine. This replaces the loadout, pantry, and log currently in this app — export from here first if you want a copy of what\'s about to be overwritten.</div>';
+    h += '<input type="file" accept=".json,application/json" data-a="import-file">';
+    h += '<textarea class="exp-out" placeholder="…or paste exported JSON here" data-field="import-text">' + esc(g_import_text) + '</textarea>';
+    h += '<div class="btnrow2">';
+    h += '<button class="smallbtn" data-a="import-parse">check</button>';
+    if (g_import_pending)
+    {
+      h += '<button class="smallbtn" data-a="import-confirm">confirm import (overwrites current data)</button>';
+      h += '<button class="smallbtn" data-a="import-cancel">cancel</button>';
+    }
+    h += '</div>';
+    if (g_import_status) h += '<div class="fetchstatus">' + esc(g_import_status) + '</div>';
+    h += '</div>';
+  }
+
+  h += '<div class="note">Tap "+ scoop" to log one serving of an item to today\'s tally; "−" removes one. Past days are viewable but read-only. "fetch O.F.F." pulls protein/kcal from Open Food Facts for a barcode\'d item — it asks in-page before overwriting existing values (no popup), and a miss just means the barcode isn\'t in O.F.F. (store-internal barcodes especially).</div>';
+
+  return h;
+}
+
+function renderPrintList()
+{
+  let el = document.getElementById('printlist');
+  let h = '';
+  let i;
+  let item;
+  let sorted_items = sortedScoopItems();
+
+  if (!el) return;
+
+  h += '<h2>pantry scoop reference</h2>';
+  h += '<table><thead><tr><th>barcode</th><th>name</th><th>volume</th><th>scoop</th><th>protein</th><th>kcal</th></tr></thead><tbody>';
+
+  for (i = 0; i < sorted_items.length; ++i)
+  {
+    item = sorted_items[i];
+    h += '<tr>';
+    h += '<td>' + esc(item.barcode || '—') + '</td>';
+    h += '<td>' + esc(item.name) + (item.brand ? ' — ' + esc(item.brand) : '') + '</td>';
+    h += '<td>' + esc(formatVolume(item)) + '</td>';
+    h += '<td>' + (item.scoop_g != null ? item.scoop_g + ' g' : '—') + '</td>';
+    h += '<td>' + (item.protein_g != null ? item.protein_g + ' g' : '—') + '</td>';
+    h += '<td>' + (item.kcal != null ? item.kcal : '—') + '</td>';
+    h += '</tr>';
+  }
+
+  h += '</tbody></table>';
+  el.innerHTML = h;
+}
+
+function renderPreservingFocus()
+{
+  let active = document.activeElement;
+  let key = active && active.dataset ? active.dataset.key : null;
+  let field = active && active.dataset ? active.dataset.field : null;
+  let scoop_key = active && active.dataset ? active.dataset.scoop : null;
+  let scaledraft_field = active && active.dataset ? active.dataset.scaledraft : null;
+  let custom_field = active && active.dataset ? active.dataset.custom : null;
+  let grouprename_field = active && active.dataset ? active.dataset.grouprename : null;
+  let adddraft_field = active && active.dataset ? active.dataset.adddraft : null;
+  let editdraft_field = active && active.dataset ? active.dataset.editdraft : null;
+  let id = active ? active.id : null;
+  let sel_start = active && active.selectionStart != null ? active.selectionStart : null;
+  let sel_end = active && active.selectionEnd != null ? active.selectionEnd : null;
+  let restored;
+
+  render();
+
+  if (id) restored = document.getElementById(id);
+  else if (key && field) restored = document.querySelector('[data-key="'+key+'"][data-field="'+field+'"]');
+  else if (scoop_key && field) restored = document.querySelector('[data-scoop="'+scoop_key+'"][data-field="'+field+'"]');
+  else if (scaledraft_field) restored = document.querySelector('[data-scaledraft="'+scaledraft_field+'"]');
+  else if (custom_field) restored = document.querySelector('[data-custom="'+custom_field+'"]');
+  else if (grouprename_field) restored = document.querySelector('[data-grouprename]');
+  else if (adddraft_field) restored = document.querySelector('[data-adddraft="'+adddraft_field+'"]');
+  else if (editdraft_field) restored = document.querySelector('[data-editdraft="'+editdraft_field+'"]');
+  else restored = null;
+
+  if (!restored) return;
+
+  restored.focus();
+  if (sel_start != null) restored.setSelectionRange(sel_start, sel_end);
+}
+
+function defaults()
+{
+  return [
+    { key:'egg',          daily:2,   price:null, package_units:12 },
+    { key:'seitan',       daily:96,  price:null },
+    { key:'pink_salmon',  daily:170, price:3.40 },
+    { key:'edamame',      daily:80,  price:null },
+    { key:'barramundi',   daily:70,  price:null },
+    { key:'skyr',         daily:200, price:null },
+    { key:'rice',         daily:57,  price:15 }
+  ];
+}
+
+document.addEventListener('input', function(ev)
+{
+  let target = ev.target;
+  let key;
+  let field;
+  let food;
+  let item;
+  let scoop_key;
+  let adddraft_field;
+  let editdraft_field;
+  let i;
+  let num;
+
+  if (target.id == 'target-input')
+  {
+    g_target_raw = target.value;
+    num = parseFloat(target.value);
+    g_target = isNaN(num) ? 0 : num;
+    renderPreservingFocus();
+    save();
+    return;
+  }
+
+  if (target.dataset.field == 'import-text')
+  {
+    g_import_text = target.value;
+    g_import_pending = null;
+    return;
+  }
+
+  scoop_key = target.dataset.scaledraft;
+  if (scoop_key && g_scale_draft)
+  {
+    if (scoop_key == 'scale')
+    {
+      liveScalePreview(parseFloat(target.value));
+      return;
+    }
+    if (scoop_key == 'grams')
+    {
+      g_scale_draft.grams_raw = target.value;
+      recomputeScaleDraft('grams');
+      renderPreservingFocus();
+      return;
+    }
+    if (scoop_key == 'protein_g')
+    {
+      g_scale_draft.protein_g_raw = target.value;
+      num = parseFloat(target.value);
+      g_scale_draft.protein_g = isNaN(num) ? null : num;
+      return;
+    }
+    if (scoop_key == 'kcal')
+    {
+      g_scale_draft.kcal_raw = target.value;
+      num = parseFloat(target.value);
+      g_scale_draft.kcal = isNaN(num) ? null : num;
+      return;
+    }
+  }
+
+  if (target.dataset.custom == 'protein')
+  {
+    g_custom_protein_raw = target.value;
+    g_custom_status = '';
+    renderPreservingFocus();
+    return;
+  }
+
+  if (target.dataset.grouprename)
+  {
+    g_group_rename_draft = target.value;
+    renderPreservingFocus();
+    return;
+  }
+
+  adddraft_field = target.dataset.adddraft;
+  if (adddraft_field)
+  {
+    g_scoop_add_draft[adddraft_field] = target.value;
+    renderPreservingFocus();
+    return;
+  }
+
+  if (target.dataset.editdraft == 'tags' && g_edit_draft)
+  {
+    g_edit_draft.tags = target.value;
+    updateTagSuggestions(target);
+    return;
+  }
+
+  editdraft_field = target.dataset.editdraft;
+  if (editdraft_field)
+  {
+    g_edit_draft[editdraft_field] = target.value;
+    if (editdraft_field == 'scoop_g' || editdraft_field == 'protein_100g' || editdraft_field == 'kcal_100g') recomputeEditDraftMacros();
+    renderPreservingFocus();
+    return;
+  }
+
+  key = target.dataset.key;
+  field = target.dataset.field;
+  if (!key) return;
+
+  for (i = 0; i < g_foods.length; ++i)
+  {
+    if (g_foods[i].key != key) continue;
+    food = g_foods[i];
+
+    num = parseFloat(target.value);
+    if (field == 'daily')
+    {
+      food.daily_raw = target.value;
+      food.daily = isNaN(num) ? 0 : num;
+    }
+    if (field == 'price')
+    {
+      food.price_raw = target.value;
+      food.price = target.value.trim() == '' ? null : (isNaN(num) ? null : num);
+    }
+    if (field == 'units')
+    {
+      food.package_units_raw = target.value;
+      food.package_units = isNaN(num) ? 0 : num;
+    }
+  }
+
+  renderPreservingFocus();
+  save();
+});
+
+document.addEventListener('focusin', function(ev)
+{
+  if (ev.target && ev.target.dataset && ev.target.dataset.editdraft == 'tags') updateTagSuggestions(ev.target);
+});
+
+document.addEventListener('focusout', function(ev)
+{
+  let list;
+
+  if (!ev.target || !ev.target.dataset || ev.target.dataset.editdraft != 'tags') return;
+
+  setTimeout(function()
+  {
+    list = document.getElementById('tag-suggest');
+    if (list) list.classList.remove('open');
+  }, 160);
+});
+
+document.addEventListener('change', function(ev)
+{
+  let target = ev.target;
+  let file;
+
+  if (target.dataset && target.dataset.a == 'import-file')
+  {
+    file = target.files && target.files[0];
+    if (file) readImportFile(file);
+    return;
+  }
+
+  if (target.dataset && target.dataset.scaledraft == 'scale' && g_scale_draft)
+  {
+    g_scale_draft.scale = parseFloat(target.value);
+    recomputeScaleDraft('scale');
+    render();
+  }
+});
+
+document.addEventListener('click', function(ev)
+{
+  let target = ev.target.closest('[data-a]');
+  let action;
+  let defs;
+  let i;
+  let j;
+
+  if (!target) return;
+  action = target.dataset.a;
+
+  switch (action)
+  {
+    case 'reset':
+      defs = defaults();
+      for (i = 0; i < g_foods.length; ++i)
+      {
+        for (j = 0; j < defs.length; ++j)
+        {
+          if (g_foods[i].key != defs[j].key) continue;
+          g_foods[i].daily = defs[j].daily;
+          g_foods[i].price = defs[j].price;
+          g_foods[i].daily_raw = String(g_foods[i].daily);
+          g_foods[i].price_raw = g_foods[i].price != null ? String(g_foods[i].price) : '';
+          if (defs[j].package_units != null)
+          {
+            g_foods[i].package_units = defs[j].package_units;
+            g_foods[i].package_units_raw = String(g_foods[i].package_units);
+          }
+        }
+      }
+      g_target = 128;
+      g_target_raw = '128';
+      render();
+      save();
+      return;
+
+    case 'date-prev':
+      g_view_date = shiftDateISO(g_view_date, -1);
+      render();
+      return;
+
+    case 'date-next':
+      if (g_view_date >= todayISO()) return;
+      g_view_date = shiftDateISO(g_view_date, 1);
+      render();
+      return;
+
+    case 'date-today':
+      g_view_date = todayISO();
+      render();
+      return;
+
+    case 'scoop-add':
+      if (g_view_date != todayISO()) return;
+      addScoop(target.dataset.key);
+      render();
+      save();
+      return;
+
+    case 'scoop-remove':
+      if (g_view_date != todayISO()) return;
+      removeScoop(target.dataset.key);
+      render();
+      save();
+      return;
+
+    case 'scoop-fetch':
+      requestFetchOFF(target.dataset.key, target.dataset.context);
+      return;
+
+    case 'scoop-fetch-confirm':
+      doFetchOFF(target.dataset.key);
+      return;
+
+    case 'scoop-fetch-cancel':
+      cancelFetchOFF(target.dataset.key);
+      return;
+
+    case 'scoop-add-item-open':
+      g_scoop_add_draft = { barcode:'', name:'', brand:'', scoop_g:'', protein_100g:'', kcal_100g:'' };
+      g_add_item_status = '';
+      render();
+      return;
+
+    case 'scoop-add-item-cancel':
+      g_scoop_add_draft = null;
+      render();
+      return;
+
+    case 'scoop-add-item-save':
+      saveAddItemDraft();
+      return;
+
+    case 'addex-lookup-off':
+      lookupOFFForAddItem();
+      return;
+
+    case 'scoop-edit-open':
+      openScoopEdit(target.dataset.key, target.dataset.context);
+      return;
+
+    case 'scoop-edit-cancel':
+      cancelScoopEdit();
+      return;
+
+    case 'scoop-edit-save':
+      saveScoopEdit();
+      return;
+
+    case 'scoop-scale-open':
+      openScaleEdit(target.dataset.key, target.dataset.context);
+      return;
+
+    case 'scoop-scale-close':
+      closeScaleEdit();
+      return;
+
+    case 'scoop-scale-reset':
+      resetScaleDraft();
+      render();
+      return;
+
+    case 'scoop-scale-log':
+      logScaledEntry();
+      return;
+
+    case 'scoop-entry-delete':
+      removeLogEntry(target.dataset.entry);
+      render();
+      save();
+      return;
+
+    case 'custom-log':
+      logCustomEntry();
+      return;
+
+    case 'custom-remove':
+      if (g_view_date != todayISO()) return;
+      removeScoop('custom');
+      render();
+      save();
+      return;
+
+    case 'group-toggle':
+      toggleGroupCollapse(target.dataset.group);
+      return;
+
+    case 'group-rename-open':
+      openGroupRename(target.dataset.group, target.dataset.name);
+      return;
+
+    case 'group-rename-cancel':
+      cancelGroupRename();
+      return;
+
+    case 'group-rename-save':
+      saveGroupRename();
+      return;
+
+    case 'tag-suggest-pick':
+      pickTagSuggestion(target.dataset.tag);
+      return;
+
+    case 'tag-filter-toggle':
+      if (g_active_tags[target.dataset.tag]) delete g_active_tags[target.dataset.tag];
+      else g_active_tags[target.dataset.tag] = true;
+      render();
+      return;
+
+    case 'lookup-debug-clear':
+      g_last_lookup_debug = null;
+      render();
+      return;
+
+    case 'flatten-toggle':
+      toggleFlattenView();
+      return;
+
+    case 'print-scoop':
+      try
+      {
+        window.print();
+        g_print_status = 'print dialog requested. If nothing opened, this preview may be blocking it — open the downloaded file directly in a browser tab, or use "export data" below.';
+      }
+      catch (e)
+      {
+        g_print_status = 'print blocked — ' + e.message + '. Use "export data" below instead.';
+      }
+      render();
+      return;
+
+    case 'export-toggle':
+      g_export_open = !g_export_open;
+      g_copy_status = '';
+      render();
+      return;
+
+    case 'export-fmt':
+      g_export_fmt = target.dataset.f;
+      render();
+      return;
+
+    case 'export-copy':
+      copyText(g_export_fmt == 'json' ? buildExportJSON() : buildDiaryText());
+      return;
+
+    case 'export-download':
+      if (g_export_fmt == 'json') downloadText('protein-loadout-export-' + todayISO() + '.json', 'application/json', buildExportJSON());
+      else downloadText('protein-loadout-export-' + todayISO() + '.txt', 'text/plain', buildDiaryText());
+      return;
+
+    case 'import-toggle':
+      g_import_open = !g_import_open;
+      g_import_pending = null;
+      g_import_status = '';
+      render();
+      return;
+
+    case 'import-parse':
+      parseImportText();
+      return;
+
+    case 'import-confirm':
+      applyImport();
+      return;
+
+    case 'import-cancel':
+      cancelImport();
+      return;
+  }
+});
+
+load();
+</script>
+</body>
+</html>
