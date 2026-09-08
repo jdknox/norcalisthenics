@@ -1,0 +1,658 @@
+# The best beginner training routine - zero to strong in 40min/week
+2025-02-35
+
+if you're a beginner you can't start
+with the end goal stuff and so to give
+you a starting point I want to show you
+the [most effective routine you can start
+with right now](https://www.youtube.com/watch?v=8JRnxqY46ow) to get stronger build
+muscle tissue gain lifelong Mobility
+about as fast and safely as possible
+that you can do in about 40 minutes a
+week with some simple home equipment and
+that you can start from literally any
+strength level as long as you can move
+your arms around like this you can start
+if you're a beginner I you're not
+currently strength training or at least
+you're not currently consistently making
+progress with your strength every week
+and you want a body that's fit that
+looks great that's healthy and
+functional then you've got work to do
+and if you've been avoiding starting
+because you think it's too hard and
+you're too weak or inexperienced to do
+the sort of stuff you see more advanced
+people doing then you're putting
+yourself into Catch 22 because if you're
+already strong enough to do the
+movements you're seeing Advanced people
+do then you'd already have the body that
+advanced people have and you wouldn't
+need to be training for it and so we
+need you to have a process that's right
+for your body based on where you're at
+now that can actually allow you to start
+building up your strength so you can
+progress eventually towards being
+Advanced and having the muscle and the
+Aesthetics the strength that advanced
+people have regardless of where you're
+at on the Spectrum from beginner to
+advance the goal is very simple increase
+your strength because that is what leads
+your body to build muscle tissue to stay
+mobile and healthy as you age and allows
+you to be lean look great have a body to
+be proud of now the principle for doing
+this is exactly the same regardless of
+whether you are real experienced super
+strong shredded Beast or someone who's
+completely beginner has never trained in
+the their life and has zero strength
+coordination or muscle tissue the way
+that strength training works and this is
+the beauty of the human body the fact
+that we can actually do things that make
+it go and change and adapt so by our
+consistent actions actually change the
+form of our body it's incredible that we
+can actually do this the principle for
+doing that is basically you've got a
+threshold wherever you are a threshold
+level of strength and if you work there
+at that threshold very close to it when
+you go away and rest you cause your body
+to get a little bit better and build
+some buffer on top of what your previous
+threshold was and you do that enough
+times imagine this is a weekly cycle of
+training recovering coming back doing
+some more now you when you work at your
+new threshold then the next time you go
+away and recover your thresholds a
+little bit higher and just by repeating
+this over and over and over as our
+strength increases so does our muscle in
+the shape of our body the point of this
+is that effective training it just has
+to be training that reaches your
+threshold not someone else's who's more
+advanced not someone who's weaker than
+you neither of those things are helpful
+for our purposes the only thing that's
+helpful is training that is exactly at
+your limit the limits of your strength
+wherever that may be right now take the
+bench press for example where you're
+pushing a barbell from your chest up
+imagine trying to do 150 kilos right now
+if you have no idea how heavy that is
+it's very heavy if you try and do that
+you're not going to be able to move the
+barber you're just going to get crushed
+get no work done it's not going to be
+effective for you
+but as I said by the same token anything
+that's too easy is also a waste of time
+imagine a massive bodybuilder who can
+bench 150 kilos you don't see them in
+the gym full doing push-ups to try and
+build their chest because it's way too
+easy for them there's no intensity there
+relative to their strength and so this
+Gap means that it's a waste of time so
+doing an exercise that's Way Beyond your
+limit no good doing one that's way below
+your limit also useless so at this point
+you might be looking at some strength
+moves you see me doing a handstand push
+up or front leave and you think I can't
+do that it's way too hard that's the
+point again you see my physique the body
+I have is reflective of the strength
+that I've built over 10 years of intense
+training the key thing you got to
+understand is that all the same training
+can be done just at a different absolute
+level of difficulty and here's the key
+thing if you're a beginner the key thing
+I want you to understand is every
+movement that you can train scales to
+zero you can make every movement that we
+use in our system we have six strength
+goals covering six basic movement
+patterns each of those movement patterns
+yes can be scattered up all the way to
+the end goal the sort of stuff you see
+flashed around online but they can also
+be scouted all the way down to zero
+requiring no strength whatsoever to do
+which means that doesn't matter how
+beginner you are doesn't matter how weak
+you are you can find a level that's
+suited for your body find your threshold
+and train that and I'm going to show you
+how you can do that right now so you can
+go away and start at a level that's
+suited for you and so if it gives you
+confidence in yourself my mom who's in
+her early 60s untrained for many many
+years rooted by injuries has had a knee
+replaced and their other ankle fused
+over the last couple years she is able
+to do this we scaled all the big
+movements down to a level that suit her
+and she is able to literally train and
+get multiple reps in work until she's
+satisfied at the limit of her strength
+the movements look nothing like what I'm
+doing in the shed when I go and train it
+doesn't matter she's training she's
+getting stronger and she's in the best
+shape that she's been in in many years
+both in the way that she's able to walk
+around and do the things she wants to do
+she's not only holding on to the muscle
+M she got she's building more there are
+no excuses not to be doing this you just
+need to know how to scale things down so
+what we're trying to do imagine our
+bench press example again 150 kilos
+impossible what we want to find in terms
+of scaling everything down to zero is
+for each of your movements we want to
+scale things to a point where it's like
+you're doing a bench press we've taken
+all the weight off and instead of a
+barbell we've just got a broomstick so
+it's literally zero weight or very close
+to zero weight and we're just doing the
+movement pattern with no load on it
+whatsoever that's the model we're trying
+to accomplish with our movement patterns
+because if you can find zero
+then we can start to slowly add load on
+to the bar until we find a point of
+maximal resistance so we're going to
+take you through the six movements we
+use in our system and show you how you
+can scale them down to zero and find
+your level of strength so you can train
+all of them stuck getting stronger to
+give you context for this what we're
+trying to do is Imagine This is the
+strength curve for let's say a chin up
+right so this is your ability over that
+movement pattern from the bottom to the
+top you're notice it's towards the
+middle bottom of a chin up that things
+get the most difficult if you're trying
+to do one that's usually where people
+have the least amount of strength and at
+the very bottom and the very top things
+are generally the easiest if you're just
+doing a chin up body weight the force
+required by the movement is constant
+throughout the range of motion so maybe
+it's like this where at the top you
+could do like a partial range of motion
+there you can get it up a little bit
+from the bottom but in the middle the
+actual difficulty of the chin up is
+beyond what you can do and so you get
+stuck we're going to throw away
+completely this whole model of fixed
+resistance anyway but I just want to
+outline what that looks like and so if
+you're really good at doing chinups then
+maybe your strength curve would look
+more like this and you're able to get a
+few you're not actually working your
+threshold for much of this maybe just in
+the middle portion when you get tired
+and then if your strength's down here
+then chinups are useless to you cuz you
+can't even get a rep you can't even make
+any progress at all except maybe at the
+very top so what we want to do instead
+of just trying to do a chin up doing
+what we can and then failing see how
+this it's a very clunky messy way of
+approaching strength train because it
+completely ignores where your specific
+strength is is at right now in terms of
+your training career and right now in
+terms of the specific rep that you're
+doing and the specific point in the rep
+that you currently at so we're going to
+throw away this model instead and learn
+to adapt things to exactly your level of
+strength at all times what that first
+requires the first job I'm going to show
+you how to do is to find zero we're
+going to take it all down to requiring
+no Force whatsoever from the working
+muscles and then what we can do is bring
+things back up um throughout the rep and
+find the limit of your strength so I'll
+take you through those one step at a
+time so first so we've got six strength
+goals that we're trying to build towards
+long term if you don't understand the
+principle behind this you can go watch
+some of our other videos to get more of
+an understanding of the general goals of
+the system but we've basically got six
+movement patterns that cover all our
+body's needs in terms of strength and
+development and we've got one strength
+goal for each of those longterm as our
+North Star guiding us in our training
+development and so for each of those
+movement patterns
+if you want to start training all you've
+got to do is get the pattern take it
+down to zero required difficulty and
+then we can scale up so what does that
+look like the first movement is your PL
+push-up horizontal pushing where goal is
+to build up to a straddle PL eventually
+now I talk a lot about the higher end
+where we are leaning so far forward that
+our feet come off the ground and we're
+in this actual PL position it's not a
+begin of movement this is the end goal
+I've worked for 10 years to try and get
+a sloppy 2 second hold on this thing
+what we can do if we want to scale down
+is basically reduce the lean first so
+that our shoulders come back or hands go
+forward and then we can put literally
+put our feet on the ground so that we're
+just in this normal push-up position and
+work there if it's too heavy still we
+can bring a knee or foot closer and
+basically the principle here is we just
+want to take all the weight off our
+hands and put them on our feet because
+we can move our feet to support oursel
+through this movement if we have our
+feet under us then all the load is off
+our hands and we should now just be able
+to guide ourselves through a zero weight
+push-up so when you try this go and do
+it take all the way out of your hands
+and you should be able to reach full
+range you should be able to get your
+hands touching your body and then all
+the way up to locked elbows without any
+load on it whatsoever and now you know
+once you've done that that you can scale
+to zero if we Now flip this and look at
+the front lab row which is our
+horizontal pull again the goal is a
+front lever not beginner advaned so to
+scale down we can reduce how far we're
+pushing our hands away from us to make
+the row easier and then if it's still
+too hard again we can walk our feet in
+more towards the midline so we start to
+take weight off our hands and put them
+on our feet and if we keep walking back
+again we can get to the point where
+there's effectively zero weight on our
+hands and we're just going through the
+motions we're just basically standing
+there guiding ourselves through a row
+and again you should be able to get full
+range of motion get your elbows past
+your body and then again all the way
+back out to locked elbows and now you're
+doing both your horizontal push and
+horizontal pull things that you can
+scale up all the way to you know Elite
+levels now at zero and so even if you're
+complete beginner and super tired at the
+end of your set struggling to even move
+you'll still be able to get your reps in
+and complete them full range of motion
+doing as much training as you decide you
+want to do for the day with me so far so
+that is horizontal pushing and pulling
+and so you'll see that they're just
+Converses of each other but you
+basically getting to the point where all
+the weight is off your hands and so yes
+you're moving your body relative to the
+Rings but it's your feet helping you to
+do that rather than your hands actually
+pushing and pulling it's very similar
+concept with the vertical movements and
+so with a handstand pushup ultimately
+yes we're building to free standing hand
+Sample Shop again extremely difficult
+you don't start there it takes you years
+so what we do the general principle here
+is that we're taking weight off our
+hands again and onto our feet it's like
+the horizontal is bit a bit more simple
+so we can move our feet from the air
+onto a wall if that's too hard we can
+put them on a platform if that's too
+hard we can bring them all the way down
+to the ground so that now we're in this
+sort of parked position and again just
+like with the push-up our weight is
+fully on our feet we're literally just
+standing there guarding ourselves
+through the range of motion we can come
+down to a knee if we need to at the
+bottom whatever we need to do to
+basically just use our feet to take the
+whole load so that our hands are yes
+going through the full range of motion
+from completely flexed overhead like
+this shoulders touching our ears to the
+point where our hands touch our
+shoulders we're in this deep position we
+do that with zero load and guide
+ourselves through so again super tired
+doesn't matter we can still Train full
+range of motion and the one arm chin up
+is essentially the same it's just even
+easier what we do with this one is just
+put our hand on the other ring put our
+feet on the ground and we can just
+literally stand there and squat through
+the range of motion again from Full
+overhead fully flexed shoulder to our
+wrist touching our chest getting full
+range without any weight on that hand
+that arm doesn't even need to be doing
+any work we can just be guiding
+ourselves through it with our feet so
+that's your vertical pushing and pulling
+and what I want you to do after this is
+go and get your ring set up and have a
+go at each of these and you should be
+able to guard yourself through an entire
+full range motion rep top to bottom
+without needing any strength you should
+be able to do it and feel like you
+haven't even worked a single muscle of
+the working muscles that's the point
+because then we can figure out how to
+make it harder very very easily okay and
+then your squat even if you load this
+thing up I'll put the little chairs
+under his under his arm even if you load
+the squat up with you know 60 kilos of
+weight you should still be able to make
+this close to zero effort by using your
+other leg again we're just taking the
+weight off the working leg and putting
+it on the supporting limbs so we take
+our weight off put it onto our other leg
+and our hands and you should be able to
+get to the point where the working leg
+is not even pushing on the ground it's
+just limp and it's your assisting leg
+and your assisting arms that actually
+take the whole load and then finally the
+last movement with the Nordic curl it's
+very similar thing what we can do is two
+things firstly we can park so we can
+bend our hips and so we reduce the lever
+length just by breaking at the hips and
+shortening our body and then from there
+we can put our hands on the ground and
+literally hold ourselves up give
+ourselves as much support as we need and
+again you should be able to feel your
+your feet your ankles completely let go
+not need to be doing any work and you
+just guard yourself through with your
+arms which means again we found zero
+hamstrings aren't doing any work and now
+we can scale up from there so your first
+part of call is to go and test all of
+those things just get one full range of
+motion rep without any load whatsoever
+on the working muscles because from here
+we can then titr trate up and it's very
+easy to find the point of failure where
+you can actually work at your maximum
+level of strength and make progress as
+fast as possible in you 40 minutes a
+week or less so let's just review where
+we'll go back to our chin up example our
+strength across the range of motion our
+maximum possible strength might look
+like this right we've now figured out
+how to scale that one arm chin up down
+to zero throughout the full range of
+motion from top to bottom by taking all
+the weight off that working arm now what
+we want to do throughout the movement is
+basically scale up until we hit the
+point where we're failing and we're
+doing everything we can but staying in
+the same place the force required by the
+movement is equal to our maximum
+potential Force output from that working
+arm that is our goal throughout our
+strength training and so we're going to
+learn to do that and then if we just
+break a rep down into a bunch of mini
+reps we can do that throughout the
+movement and so doing this is actually
+pretty simple and to give you a nice
+clear image in your head of what this
+should look or feel like imagine let's
+go back to the example of our bench
+press where you're holding the
+broomstick just say you're halfway
+through a rep holding it there it's
+effortless right the difficulty required
+is practically zero so you're holding
+that bench press above your chest very
+happily now imagine a 200 kilo person
+comes over and starts to slowly sit on
+the bar in the middle of the broomstick
+above your head imagine they pered over
+you and they slowly start to ease
+themselves onto the broomstick putting
+their body weight bit by bit onto the
+broomstick that you're holding okay so
+slow slowly you've got 200 kilos being
+loaded onto the bar and this person's
+rear end is above your face slowly
+getting heavier and heavier and heavier
+and heavier you're going to do
+everything you can to hold that bar up
+right hold it away from you yeah
+obviously because you don't want this
+person getting any closer but there's
+going to be a point we said before you
+can't bench press 150 kilos and this is
+a 200 kilo person trying to sit on you
+there's going to be a point where no
+matter how hard you push that bar is
+going to start to ease down be forced to
+lower towards your face and there's
+going to be nothing you can do about it
+that moment is what we are trying to
+find at every single point in our reps
+we're trying to constantly pull that
+ring down towards us in the one I'm chin
+up but we're going to load enough body
+weight on us that it's literally being
+pried away out of our grasp and now
+we're like at the point of being forced
+to fail and lower despite trying to pull
+up that's basically where all of our
+training is going to sit and so if you
+know what variable to manipulate you
+don't have a person sitting on your bar
+but each of these movements is difficult
+for a specific reason because of the
+leverage because of how we load it and
+so if you know what variable you're
+trying to manipulate in order to bridge
+the gap between here and the strength
+goal end goal level of strength we're
+aiming for which might be up here if you
+know what variable sits between these
+two levels then you can adjust it just
+until you find that point of failure
+okay so with all these run through them
+quickly but it's basically just
+reversing what you did to make it really
+easy and so if you've scaled to zero
+and you know what the goal is you should
+be able to figure out how to bridge the
+gap between the two but to give you our
+variables that we use in our system with
+the planch push-up you're literally just
+increasing the distance horizontal
+distance between your shoulders and your
+hands and so you lean forward in front
+of where your hands are eventually your
+feet are going to be able to come up off
+the ground and eventually with more
+strength again this is a multi-year
+process of building the strength
+necessary but with more strength you get
+to the point where you can do a straddle
+PL or a plch and so all you're trying to
+do is like Lean Forward enough that you
+find that point of failure where it's
+impossible to move and now you found
+your limit and now it's all about
+adjusting that to be able to train
+through your reps for the row the front
+levers similarly you're just going to
+push the Rings away towards your hips
+until you find the point where it's too
+difficult and so the easy way to find
+this is get to the top of the row and
+then rather than lowering push the Rings
+away until you start to get forced down
+and in fact this is the best way to find
+fairly for all of these is rather than
+trying to do it on the way up get to the
+top and then use use the difficulty
+variable as a way of forcing yourself
+down so with the push-ups try and hold
+yourself at the top of a push-up elbow
+slightly bent lean so far forward until
+you start to feel it Force you down same
+with the rows push the Rings away
+towards your hips towards your feet
+until you start to be you know your
+elbows are Pride open and your Force
+down it's exactly the same with all
+these with the handstand push-up you
+just load weight onto your hands getting
+your hips up pushing weight off your
+feet onto your hands until you start to
+get forced down to the bottom of the
+movement the chin up I've already
+explained you just take the help away
+until you're forced down exactly the
+same with the squats so you can bend a
+little bit with your knee lots of weight
+on your back and then just keep lowering
+until suddenly you need to grab yourself
+some support from the chairs or you put
+your other leg on the ground in order to
+stop the fall and now you know you're
+failing and the notic get super easy as
+well you just again lean into the
+movement and take your arms away and try
+and straighten out eventually you're
+going to pretty quickly find the point
+where you fall flat and then it's just a
+matter of scaling back again and parking
+putting your hands to the ground helping
+yourself to not fall and as I said the
+easiest way I think to find this point
+of failure out is just by testing it I
+realized at some point in my training
+that I could literally just test keep
+trying to do a harder version that I'm
+currently capable of keep trying to do
+the full thing and when I find myself
+falling I know okay cool well I found my
+limit cuz I'm now actively failing so
+this part isn't hard and we can talk a
+lot more about what it feels like to
+train at your Max and the sort of
+intensity you want to go for and how
+much training you want to do but the
+important point I want to make in this
+video is about making it easy enough to
+start and so if you take one thing away
+from this I want you to go and try each
+those movements get a full range of
+motion W with no effort no intensity and
+then from there you can start to scale
+things up in terms of the routine all of
+this is much more important than the
+specific details of how you actually
+train but I'm going to give you the full
+routine as promised anyway and it's this
+six movement patterns that we've just
+been through once a week each you're
+going to rock up to your training area
+and you're going to have one go one
+continuous set of doing this going
+through full range of motion reps start
+to finish making it as heavy as you can
+but making it doable and you're just
+going to do that until you've had enough
+so one set per each of your movements
+once a week each you can split them up
+over the week however you want but what
+you should be hypothetically aiming for
+is 1 to 3 minutes per set for each of
+six movements over the week so yes this
+is like Max 20 minutes of training time
+a week this is all I do this is all any
+of my students do that you don't need
+more time than this when we say 40
+minutes A week we're talking about rest
+time as well so I'm effectively doubling
+the most conservative estimate of how
+long this is going to take you get full
+range of motion once you find the point
+of failure where you're falling despite
+your best efforts you know you found
+your Max and that is what effective
+training feels like and if you can just
+train there for a couple of minutes a
+week for each of these six movement
+patterns and as I said do it across the
+full range of motion then you are now
+officially doing the most effective
+strength training possible for getting
+stronger building muscle tissue gaining
+lifelong mobility and allowing yourself
+to have that lean great looking physique
+that you want so there's a lot of
+information there is quite a practical
+deep dive let me know what you think if
+this is useful for you and if you like
+this and you're interested in applying
+this yourself you want more of a deep
+dive into what it looks like to actually
+get started with all this stuff make as
+much progress as possible and I've made
+a new free training on the whole system
+and how it works so if you want to learn
+more go watch that links in the
+description otherwise let me know your
+thoughts and questions comments below
+happy training

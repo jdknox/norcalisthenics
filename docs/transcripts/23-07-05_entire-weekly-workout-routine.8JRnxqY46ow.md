@@ -1,0 +1,366 @@
+# How I got jacked in 40 minutes a week - My entire weekly workout routine (updated, 2023)
+2023-07-05
+
+all right so welcome to my full week of
+training I just wanted to give you guys
+a [full demonstration of what a week of training looks like](https://www.youtube.com/watch?v=8JRnxqY46ow) for me so to clear
+up a lot of questions queries about what
+it looks like so here we go so this was
+done all in one day
+um I was on the road in Croatia so this
+was just get an example of how you can
+get you know an entire week of training
+done in one single session and I think
+you'll see that the total length of this
+video comes in at under 15 minutes so
+when I say that training takes less than
+you know 20 minutes half an hour a week
+I'm serious so if you add in I think
+added in with rest and everything this
+was just about a 40 minute session so it
+gives a bit of context to what I mean
+when I say how long things take us so
+the point with this so normally how I do
+training is I'd split up we've got five
+movements I would normally split up the
+um push-ups and the rows so the
+horizontal pushing and pulling into one
+day I do vertical pushing and pulling so
+handstand prescription line of chin UPS
+I do that on another day so maybe Monday
+and Thursday and then some other day in
+between there I put legs so I do my
+squats
+um say on maybe a Wednesday or a Tuesday
+this is to demonstrate though that when
+it's convenient it doesn't really matter
+how you split these over the week I
+think that separating the pushes and the
+pulls into two different parts of the
+week is nice and that it gives those
+muscles more time to recover between
+doing different movements it's probably
+better for gains because you're
+spreading out that stimulation over the
+week so you have the time you may as
+well break things up it's also just
+mentally easier
+to do it that way you don't have to bite
+off as much in one single go and it's
+also quicker because you're not waiting
+around for your body to recover between
+movements it's much much more efficient
+if you just go into one or two movements
+and then leave especially if you've got
+your ring set up somewhere easy at home
+but this works when you need it to I'm
+just cramming it all into one
+um
+so yeah so this is me just trying the
+push-ups the planche push-ups and I'm
+just going as hard as possible you saw
+at the start me doing some sort of
+static holds there I'm basically just
+trying to push put a heap of focus into
+the planche position the straight arm
+position at the beginning when I'm
+freshest
+and then the rest of the time here
+um one thing you'll notice about all
+this triangle it looks sloppy and it
+looks sort of weird the point is purely
+on Force output and maxing it out so a
+lot of my training won't look that nice
+but it's effective I've given up on form
+a long time ago uh in terms of looking
+pretty this is hard work and this is the
+work that gets you gained so yeah we're
+starting with the planche push-up work
+um I think at this time I'm pretty tired
+with all my training I'm just going to
+the point where I'm exhausted and can't
+give it 100 effort anymore and then I'm
+gonna go rest and wait till I feel ready
+for the next movement so because I was
+doing all these movements together in
+one day I started with the hardest like
+the most mentally taxing movement so I
+moved on as my pool I moved on to the
+chin up so I'm always going to alternate
+if I'm doing this movements in the same
+session I'm going to alternate pushing
+and pulling movements so here's me
+moving on to the one I'm chin up
+training
+as my pool of the day again just
+starting as heavy as possible and
+continuing to work as heavy as possible
+if I get stuck I'm helping myself it's
+really simple this Training Method it's
+just like started 100 remain training at
+100 through like every centimeter of
+every rep
+um you see me forcing myself down there
+when it's too easy and I can hold I'm
+like adding in extra resistance making
+it tougher at home I'd use a dumbbell
+between my legs but I figured I could
+just do this and this whole workout is
+just done with gymnastics ring so it
+also shows you if you have very minimal
+equipment you can really get all your
+training done with just this bit of gear
+this is just in my backpack and when I'm
+on the road it means I can train
+whenever that's really convenient so
+I'll just continue to go if I was at the
+point where I wasn't strong enough to do
+um these assisted sort of chin offs
+assisted with my hands I could just have
+a the Rings lower so I can reach the
+ground with my feet and you saw on the
+push-ups you know when I got too tired I
+can just bring my feet in again on the
+ground to help myself so all those
+movement scale down to zero where I'm
+training is just like near my limit and
+then obviously getting lighter as I get
+weaker but everything can be trained
+from wherever you're up to so both of
+these scale you know down further you'll
+probably notice I'm getting about three
+or four reps on these movements I think
+it was about
+three or four push-ups and then maybe
+two or three chin UPS each side
+that's about how long it usually takes
+me at this pace that you see me working
+here but yes the way that we figure out
+how uh how much volume to do how many
+reps and whatever to do is doing one set
+per movement per week and that's that's
+just as you see me here continue or
+something continuous Max effort until
+the point of not being able to give
+everything not being able to like
+positively go in and be aggressively
+attacking it with a hundred percent you
+know sort of input effort once you get
+to that point and it's you know now as
+soon as it becomes a grind or a drag to
+do any more that's what I'm calling it
+quits so it's very much Auto regulated
+it's listening to your own emotional
+feedback system to tell you when the
+productive work is becoming not so
+productive which also means that
+training is always very fun because
+you're only there while you want to be
+there I've just found this method to
+work the best for long-term progress
+so yeah you can see me grinding out Push
+Hands and push-ups here
+sort of at the point we're getting very
+close to all the five big long-term
+movement goals
+um which is cool because it's lighting
+up with sort of the amount of muscle and
+everything that I thought I'd have by
+the time getting to these goals you can
+see in my other video uh recent or
+coming soon on
+um those movement goals specifically and
+why we've chosen them but
+um yeah this is at the point of like
+nearly being on the cusp I've gotten
+one-on chance for a bit I've gotten
+handstand push-ups for a bit I've got my
+planche straddle plant is nearly there
+my front lid is pretty solid so this is
+sort of where I'm at now but again
+and scalley's right down so when these
+handstand push-ups get too tough you'll
+see me just use the ground my feet on
+the ground for more support again just
+scaling down
+um as needed
+so this again isn't trying to show you
+how exactly all the training works I'll
+do lots more videos on tutorials on how
+to train this how to scale is what the
+typically variables I'm using here are
+this is giving you a demo of like what
+is going on this is literally what a
+week of training looks like for me and
+this is how much I do there's nothing
+else in terms of strength work you know
+dedicated intentional exercise this is
+it you're all there on the other
+um intentional exercise I guess I do is
+walking
+and I'm doing some Mobility stuff as
+well but it's not super relevant to
+any of this strength and stuff
+in terms of rest times between sets
+because I'm skipping that here for the
+sake of the video not being super boring
+rest times are looking like if three to
+five minutes minimum probably for most
+of these most sets but it can be you
+know up to days the idea is that each so
+there's five movements each of those for
+the set of the movement you're going as
+long as you need as I said just to the
+point of not being able to get
+everything so what you're seeing here
+but between those sets it doesn't matter
+it can be literally four days rest or it
+can be so I've sort of saying the
+minimum of three or five minutes that
+classic you know time for your body to
+get most of its basic recovery done and
+be able to go again but I just sort of
+wander around and
+um you know Daydream until I feel like
+I'm ready to go again give it my all in
+the next thing and then I'll go
+so that's handstand push-ups so we've
+done two pushes one pull and then the
+last pull is the front lever Rose
+again I'm just sort of splitting push
+alternating push and pull and then
+starting with the heaviest so this is
+like
+I find mentally the road is not to be
+too bad so that's why they've been saved
+till last and again I'm just adjusting
+these constantly keep it as heavy as
+possible and I'm constantly rowing as
+hard as I can again I'm not trying to
+show you how to do that here
+but you can sort of see what it looks
+like for me at this point in my strength
+you know process strength gaining um
+career
+um
+yeah so they're the main things I think
+is bear in mind it's a pretty simple
+model as I've gotten more experienced
+with all this stuff I've sort of like
+both simplified what I try and do
+because that allows me to focus a lot
+more and actually progressing with these
+movements and I've learned to listen to
+my body more and take into account more
+of that emotional like Auto regulation
+feedback because I've realized how how
+smart the body signaling is and how much
+more efficient and easy and enjoyable
+progress can be when you actually like
+to listen to what your body's telling
+you rather than just thinking you know
+everything and ignoring it
+um
+yes the the most important thing with
+all of this is like you then the reason
+that five movements and just cutting
+back to this little work has worked so
+well is because you can say I'm gassed
+again here I'm just considering whether
+I have the strength to be more I'm not
+the reason it works so well is because
+you're clear on these goals and that's
+all you're working towards and there is
+no reason not to give it everything in
+your pursuit of those goals long term
+like I've been working on this for years
+now and it's working but it's it's not
+without intent so with the um squats
+this is a weird example I just thought I
+conclude it all for the sake of um
+coherence and keeping it all in one
+workout I didn't have a door frame I've
+been using a door frame and anchoring my
+foot to it to give me downwards force or
+I'll put usually I'll to add resistance
+here I'll pull up with my other leg
+um so I'm basically working the single
+leg squat without weight vest or a
+partner as I used to but you can see
+here all I'm doing is adding downward
+resistance by pushing up on the are and
+then in my head I'm sort of trying to
+lift this entire framework off the
+ground so this actually allows me to get
+to 100 you can see I'm sort of gassed
+here already
+um and it looks kind of simple but
+basically I'm just able to add enough
+downwards force with my upper body by
+pushing on this or in the door frame
+example you pull it off with my other
+leg that I can max out
+what like the strength of my working leg
+and just force it through the negatives
+again load it to maximum throughout the
+positives and so I'm able to again work
+this at maximum effort um through full
+range of motion
+um the whole way
+so it looks kind of random but uh it
+works it gets the job done it just shows
+you that you can really a you can get
+all this work done with very minimal
+equipment I just had a few bars here and
+my rings all that matters is you find a
+way to leverage everything to get it to
+your Max and you just train it at your
+max for as long as you feasibly can so
+I got like again normally with squads
+you get one repercide and then I'm
+completely cooked I think it's just due
+to your lower body having so much muscle
+mass in comparison to the upper body
+movement so it's it's taxing and you
+finish quickly but again you know like
+there's nothing wrong with doing very
+little work
+um because you can probably tell from my
+faces that I'm pulling and the reaction
+after that I'm feeling it it's tough
+It's a Grind it's gasing me out so
+yeah it's really all about just that
+Weekly minimum viable effort not about
+time just about showing up and giving it
+everything you've got in terms of
+intensity see that's basically it that's
+my week of training done in one session
+took me less than 40 minutes and you can
+see from this video it's uh just over 12
+minutes of work time that's all it takes
+every single week if you just show up
+and give one maximum effort in terms of
+force output for as long as you feel
+like you can give it everything that's
+all it takes to seriously build a body
+that's so much stronger so much leaner
+so much better looking and more
+functional than you wherever you're
+currently at it it shocks me how much I
+get out of this now and I've been doing
+it for years so hopefully this helps
+give you an idea a bit more of an
+intuitive sense of what some good
+quality training looks like if you found
+this interesting please let me know drop
+me some questions in the comments and
+I'll do my best to answer them and yeah
+head to my website
+um for plenty of free info on how this
+works I write about this regularly and
+you can check some other YouTube videos
+as well but yeah let me know what you
+think let me know what other sorts of
+videos you want to see and I hope to see
+more of you guys I'm giving this style
+of training a go yourself
