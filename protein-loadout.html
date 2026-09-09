@@ -19,10 +19,9 @@ function esc(value)
 {
   let text = String(value == null ? '' : value);
   let out = '';
-  let i;
   let ch;
 
-  for (i = 0; i < text.length; ++i)
+  for (let i = 0; i < text.length; ++i)
   {
     ch = text.charAt(i);
 
@@ -86,9 +85,8 @@ let g_target = 128;
 let g_target_raw = String(g_target);
 
 {
-  let i;
 
-  for (i = 0; i < g_foods.length; ++i)
+  for (let i = 0; i < g_foods.length; ++i)
   {
     g_foods[i].daily_raw = String(g_foods[i].daily);
     g_foods[i].price_raw = g_foods[i].price != null ? String(g_foods[i].price) : '';
@@ -144,13 +142,11 @@ function cloneKnownItem(known)
 
 function mergeKnownItems()
 {
-  let i;
-  let j;
   let known;
   let existing;
   let found;
 
-  for (i = 0; i < g_scoop_items.length; ++i)
+  for (let i = 0; i < g_scoop_items.length; ++i)
   {
     existing = g_scoop_items[i];
     if (existing.barcode == null && g_legacy_key_barcode_fixups[existing.key]) existing.barcode = g_legacy_key_barcode_fixups[existing.key];
@@ -158,12 +154,12 @@ function mergeKnownItems()
     if (g_legacy_key_name_fixups[existing.key]) existing.name = g_legacy_key_name_fixups[existing.key];
   }
 
-  for (i = 0; i < g_known_items.length; ++i)
+  for (let i = 0; i < g_known_items.length; ++i)
   {
     known = g_known_items[i];
     found = null;
 
-    for (j = 0; j < g_scoop_items.length; ++j)
+    for (let j = 0; j < g_scoop_items.length; ++j)
     {
       if (g_scoop_items[j].barcode == known.barcode)
       {
@@ -214,16 +210,13 @@ function parseTagsInput(text)
   let parts = text.split(',');
   let seen = {};
   let out = [];
-  let i;
-  let t;
-  let key;
 
-  for (i = 0; i < parts.length; ++i)
+  for (let i = 0; i < parts.length; ++i)
   {
-    t = parts[i].trim();
+    let t = parts[i].trim();
     if (!t) continue;
 
-    key = t.toLowerCase();
+    let key = t.toLowerCase();
     if (seen[key]) continue;
 
     seen[key] = true;
@@ -237,17 +230,13 @@ function distinctTagNames()
 {
   let seen = {};
   let out = [];
-  let i;
-  let j;
-  let tags;
-  let key;
 
-  for (i = 0; i < g_scoop_items.length; ++i)
+  for (let i = 0; i < g_scoop_items.length; ++i)
   {
-    tags = itemTags(g_scoop_items[i]);
-    for (j = 0; j < tags.length; ++j)
+    let tags = itemTags(g_scoop_items[i]);
+    for (let j = 0; j < tags.length; ++j)
     {
-      key = tags[j].toLowerCase();
+      let key = tags[j].toLowerCase();
       if (seen[key]) continue;
       seen[key] = true;
       out.push(tags[j]);
@@ -276,7 +265,6 @@ function updateTagSuggestions(el)
   let fragment;
   let names;
   let matches;
-  let i;
 
   if (!list) return;
 
@@ -290,7 +278,7 @@ function updateTagSuggestions(el)
 
   names = distinctTagNames();
   matches = [];
-  for (i = 0; i < names.length; ++i)
+  for (let i = 0; i < names.length; ++i)
   {
     if (names[i].toLowerCase().indexOf(fragment) >= 0) matches.push(names[i]);
   }
@@ -344,9 +332,8 @@ function pickTagSuggestion(tag)
    standalone exactly once. */
 function tagsMatchActive(tags)
 {
-  let i;
 
-  for (i = 0; i < tags.length; ++i)
+  for (let i = 0; i < tags.length; ++i)
   {
     if (g_active_tags[tags[i].toLowerCase()]) return true;
   }
@@ -361,44 +348,37 @@ function groupedNodes()
   let tag_display = {};
   let groups = {};
   let nodes = [];
-  let i;
-  let j;
-  let item;
-  let tags;
-  let tag_key;
-  let has_qualifying;
-  let key;
 
-  for (i = 0; i < sorted.length; ++i)
+  for (let i = 0; i < sorted.length; ++i)
   {
-    tags = itemTags(sorted[i]);
-    for (j = 0; j < tags.length; ++j)
+    let tags = itemTags(sorted[i]);
+    for (let j = 0; j < tags.length; ++j)
     {
-      tag_key = tags[j].toLowerCase();
+      let tag_key = tags[j].toLowerCase();
       tag_counts[tag_key] = (tag_counts[tag_key] || 0) + 1;
       if (!tag_display[tag_key]) tag_display[tag_key] = tags[j];
     }
   }
 
-  for (i = 0; i < sorted.length; ++i)
+  for (let i = 0; i < sorted.length; ++i)
   {
-    item = sorted[i];
-    tags = itemTags(item);
-    for (j = 0; j < tags.length; ++j)
+    let item = sorted[i];
+    let tags = itemTags(item);
+    for (let j = 0; j < tags.length; ++j)
     {
-      tag_key = tags[j].toLowerCase();
+      let tag_key = tags[j].toLowerCase();
       if (tag_counts[tag_key] < 2) continue;
       if (!groups[tag_key]) groups[tag_key] = { key:tag_key, name:tag_display[tag_key], members:[] };
       groups[tag_key].members.push(item);
     }
   }
 
-  for (i = 0; i < sorted.length; ++i)
+  for (let i = 0; i < sorted.length; ++i)
   {
-    item = sorted[i];
-    tags = itemTags(item);
-    has_qualifying = false;
-    for (j = 0; j < tags.length; ++j)
+    let item = sorted[i];
+    let tags = itemTags(item);
+    let has_qualifying = false;
+    for (let j = 0; j < tags.length; ++j)
     {
       if (tag_counts[tags[j].toLowerCase()] >= 2)
       {
@@ -409,7 +389,7 @@ function groupedNodes()
     if (!has_qualifying) nodes.push({ type:'item', item:item, sortname:(tagsMatchActive(tags) ? '0_' : '1_') + item.name.toLowerCase() });
   }
 
-  for (key in groups)
+  for (let key in groups)
   {
     nodes.push({ type:'group', group:groups[key], sortname:(g_active_tags[key] ? '0_' : '1_') + groups[key].name.toLowerCase() });
   }
@@ -440,12 +420,9 @@ function round1(n)
    safe to call repeatedly — already-migrated items (tags is an array) are skipped. */
 function migrateTagsFormat()
 {
-  let i;
-  let item;
-
-  for (i = 0; i < g_scoop_items.length; ++i)
+  for (let i = 0; i < g_scoop_items.length; ++i)
   {
-    item = g_scoop_items[i];
+    let item = g_scoop_items[i];
     if (Array.isArray(item.tags)) continue;
 
     item.tags = item.group ? [item.group] : [];
@@ -455,25 +432,17 @@ function migrateTagsFormat()
 
 function migrateLogFormat()
 {
-  let date;
-  let day;
-  let key;
-  let item;
-  let count;
-  let i;
-  let entries;
-
-  for (date in g_log)
+  for (let date in g_log)
   {
-    day = g_log[date];
+    let day = g_log[date];
     if (Array.isArray(day)) continue;
 
-    entries = [];
-    for (key in day)
+    let entries = [];
+    for (let key in day)
     {
-      item = findScoopItem(key);
-      count = day[key];
-      for (i = 0; i < count; ++i)
+      let item = findScoopItem(key);
+      let count = day[key];
+      for (let i = 0; i < count; ++i)
       {
         entries.push({
           id: uid(), item_key: key, scale: 1,
@@ -555,9 +524,8 @@ function monthlyCost(food)
 function totalDailyProtein()
 {
   let total = 0;
-  let i;
 
-  for (i = 0; i < g_foods.length; ++i)
+  for (let i = 0; i < g_foods.length; ++i)
   {
     total += dailyProtein(g_foods[i]);
   }
@@ -568,10 +536,9 @@ function totalDailyProtein()
 function totalMonthlyCost()
 {
   let total = 0;
-  let i;
   let cost;
 
-  for (i = 0; i < g_foods.length; ++i)
+  for (let i = 0; i < g_foods.length; ++i)
   {
     cost = monthlyCost(g_foods[i]);
     if (cost != null) total += cost;
@@ -582,9 +549,8 @@ function totalMonthlyCost()
 
 function findScoopItem(key)
 {
-  let i;
 
-  for (i = 0; i < g_scoop_items.length; ++i)
+  for (let i = 0; i < g_scoop_items.length; ++i)
   {
     if (g_scoop_items[i].key == key) return g_scoop_items[i];
   }
@@ -595,12 +561,11 @@ function findScoopItem(key)
 function logCount(date, key)
 {
   let day = g_log[date];
-  let i;
   let n = 0;
 
   if (!day) return 0;
 
-  for (i = 0; i < day.length; ++i)
+  for (let i = 0; i < day.length; ++i)
   {
     if (day[i].item_key == key) ++n;
   }
@@ -632,11 +597,10 @@ function pushLogEntry(key, grams, protein_g, kcal, scale)
 function removeScoop(key)
 {
   let day = g_log[g_view_date];
-  let i;
 
   if (!day) return;
 
-  for (i = day.length - 1; i >= 0; --i)
+  for (let i = day.length - 1; i >= 0; --i)
   {
     if (day[i].item_key == key)
     {
@@ -676,11 +640,10 @@ function logCustomEntry()
 function removeLogEntry(entry_id)
 {
   let day = g_log[g_view_date];
-  let i;
 
   if (!day) return;
 
-  for (i = 0; i < day.length; ++i)
+  for (let i = 0; i < day.length; ++i)
   {
     if (day[i].id == entry_id)
     {
@@ -694,9 +657,8 @@ function entriesForItem(date, key)
 {
   let day = g_log[date] || [];
   let out = [];
-  let i;
 
-  for (i = 0; i < day.length; ++i)
+  for (let i = 0; i < day.length; ++i)
   {
     if (day[i].item_key == key) out.push(day[i]);
   }
@@ -709,11 +671,10 @@ function dayTotals(date)
   let day = g_log[date];
   let protein = 0;
   let kcal = 0;
-  let i;
 
   if (!day) return { protein:0, kcal:0 };
 
-  for (i = 0; i < day.length; ++i)
+  for (let i = 0; i < day.length; ++i)
   {
     if (day[i].protein_g != null) protein += day[i].protein_g;
     if (day[i].kcal != null) kcal += day[i].kcal;
@@ -726,9 +687,8 @@ function sortedLogDatesBeforeToday()
 {
   let today = todayISO();
   let dates = [];
-  let date;
 
-  for (date in g_log)
+  for (let date in g_log)
   {
     if (date < today) dates.push(date);
   }
@@ -741,16 +701,13 @@ function customKcalRatio()
 {
   let dates = sortedLogDatesBeforeToday();
   let ratio = custom_kcal_ratio_fallback;
-  let i;
-  let totals;
-  let day_ratio;
 
-  for (i = 0; i < dates.length; ++i)
+  for (let i = 0; i < dates.length; ++i)
   {
-    totals = dayTotals(dates[i]);
+    let totals = dayTotals(dates[i]);
     if (totals.protein <= 0 || totals.kcal <= 0) continue;
 
-    day_ratio = totals.kcal/totals.protein;
+    let day_ratio = totals.kcal/totals.protein;
     ratio = custom_kcal_ratio_rho*ratio + (1 - custom_kcal_ratio_rho)*day_ratio;
   }
 
@@ -781,28 +738,22 @@ function adjustedLogEntries(date)
 {
   let day = g_log[date] || [];
   let out = [];
-  let i;
-  let entry;
-  let item;
-  let scale;
-  let expected_protein;
-  let expected_kcal;
 
-  for (i = 0; i < day.length; ++i)
+  for (let i = 0; i < day.length; ++i)
   {
-    entry = day[i];
+    let entry = day[i];
     if (entry.item_key == 'custom')
     {
       out.push({ entry:entry, item:null, custom:true, expected_protein:null, expected_kcal:null });
       continue;
     }
 
-    item = findScoopItem(entry.item_key);
+    let item = findScoopItem(entry.item_key);
     if (!item) continue;
 
-    scale = expectedEntryScale(entry, item);
-    expected_protein = item.protein_g != null ? round1(item.protein_g*scale) : null;
-    expected_kcal = item.kcal != null ? Math.round(item.kcal*scale) : null;
+    let scale = expectedEntryScale(entry, item);
+    let expected_protein = item.protein_g != null ? round1(item.protein_g*scale) : null;
+    let expected_kcal = item.kcal != null ? Math.round(item.kcal*scale) : null;
 
     if (loggedValueDiffers(entry.protein_g, expected_protein, 0.05) || loggedValueDiffers(entry.kcal, expected_kcal, 0.5))
     {
@@ -847,23 +798,18 @@ function adjustedEntryDetail(info)
 function saveAddItemDraft()
 {
   let d = g_scoop_add_draft;
-  let num;
-  let item;
-  let protein_100g;
-  let kcal_100g;
-  let macros;
 
   if (!d) return;
   if (!d.name.trim()) return;
 
-  num = parseFloat(d.scoop_g);
-  protein_100g = parseFloat(d.protein_100g);
-  kcal_100g = parseFloat(d.kcal_100g);
+  let num = parseFloat(d.scoop_g);
+  let protein_100g = parseFloat(d.protein_100g);
+  let kcal_100g = parseFloat(d.kcal_100g);
   protein_100g = isNaN(protein_100g) ? null : protein_100g;
   kcal_100g = isNaN(kcal_100g) ? null : kcal_100g;
-  macros = computeMacrosFromDensity(isNaN(num) ? null : num, protein_100g, kcal_100g);
+  let macros = computeMacrosFromDensity(isNaN(num) ? null : num, protein_100g, kcal_100g);
 
-  item = {
+  let item = {
     key: uid(),
     barcode: d.barcode.trim() ? d.barcode.trim() : null,
     name: d.name.trim(),
@@ -1222,7 +1168,6 @@ function renderScalePanel(item)
   let today_entries = entriesForItem(g_view_date, item.key);
   let volume_preview;
   let h = '';
-  let i;
   let e;
 
   h += '<tr class="editrow"><td colspan="7">';
@@ -1259,7 +1204,7 @@ function renderScalePanel(item)
   {
     h += '<div class="hint" style="margin-top:8px">logged today:</div>';
     h += '<div class="scale-entry-list">';
-    for (i = 0; i < today_entries.length; ++i)
+    for (let i = 0; i < today_entries.length; ++i)
     {
       e = today_entries[i];
       h += '<div class="scale-entry">';
@@ -1414,14 +1359,12 @@ function extractJSONObject(text)
 function summarizeAPIResponse(data)
 {
   let lines = [];
-  let i;
-  let j;
   let block;
   let result;
 
   if (!data || !Array.isArray(data.content)) return 'no content array in response:\n' + JSON.stringify(data, null, 2).slice(0, 2000);
 
-  for (i = 0; i < data.content.length; ++i)
+  for (let i = 0; i < data.content.length; ++i)
   {
     block = data.content[i];
 
@@ -1438,7 +1381,7 @@ function summarizeAPIResponse(data)
       lines.push('[web_search_tool_result] ' + (Array.isArray(block.content) ? block.content.length : 0) + ' result(s):');
       if (Array.isArray(block.content))
       {
-        for (j = 0; j < block.content.length; ++j)
+        for (let j = 0; j < block.content.length; ++j)
         {
           result = block.content[j];
           lines.push('  - ' + (result.title || '(no title)') + ' — ' + (result.url || ''));
@@ -1572,19 +1515,13 @@ function buildDiaryText()
   let lines = [];
   let sorted = sortedScoopItems();
   let dates = Object.keys(g_log).sort();
-  let i;
-  let item;
-  let d;
-  let day;
-  let entry;
-  let totals;
 
   lines.push('PANTRY ITEMS');
   lines.push('');
 
-  for (i = 0; i < sorted.length; ++i)
+  for (let i = 0; i < sorted.length; ++i)
   {
-    item = sorted[i];
+    let item = sorted[i];
     lines.push(item.name + (item.brand ? ' — ' + item.brand : '') + (item.barcode ? ' [' + item.barcode + ']' : ''));
     lines.push('  ' + formatVolume(item)
       + ' · ' + (item.scoop_g != null ? item.scoop_g + ' g' : '— g')
@@ -1598,16 +1535,16 @@ function buildDiaryText()
 
   if (!dates.length) lines.push('(no logged days yet)');
 
-  for (d = 0; d < dates.length; ++d)
+  for (let d = 0; d < dates.length; ++d)
   {
-    day = g_log[dates[d]] || [];
-    totals = dayTotals(dates[d]);
+    let day = g_log[dates[d]] || [];
+    let totals = dayTotals(dates[d]);
     lines.push(dates[d] + ' — ' + fmt0(totals.protein) + ' g protein / ' + fmt10(totals.kcal) + ' kcal (target ' + g_target + ' g)');
 
-    for (i = 0; i < day.length; ++i)
+    for (let i = 0; i < day.length; ++i)
     {
-      entry = day[i];
-      item = findScoopItem(entry.item_key);
+      let entry = day[i];
+      let item = findScoopItem(entry.item_key);
       lines.push('  ' + (item ? item.name : (entry.item_key == 'custom' ? 'Custom' : entry.item_key))
         + (entry.grams != null ? ' (' + entry.grams + ' g' + (entry.scale != null && entry.scale != 1 ? ', ' + entry.scale.toFixed(2) + '×' : '') + ')' : '')
         + (entry.protein_g != null ? ' — ' + fmt0(entry.protein_g) + ' g' : '')
@@ -1665,7 +1602,6 @@ function parseImportText()
 function applyImport()
 {
   let parsed = g_import_pending;
-  let i;
 
   if (!parsed) return;
 
@@ -1678,7 +1614,7 @@ function applyImport()
   if (Array.isArray(parsed.foods))
   {
     g_foods = parsed.foods;
-    for (i = 0; i < g_foods.length; ++i)
+    for (let i = 0; i < g_foods.length; ++i)
     {
       g_foods[i].daily_raw = g_foods[i].daily != null ? String(g_foods[i].daily) : '0';
       g_foods[i].price_raw = g_foods[i].price != null ? String(g_foods[i].price) : '';
@@ -1689,7 +1625,7 @@ function applyImport()
   if (Array.isArray(parsed.scoop_items))
   {
     g_scoop_items = parsed.scoop_items;
-    for (i = 0; i < g_scoop_items.length; ++i)
+    for (let i = 0; i < g_scoop_items.length; ++i)
     {
       g_scoop_items[i].scoop_g_raw = g_scoop_items[i].scoop_g != null ? String(g_scoop_items[i].scoop_g) : '';
       g_scoop_items[i].protein_g_raw = g_scoop_items[i].protein_g != null ? String(g_scoop_items[i].protein_g) : '';
@@ -1835,8 +1771,6 @@ function load()
 {
   function applyLoaded(payload)
   {
-    let i;
-    let j;
 
     if (!payload) return;
     if (payload.target != null)
@@ -1845,9 +1779,9 @@ function load()
       g_target_raw = String(g_target);
     }
 
-    for (i = 0; i < payload.foods.length; ++i)
+    for (let i = 0; i < payload.foods.length; ++i)
     {
-      for (j = 0; j < g_foods.length; ++j)
+      for (let j = 0; j < g_foods.length; ++j)
       {
         if (g_foods[j].key == payload.foods[i].key)
         {
@@ -1868,7 +1802,7 @@ function load()
     {
       g_scoop_items = payload.scoop_items;
 
-      for (i = 0; i < g_scoop_items.length; ++i)
+      for (let i = 0; i < g_scoop_items.length; ++i)
       {
         g_scoop_items[i].scoop_g_raw = g_scoop_items[i].scoop_g != null ? String(g_scoop_items[i].scoop_g) : '';
         g_scoop_items[i].protein_g_raw = g_scoop_items[i].protein_g != null ? String(g_scoop_items[i].protein_g) : '';
@@ -2003,12 +1937,6 @@ function renderLoadoutSection()
   let diff = total - g_target;
   let cost = totalMonthlyCost();
   let h = '';
-  let i;
-  let food;
-  let per_gram;
-  let daily_protein;
-  let weekly;
-  let packs;
 
   h += '<div class="eyebrow">// weekly protein loadout</div>';
   h += '<h1>weekly loadout</h1>';
@@ -2024,13 +1952,13 @@ function renderLoadoutSection()
   h += '<th>food</th><th class="num">daily</th><th class="num">protein/day</th><th class="num">per week</th><th class="num">units/pkg</th><th class="num">price/pkg</th>';
   h += '</tr></thead><tbody>';
 
-  for (i = 0; i < g_foods.length; ++i)
+  for (let i = 0; i < g_foods.length; ++i)
   {
-    food = g_foods[i];
-    per_gram = proteinPerGram(food);
-    daily_protein = dailyProtein(food);
-    weekly = weeklyAmount(food);
-    packs = packagesPerWeek(food);
+    let food = g_foods[i];
+    let per_gram = proteinPerGram(food);
+    let daily_protein = dailyProtein(food);
+    let weekly = weeklyAmount(food);
+    let packs = packagesPerWeek(food);
 
     h += '<tr class="food">';
     h += '<td><span class="foodname">'+food.name+'<span class="unit">'
@@ -2156,11 +2084,10 @@ function renderGroupHeader(g)
 {
   let collapsed = !!g_collapsed_groups[g.key];
   let h = '';
-  let i;
   let total_protein = 0;
   let total_kcal = 0;
 
-  for (i = 0; i < g.members.length; ++i)
+  for (let i = 0; i < g.members.length; ++i)
   {
     if (g.members[i].protein_g != null) total_protein += g.members[i].protein_g;
     if (g.members[i].kcal != null) total_kcal += g.members[i].kcal;
@@ -2190,9 +2117,6 @@ function renderGroupHeader(g)
 function renderGroupedItems(is_today)
 {
   let h = '';
-  let i;
-  let n;
-  let j;
   let flat;
 
   if (g_flatten_view)
@@ -2207,15 +2131,15 @@ function renderGroupedItems(is_today)
       return a.sortname < b.sortname ? -1 : a.sortname > b.sortname ? 1 : 0;
     });
 
-    for (i = 0; i < flat.length; ++i) h += renderItemRow(flat[i].item, is_today, false, 'standalone');
+    for (let i = 0; i < flat.length; ++i) h += renderItemRow(flat[i].item, is_today, false, 'standalone');
     return h;
   }
 
   let nodes = groupedNodes();
 
-  for (i = 0; i < nodes.length; ++i)
+  for (let i = 0; i < nodes.length; ++i)
   {
-    n = nodes[i];
+    let n = nodes[i];
     if (n.type == 'item')
     {
       h += renderItemRow(n.item, is_today, false, 'standalone');
@@ -2225,7 +2149,7 @@ function renderGroupedItems(is_today)
     h += renderGroupHeader(n.group);
     if (!g_collapsed_groups[n.group.key])
     {
-      for (j = 0; j < n.group.members.length; ++j) h += renderItemRow(n.group.members[j], is_today, true, n.group.key);
+      for (let j = 0; j < n.group.members.length; ++j) h += renderItemRow(n.group.members[j], is_today, true, n.group.key);
     }
   }
 
@@ -2269,18 +2193,15 @@ function saveGroupRename()
 {
   let new_name = g_group_rename_draft.trim();
   let new_key;
-  let i;
-  let j;
-  let tags;
 
   if (!new_name) return;
 
   new_key = new_name.toLowerCase();
 
-  for (i = 0; i < g_scoop_items.length; ++i)
+  for (let i = 0; i < g_scoop_items.length; ++i)
   {
-    tags = itemTags(g_scoop_items[i]);
-    for (j = 0; j < tags.length; ++j)
+    let tags = itemTags(g_scoop_items[i]);
+    for (let j = 0; j < tags.length; ++j)
     {
       if (tags[j].toLowerCase() == g_group_rename_key) tags[j] = new_name;
     }
@@ -2336,8 +2257,6 @@ function renderAdjustedLogDetails()
 {
   let entries = adjustedLogEntries(g_view_date);
   let h = '';
-  let i;
-  let info;
 
   if (!entries.length) return '';
 
@@ -2349,9 +2268,9 @@ function renderAdjustedLogDetails()
   if (g_adjusted_log_open)
   {
     h += '<div class="adjusted-log-list">';
-    for (i = 0; i < entries.length; ++i)
+    for (let i = 0; i < entries.length; ++i)
     {
-      info = entries[i];
+      let info = entries[i];
       h += '<div class="adjusted-log-item">';
       h += '<span class="adjusted-log-name">' + esc(adjustedEntryLabel(info)) + '</span>';
       h += '<span class="adjusted-log-detail">' + adjustedEntryDetail(info) + '</span>';
@@ -2368,14 +2287,12 @@ function renderTagFilterBar()
 {
   let names = distinctTagNames();
   let h = '';
-  let i;
-  let key;
 
   h += '<div class="tagfilterbar">';
 
-  for (i = 0; i < names.length; ++i)
+  for (let i = 0; i < names.length; ++i)
   {
-    key = names[i].toLowerCase();
+    let key = names[i].toLowerCase();
     h += '<button class="tagfilterbtn' + (g_active_tags[key] ? ' on' : '') + '" data-a="tag-filter-toggle" data-tag="' + esc(key) + '">' + esc(names[i]) + '</button>';
   }
 
@@ -2391,10 +2308,6 @@ function renderScoopSection()
   let is_today = g_view_date == todayISO();
   let totals = dayTotals(g_view_date);
   let tdiff = totals.protein - g_target;
-  let i;
-  let item;
-  let count;
-  let d;
 
   h += '<div class="eyebrow" style="margin-top:8px">// scoop log</div>';
   h += '<h1 style="font-size:17px;margin-top:2px">pantry log</h1>';
@@ -2447,7 +2360,7 @@ function renderScoopSection()
 
   if (g_scoop_add_draft)
   {
-    d = g_scoop_add_draft;
+    let d = g_scoop_add_draft;
     h += '<div class="addform">';
     h += '<input type="text" data-adddraft="barcode" placeholder="barcode" value="' + esc(d.barcode) + '">';
     h += '<button class="smallbtn" data-a="addex-lookup-off">look up on O.F.F.</button>';
@@ -2507,8 +2420,6 @@ function renderPrintList()
 {
   let el = document.getElementById('printlist');
   let h = '';
-  let i;
-  let item;
   let sorted_items = sortedScoopItems();
 
   if (!el) return;
@@ -2516,9 +2427,9 @@ function renderPrintList()
   h += '<h2>pantry scoop reference</h2>';
   h += '<table><thead><tr><th>barcode</th><th>name</th><th>volume</th><th>scoop</th><th>protein</th><th>kcal</th></tr></thead><tbody>';
 
-  for (i = 0; i < sorted_items.length; ++i)
+  for (let i = 0; i < sorted_items.length; ++i)
   {
-    item = sorted_items[i];
+    let item = sorted_items[i];
     h += '<tr>';
     h += '<td>' + esc(item.barcode || '—') + '</td>';
     h += '<td>' + esc(item.name) + (item.brand ? ' — ' + esc(item.brand) : '') + '</td>';
@@ -2583,14 +2494,6 @@ function defaults()
 document.addEventListener('input', function(ev)
 {
   let target = ev.target;
-  let key;
-  let field;
-  let food;
-  let item;
-  let scoop_key;
-  let adddraft_field;
-  let editdraft_field;
-  let i;
   let num;
 
   if (target.id == 'target-input')
@@ -2610,7 +2513,7 @@ document.addEventListener('input', function(ev)
     return;
   }
 
-  scoop_key = target.dataset.scaledraft;
+  let scoop_key = target.dataset.scaledraft;
   if (scoop_key && g_scale_draft)
   {
     if (scoop_key == 'scale')
@@ -2672,7 +2575,7 @@ document.addEventListener('input', function(ev)
     return;
   }
 
-  adddraft_field = target.dataset.adddraft;
+  let adddraft_field = target.dataset.adddraft;
   if (adddraft_field)
   {
     g_scoop_add_draft[adddraft_field] = target.value;
@@ -2687,7 +2590,7 @@ document.addEventListener('input', function(ev)
     return;
   }
 
-  editdraft_field = target.dataset.editdraft;
+  let editdraft_field = target.dataset.editdraft;
   if (editdraft_field)
   {
     g_edit_draft[editdraft_field] = target.value;
@@ -2696,14 +2599,14 @@ document.addEventListener('input', function(ev)
     return;
   }
 
-  key = target.dataset.key;
-  field = target.dataset.field;
+  let key = target.dataset.key;
+  let field = target.dataset.field;
   if (!key) return;
 
-  for (i = 0; i < g_foods.length; ++i)
+  for (let i = 0; i < g_foods.length; ++i)
   {
     if (g_foods[i].key != key) continue;
-    food = g_foods[i];
+    let food = g_foods[i];
 
     num = parseFloat(target.value);
     if (field == 'daily')
@@ -2734,13 +2637,11 @@ document.addEventListener('focusin', function(ev)
 
 document.addEventListener('focusout', function(ev)
 {
-  let list;
-
   if (!ev.target || !ev.target.dataset || ev.target.dataset.editdraft != 'tags') return;
 
   setTimeout(function()
   {
-    list = document.getElementById('tag-suggest');
+    let list = document.getElementById('tag-suggest');
     if (list) list.classList.remove('open');
   }, 160);
 });
@@ -2748,11 +2649,10 @@ document.addEventListener('focusout', function(ev)
 document.addEventListener('change', function(ev)
 {
   let target = ev.target;
-  let file;
 
   if (target.dataset && target.dataset.a == 'import-file')
   {
-    file = target.files && target.files[0];
+    let file = target.files && target.files[0];
     if (file) readImportFile(file);
     return;
   }
@@ -2770,8 +2670,6 @@ document.addEventListener('click', function(ev)
   let target = ev.target.closest('[data-a]');
   let action;
   let defs;
-  let i;
-  let j;
 
   if (!target) return;
   action = target.dataset.a;
@@ -2785,9 +2683,9 @@ document.addEventListener('click', function(ev)
 
     case 'reset':
       defs = defaults();
-      for (i = 0; i < g_foods.length; ++i)
+      for (let i = 0; i < g_foods.length; ++i)
       {
-        for (j = 0; j < defs.length; ++j)
+        for (let j = 0; j < defs.length; ++j)
         {
           if (g_foods[i].key != defs[j].key) continue;
           g_foods[i].daily = defs[j].daily;
