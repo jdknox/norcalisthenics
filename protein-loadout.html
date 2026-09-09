@@ -516,6 +516,7 @@ let g_import_open = false;
 let g_import_text = '';
 let g_import_pending = null;    /* parsed object awaiting confirmation, or null */
 let g_import_status = '';
+let g_active_tab = 'pantry';
 
 function proteinPerGram(food)
 {
@@ -1830,9 +1831,33 @@ function renderBlankStartupError(title, error)
   renderStartupError(title, error);
 }
 
-function render()
+function renderTabBar()
 {
-  let app = document.getElementById('app');
+  let h = '';
+
+  h += '<div class="apptabs">';
+  h += '<button class="tabbtn' + (g_active_tab == 'pantry' ? ' on' : '') + '" data-a="tab-open" data-tab="pantry">pantry log</button>';
+  h += '<button class="tabbtn' + (g_active_tab == 'loadout' ? ' on' : '') + '" data-a="tab-open" data-tab="loadout">weekly loadout</button>';
+  h += '</div>';
+
+  return h;
+}
+
+function renderTargetRow()
+{
+  let h = '';
+
+  h += '<div class="targetrow">';
+  h += '<label>target g/day</label>';
+  h += '<input type="text" inputmode="decimal" id="target-input" value="'+g_target_raw+'">';
+  h += '<button class="reset" data-a="reset">reset to defaults</button>';
+  h += '</div>';
+
+  return h;
+}
+
+function renderLoadoutSection()
+{
   let total = totalDailyProtein();
   let diff = total - g_target;
   let cost = totalMonthlyCost();
@@ -1844,14 +1869,8 @@ function render()
   let weekly;
   let packs;
 
-  h += '<div class="eyebrow">// daily protein loadout</div>';
-  h += '<h1>protein_loadout</h1>';
-
-  h += '<div class="targetrow">';
-  h += '<label>target g/day</label>';
-  h += '<input type="text" inputmode="decimal" id="target-input" value="'+g_target_raw+'">';
-  h += '<button class="reset" data-a="reset">reset to defaults</button>';
-  h += '</div>';
+  h += '<div class="eyebrow">// weekly protein loadout</div>';
+  h += '<h1>weekly loadout</h1>';
 
   h += '<div class="summary">';
   h += '<div class="cell"><div class="lab">total protein</div><div class="val">'+fmt1(total)+' g</div></div>';
@@ -1926,7 +1945,21 @@ function render()
 
   h += '<div class="note">Package sizes and protein content are fixed per your on-hand packaging. Edit daily amount (grams, or eggs for eggs) and package price to update totals. Data persists locally.</div>';
 
-  h += renderScoopSection();
+  return h;
+}
+
+function render()
+{
+  let app = document.getElementById('app');
+  let h = '';
+
+  h += '<div class="eyebrow">// daily protein loadout</div>';
+  h += '<h1>protein_loadout</h1>';
+  h += renderTargetRow();
+  h += renderTabBar();
+
+  if (g_active_tab == 'loadout') h += renderLoadoutSection();
+  else h += renderScoopSection();
 
   app.innerHTML = h;
   renderPrintList();
@@ -2550,6 +2583,11 @@ document.addEventListener('click', function(ev)
 
   switch (action)
   {
+    case 'tab-open':
+      g_active_tab = target.dataset.tab == 'loadout' ? 'loadout' : 'pantry';
+      render();
+      return;
+
     case 'reset':
       defs = defaults();
       for (i = 0; i < g_foods.length; ++i)

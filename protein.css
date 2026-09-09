@@ -49,6 +49,10 @@ tfoot td{border-top:2px solid var(--line2);font-family:var(--mono);font-weight:7
 .note{font-size:12px;color:var(--faint);margin-top:-8px;margin-bottom:20px}
 .reset{font-family:var(--mono);font-size:11px;color:var(--faint);border:1px solid var(--line);border-radius:4px;padding:6px 10px;background:var(--panel);cursor:pointer}
 .reset:hover{color:var(--text);border-color:var(--line2)}
+.apptabs{display:flex;gap:6px;border-bottom:1px solid var(--line);margin:0 0 18px}
+.tabbtn{font-family:var(--mono);font-size:12px;color:var(--muted);border:1px solid transparent;border-bottom:none;border-radius:6px 6px 0 0;padding:8px 12px;background:none;cursor:pointer}
+.tabbtn:hover{color:var(--text);background:var(--panel)}
+.tabbtn.on{color:var(--green-hi);background:var(--panel);border-color:var(--line);font-weight:700}
 .smallbtn{font-family:var(--mono);font-size:11px;color:var(--faint);border:1px solid var(--line);border-radius:4px;padding:6px 9px;background:var(--panel);cursor:pointer}
 .smallbtn:hover{color:var(--text);border-color:var(--line2)}
 .smallbtn:disabled{opacity:.4;cursor:default}
