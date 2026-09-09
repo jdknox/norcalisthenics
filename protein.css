@@ -35,14 +35,14 @@ h1{font-family:var(--mono);font-size:20px;font-weight:600;margin:6px 0 18px;lett
 .summary .val.under{color:var(--coral)}
 table{width:100%;border-collapse:collapse;margin-bottom:20px}
 th{text-align:left;font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);padding:0 8px 8px;font-weight:400}
-th.num,td.num{text-align:right}
+th.num,td.num{text-align:right;}
 td{padding:9px 8px;border-top:1px solid var(--line);vertical-align:middle}
 tr.food td{background:var(--panel)}
 tr.food:first-child td{border-top:none}
 .foodname{font-weight:600;font-size:13.5px}
 .foodname .unit{display:block;font-family:var(--mono);font-size:10.5px;color:var(--faint);font-weight:400;margin-top:1px}
-td input{width:64px}
-td.pack input{width:64px}
+td input{width:48px}
+td.pack input{width:48px;}
 .protein-out{font-family:var(--mono);color:var(--green-hi);font-weight:700}
 .pack-out{font-family:var(--mono);color:var(--muted);font-size:12.5px}
 tfoot td{border-top:2px solid var(--line2);font-family:var(--mono);font-weight:700;padding-top:12px}
@@ -73,9 +73,11 @@ tfoot td{border-top:2px solid var(--line2);font-family:var(--mono);font-weight:7
 .tagfilterbtn.flattenbtn{margin-left:6px;border-style:dashed}
 .tagfilterbtn.flattenbtn.on{background:var(--orange);color:var(--orange-ink);border-color:var(--orange);border-style:solid}
 .datelabel{font-family:var(--mono);font-size:13px;color:var(--muted)}
-.scoopactions{display:grid;grid-template-columns:60px 26px 42px 92px;gap:5px;align-items:center}
+.scoopactions{display:grid;grid-template-columns:60px 92px;gap:5px;align-items:center}
 .scoopactions .smallbtn{width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-left:0;padding-right:0;text-align:center}
 .btnslot{display:block}
+.measurestack{line-height:1.35}
+.measurestack span{display:block}
 .editbtn{font-size:11px;color:var(--faint);background:none;border:none;cursor:pointer;padding:0 2px;vertical-align:middle}
 .editbtn:hover{color:var(--text)}
 .editrow{background:var(--panel2)}
@@ -98,6 +100,9 @@ tfoot td{border-top:2px solid var(--line2);font-family:var(--mono);font-weight:7
 .fetchstatus{font-size:11.5px;color:var(--faint);padding:2px 8px 12px}
 .addform{display:flex;gap:8px;flex-wrap:wrap;border:1px solid var(--line);border-radius:6px;background:var(--panel);padding:10px;margin-bottom:16px}
 .addform input{width:120px}
+.unitinput{position:relative;display:inline-block}
+.unitinput input{padding-right:46px}
+.unitghost{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-family:var(--mono);font-size:13px;color:var(--faint);pointer-events:none;user-select:none}
 .tagwrap{position:relative}
 .tagwrap input{width:260px}
 .tagsuggest{display:none;position:absolute;left:0;top:100%;z-index:5;margin-top:4px;max-height:180px;overflow:auto;background:var(--panel);border:1px solid var(--line2);border-radius:6px;box-shadow:0 8px 24px rgba(0,0,0,.4);min-width:220px}

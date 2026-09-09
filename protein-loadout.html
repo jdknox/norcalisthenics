@@ -461,6 +461,7 @@ let g_view_date = todayISO();   /* editing only allowed when this == todayISO() 
 let g_fetch_status = {};        /* item_key -> transient status text, not persisted */
 let g_fetch_pending = {};       /* item_key -> true while awaiting in-page overwrite confirmation */
 let g_fetch_context = {};       /* item_key -> which rendered context ('standalone' or a group key) triggered the fetch */
+let g_fetch_barcode = {};       /* item_key -> barcode used by a draft-triggered lookup */
 let g_scoop_add_draft = null;   /* { barcode, name, brand, scoop_g, protein_100g, kcal_100g } while the add-item form is open */
 let g_add_item_status = '';     /* transient feedback for the add-item form's O.F.F. lookup */
 let g_last_lookup_debug = null; /* raw response text when the web-search fallback returns something unparseable/unexpected, not persisted */
@@ -992,21 +993,26 @@ function renderScoopEditRow(item)
   let d = g_edit_draft;
   let h = '';
 
-  h += '<tr class="editrow"><td colspan="7">';
+  h += '<tr class="editrow"><td colspan="6">';
   h += '<div class="addform">';
   h += '<input type="text" data-editdraft="name" placeholder="name" value="' + esc(d.name) + '">';
   h += '<input type="text" data-editdraft="brand" placeholder="brand" value="' + esc(d.brand) + '">';
   h += '<input type="text" data-editdraft="barcode" placeholder="barcode" value="' + esc(d.barcode) + '">';
   h += '<input type="text" data-editdraft="volume" placeholder="volume (mL, or BOWL/CAN)" value="' + esc(d.volume) + '">';
-  h += '<input type="text" inputmode="decimal" data-editdraft="scoop_g" placeholder="scoop g" value="' + esc(d.scoop_g) + '">';
-  h += '<input type="text" inputmode="decimal" data-editdraft="protein_100g" placeholder="protein / 100g" value="' + esc(d.protein_100g) + '">';
-  h += '<input type="text" inputmode="decimal" data-editdraft="kcal_100g" placeholder="kcal / 100g" value="' + esc(d.kcal_100g) + '">';
-  h += '<input type="text" inputmode="decimal" data-editdraft="protein_g" placeholder="protein g" value="' + esc(d.protein_g) + '">';
-  h += '<input type="text" inputmode="decimal" data-editdraft="kcal" placeholder="kcal" value="' + esc(d.kcal) + '">';
+  h += '<span class="unitinput"><input type="text" inputmode="decimal" data-editdraft="scoop_g" placeholder="scoop" value="' + esc(d.scoop_g) + '"><span class="unitghost" aria-hidden="true">g</span></span>';
+  h += '<span class="unitinput"><input type="text" inputmode="decimal" data-editdraft="protein_100g" placeholder="protein" value="' + esc(d.protein_100g) + '"><span class="unitghost" aria-hidden="true">/100g</span></span>';
+  h += '<span class="unitinput"><input type="text" inputmode="decimal" data-editdraft="kcal_100g" placeholder="kcal" value="' + esc(d.kcal_100g) + '"><span class="unitghost" aria-hidden="true">/100g</span></span>';
+  h += '<span class="unitinput"><input type="text" inputmode="decimal" data-editdraft="protein_g" placeholder="protein" value="' + esc(d.protein_g) + '"><span class="unitghost" aria-hidden="true">g</span></span>';
+  h += '<span class="unitinput"><input type="text" inputmode="decimal" data-editdraft="kcal" placeholder="kcal" value="' + esc(d.kcal) + '"><span class="unitghost" aria-hidden="true">kcal</span></span>';
   h += '<span class="tagwrap">';
   h += '<input type="text" data-editdraft="tags" autocomplete="off" placeholder="tags, comma separated (e.g. Skyr bowl, Snack mix)" value="' + esc(d.tags) + '">';
   h += '<div class="tagsuggest" id="tag-suggest"></div>';
   h += '</span>';
+  let possible_barcode = d.barcode.trim();
+  if (possible_barcode.length > 2)
+  {
+    h += '<button class="smallbtn" data-a="scoop-fetch" data-key="' + item.key + '" data-context="' + esc(g_edit_context || 'standalone') + '"' + (g_fetch_pending[item.key] ? ' disabled' : '') + '>fetch O.F.F.</button>';
+  }
   h += '<button class="smallbtn" data-a="scoop-edit-save">save</button>';
   h += '<button class="smallbtn" data-a="scoop-edit-cancel">cancel</button>';
   h += '<div class="hint" style="width:100%;margin-top:2px">This permanently corrects the pantry item\'s base values (used as the default the next time you log or scale a scoop). It does not change days already logged. If protein/kcal per 100g are set, changing scoop g (or the per-100g values) recomputes protein g / kcal automatically — you can still type over the result manually afterward. An item can carry multiple tags (comma separated) — suggestions match whichever tag you\'re currently typing. Two or more items sharing a tag collapse together in the list; an item can appear under more than one tag.</div>';
@@ -1170,7 +1176,7 @@ function renderScalePanel(item)
   let h = '';
   let e;
 
-  h += '<tr class="editrow"><td colspan="7">';
+  h += '<tr class="editrow"><td colspan="6">';
   h += '<div class="scalepanel">';
 
   h += '<div class="scalerow">';
@@ -1227,14 +1233,18 @@ function renderScalePanel(item)
    Note: browsers treat User-Agent as a restricted fetch header and may silently
    drop it regardless of what's set here — there's no way to guarantee OFF's
    requested identification from pure client-side JS without a backend. */
-function requestFetchOFF(key, context)
+function requestFetchOFF(key, context, barcode)
 {
   let item = findScoopItem(key);
+  let lookup_barcode = barcode != null ? String(barcode).trim() : '';
   let has_existing;
 
-  if (!item || !item.barcode) return;
+  if (!item) return;
+  if (!lookup_barcode && item.barcode) lookup_barcode = item.barcode;
+  if (!lookup_barcode) return;
 
   g_fetch_context[key] = context || 'standalone';
+  g_fetch_barcode[key] = lookup_barcode;
 
   has_existing = item.protein_g != null || item.kcal != null;
   if (has_existing && !g_fetch_pending[key])
@@ -1253,6 +1263,7 @@ function cancelFetchOFF(key)
 {
   g_fetch_pending[key] = false;
   g_fetch_status[key] = null;
+  g_fetch_barcode[key] = null;
   render();
 }
 
@@ -1485,13 +1496,18 @@ function formatOFFMatchStatus(result)
 function doFetchOFF(key)
 {
   let item = findScoopItem(key);
+  let lookup_barcode;
 
-  if (!item || !item.barcode) return;
+  if (!item) return;
 
+  lookup_barcode = g_fetch_barcode[key] || item.barcode;
+  if (!lookup_barcode) return;
+
+  g_fetch_pending[key] = false;
   g_fetch_status[key] = 'looking up… (may take longer if O.F.F. is unreachable and it falls back to a web search)';
   render();
 
-  fetchOFFProduct(item.barcode, function(result)
+  fetchOFFProduct(lookup_barcode, function(result)
   {
     if (!result.found)
     {
@@ -1503,7 +1519,14 @@ function doFetchOFF(key)
     if (result.protein_100g != null) item.protein_100g = result.protein_100g;
     if (result.kcal_100g != null) item.kcal_100g = result.kcal_100g;
     recomputeItemMacrosFromDensity(item);
+    if (g_edit_item_key == key && g_edit_draft)
+    {
+      if (result.protein_100g != null) g_edit_draft.protein_100g = String(result.protein_100g);
+      if (result.kcal_100g != null) g_edit_draft.kcal_100g = String(result.kcal_100g);
+      recomputeEditDraftMacros();
+    }
 
+    g_fetch_barcode[key] = null;
     g_fetch_status[key] = formatOFFMatchStatus(result);
     render();
     save();
@@ -2042,10 +2065,9 @@ function renderItemRow(item, is_today, indent, context)
   h += '<tr class="scooprow' + (indent ? ' groupmember' : '') + '">';
   h += '<td><span class="foodname">' + esc(item.name)
      + ' <button class="editbtn" data-a="scoop-edit-open" data-key="' + item.key + '" data-context="' + esc(context) + '" title="edit name/brand/barcode/volume/scoop/protein/kcal/tags">✎</button>'
-     + '<span class="unit">' + esc(item.brand || '') + (item.barcode ? ' · ' + esc(item.barcode) : '') + '</span></span></td>';
-  h += '<td class="num pack-out">' + esc(formatVolume(item)) + '</td>';
-  h += '<td class="num pack-out">' + (item.scoop_g != null ? esc(item.scoop_g) + ' g' : '—') + '</td>';
-  h += '<td class="num pack-out">' + (item.protein_g != null ? esc(item.protein_g) + ' g' : '—') + '</td>';
+     + '<span class="unit">' + esc(item.brand || '') /* + (item.barcode ? ' · ' + esc(item.barcode) : '') */ + '</span></span></td>';
+  h += '<td class="num pack-out measurestack"><span>' + esc(formatVolume(item)) + '</span><span>' + (item.scoop_g != null ? esc(item.scoop_g) + ' g' : '—') + '</span></td>';
+  h += '<td class="num pack-out">' + (item.protein_g != null ? esc(item.protein_g) : '—') + '</td>';
   h += '<td class="num pack-out">' + (item.kcal != null ? esc(item.kcal) : '—') + '</td>';
   h += '<td class="num scoopcount">' + count + '</td>';
   h += '<td class="scoopactions">';
@@ -2053,8 +2075,6 @@ function renderItemRow(item, is_today, indent, context)
   if (count > 0) h += '<button class="smallbtn" data-a="scoop-remove" data-key="' + item.key + '"' + (!is_today ? ' disabled' : '') + '>−</button>';
   else h += '<span class="btnslot"></span>';
   h += '<button class="smallbtn" data-a="scoop-scale-open" data-key="' + item.key + '" data-context="' + esc(context) + '">edit</button>';
-  if (item.barcode) h += '<button class="smallbtn" data-a="scoop-fetch" data-key="' + item.key + '" data-context="' + esc(context) + '"' + (g_fetch_pending[item.key] ? ' disabled' : '') + '>fetch O.F.F.</button>';
-  else h += '<span class="btnslot"></span>';
   h += '</td>';
   h += '</tr>';
 
@@ -2062,7 +2082,7 @@ function renderItemRow(item, is_today, indent, context)
   {
     if (g_fetch_pending[item.key])
     {
-      h += '<tr class="scoopstatusrow"><td colspan="7" class="fetchstatus">';
+      h += '<tr class="scoopstatusrow"><td colspan="6" class="fetchstatus">';
       h += esc(g_fetch_status[item.key] || '') + ' ';
       h += '<button class="smallbtn" data-a="scoop-fetch-confirm" data-key="' + item.key + '">confirm overwrite</button> ';
       h += '<button class="smallbtn" data-a="scoop-fetch-cancel" data-key="' + item.key + '">cancel</button>';
@@ -2070,7 +2090,7 @@ function renderItemRow(item, is_today, indent, context)
     }
     else
     {
-      h += '<tr class="scoopstatusrow"><td colspan="7" class="fetchstatus">' + esc(g_fetch_status[item.key]) + '</td></tr>';
+      h += '<tr class="scoopstatusrow"><td colspan="6" class="fetchstatus">' + esc(g_fetch_status[item.key]) + '</td></tr>';
     }
   }
 
@@ -2097,13 +2117,13 @@ function renderGroupHeader(g)
   h += '<td colspan="4"><button class="grouptoggle" data-a="group-toggle" data-group="' + esc(g.key) + '">'
      + (collapsed ? '▸' : '▾') + ' ' + esc(g.name) + '<span class="unit">' + g.members.length + ' items</span></button>'
      + ' <button class="editbtn" data-a="group-rename-open" data-group="' + esc(g.key) + '" data-name="' + esc(g.name) + '" title="rename group">✎</button></td>';
-  h += '<td class="num pack-out">' + fmt1(total_protein) + ' g / ' + fmt1(total_kcal) + ' kcal</td>';
+  // h += '<td class="num pack-out">' + fmt1(total_protein) + ' g / ' + fmt1(total_kcal) + ' kcal</td>';
   h += '<td colspan="2"></td>';
   h += '</tr>';
 
   if (g_group_rename_key == g.key)
   {
-    h += '<tr class="editrow"><td colspan="7"><div class="addform">';
+    h += '<tr class="editrow"><td colspan="6"><div class="addform">';
     h += '<input type="text" data-grouprename="1" value="' + esc(g_group_rename_draft) + '">';
     h += '<button class="smallbtn" data-a="group-rename-save">save</button>';
     h += '<button class="smallbtn" data-a="group-rename-cancel">cancel</button>';
@@ -2234,21 +2254,18 @@ function renderCustomRow()
 
   h += '<tr class="scooprow customrow">';
   h += '<td><span class="foodname">Custom<span class="unit">history estimate — kcal ≈ ' + fmt1(kcal_ratio) + ' × protein g</span></span></td>';
-  h += '<td class="num pack-out">—</td>';
-  h += '<td class="num pack-out">—</td>';
+  h += '<td class="num pack-out measurestack"><span>—</span><span>—</span></td>';
   h += '<td class="num"><input type="text" inputmode="decimal" data-custom="protein" placeholder="g protein" value="' + esc(g_custom_protein_raw) + '"></td>';
   h += '<td class="num"><input type="text" inputmode="decimal" data-custom="kcal" placeholder="kcal" value="' + esc(kcal_raw) + '"></td>';
   h += '<td class="num scoopcount">' + count + '</td>';
   h += '<td class="scoopactions">';
   h += '<button class="smallbtn" data-a="custom-log"' + (!is_today ? ' disabled' : '') + '>log</button>';
   if (count > 0) h += '<button class="smallbtn" data-a="custom-remove"' + (!is_today ? ' disabled' : '') + '>−</button>';
-  else h += '<span class="btnslot"></span>';
-  h += '<span class="btnslot"></span>';
-  h += '<span class="btnslot"></span>';
+  // else h += '<span class="btnslot"></span>';
   h += '</td>';
   h += '</tr>';
 
-  if (g_custom_status) h += '<tr class="scoopstatusrow"><td colspan="7" class="fetchstatus">' + esc(g_custom_status) + '</td></tr>';
+  if (g_custom_status) h += '<tr class="scoopstatusrow"><td colspan="6" class="fetchstatus">' + esc(g_custom_status) + '</td></tr>';
 
   return h;
 }
@@ -2340,7 +2357,7 @@ function renderScoopSection()
   }
 
   h += '<table><thead><tr>';
-  h += '<th>item</th><th class="num">volume</th><th class="num">scoop g</th><th class="num">protein g</th><th class="num">kcal</th><th class="num">today</th><th></th>';
+  h += '<th>item</th><th class="num">volume</th><th class="num">protein g</th><th class="num">kcal</th><th class="num">today</th><th></th>';
   h += '</tr></thead><tbody>';
 
   h += renderCustomRow();
@@ -2741,7 +2758,7 @@ document.addEventListener('click', function(ev)
       return;
 
     case 'scoop-fetch':
-      requestFetchOFF(target.dataset.key, target.dataset.context);
+      requestFetchOFF(target.dataset.key, target.dataset.context, g_edit_draft ? g_edit_draft.barcode : null);
       return;
 
     case 'scoop-fetch-confirm':
