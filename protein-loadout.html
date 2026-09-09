@@ -341,6 +341,45 @@ function tagsMatchActive(tags)
   return false;
 }
 
+function scoopSearchTerm()
+{
+  return g_scoop_search_raw.trim().toLowerCase();
+}
+
+function itemMatchesSearch(item)
+{
+  let term = scoopSearchTerm();
+  let tags;
+
+  if (!term) return false;
+  if (item.name && item.name.toLowerCase().indexOf(term) >= 0) return true;
+  if (item.brand && item.brand.toLowerCase().indexOf(term) >= 0) return true;
+  if (item.barcode && item.barcode.toLowerCase().indexOf(term) >= 0) return true;
+
+  tags = itemTags(item);
+  for (let i = 0; i < tags.length; ++i)
+  {
+    if (tags[i].toLowerCase().indexOf(term) >= 0) return true;
+  }
+
+  return false;
+}
+
+function groupMatchesSearch(group)
+{
+  let term = scoopSearchTerm();
+
+  if (!term) return false;
+  if (group.name && group.name.toLowerCase().indexOf(term) >= 0) return true;
+
+  for (let i = 0; i < group.members.length; ++i)
+  {
+    if (itemMatchesSearch(group.members[i])) return true;
+  }
+
+  return false;
+}
+
 function groupedNodes()
 {
   let sorted = sortedScoopItems();
@@ -398,9 +437,13 @@ function groupedNodes()
   {
     let a_is_group = a.type == 'group';
     let b_is_group = b.type == 'group';
+    let a_matches = a_is_group ? groupMatchesSearch(a.group) : itemMatchesSearch(a.item);
+    let b_matches = b_is_group ? groupMatchesSearch(b.group) : itemMatchesSearch(b.item);
     let a_name = a_is_group ? a.group.name.toLowerCase() : a.item.name.toLowerCase();
     let b_name = b_is_group ? b.group.name.toLowerCase() : b.item.name.toLowerCase();
 
+    if (a_matches && !b_matches) return -1;
+    if (!a_matches && b_matches) return 1;
     if (a_is_group && !b_is_group) return -1;
     if (!a_is_group && b_is_group) return 1;
     return a_name < b_name ? -1 : a_name > b_name ? 1 : 0;
@@ -469,6 +512,7 @@ let g_fetch_status = {};        /* item_key -> transient status text, not persis
 let g_fetch_pending = {};       /* item_key -> true while awaiting in-page overwrite confirmation */
 let g_fetch_context = {};       /* item_key -> which rendered context ('standalone' or a group key) triggered the fetch */
 let g_fetch_barcode = {};       /* item_key -> barcode used by a draft-triggered lookup */
+let g_scoop_search_raw = '';
 let g_scoop_add_draft = null;   /* { barcode, name, brand, scoop_g, protein_100g, kcal_100g } while the add-item form is open */
 let g_add_item_status = '';     /* transient feedback for the add-item form's O.F.F. lookup */
 let g_last_lookup_debug = null; /* raw response text when the web-search fallback returns something unparseable/unexpected, not persisted */
@@ -2099,8 +2143,9 @@ function renderItemRow(item, is_today, indent, context)
 {
   let count = logCount(g_view_date, item.key);
   let h = '';
+  let is_match = itemMatchesSearch(item);
 
-  h += '<tr class="scooprow' + (indent ? ' groupmember' : '') + '">';
+  h += '<tr class="scooprow' + (indent ? ' groupmember' : '') + (is_match ? ' searchmatch' : '') + '">';
   h += '<td><span class="foodname">' + esc(item.name)
      + '&nbsp;<button class="editbtn" data-a="scoop-edit-open" data-key="' + item.key + '" data-context="'
      + esc(context) + '" title="edit name/brand/barcode/volume/scoop/protein/kcal/tags">✎</button>'
@@ -2144,6 +2189,7 @@ function renderGroupHeader(g)
   let h = '';
   let total_protein = 0;
   let total_kcal = 0;
+  let is_match = groupMatchesSearch(g);
 
   for (let i = 0; i < g.members.length; ++i)
   {
@@ -2151,7 +2197,7 @@ function renderGroupHeader(g)
     if (g.members[i].kcal != null) total_kcal += g.members[i].kcal;
   }
 
-  h += '<tr class="groupheader">';
+  h += '<tr class="groupheader' + (is_match ? ' searchmatch' : '') + '">';
   h += '<td colspan="4"><button class="grouptoggle" data-a="group-toggle" data-group="' + esc(g.key) + '">'
      + (collapsed ? '▸' : '▾') + ' ' + esc(g.name) + '<span class="unit">' + g.members.length + ' items</span></button>'
      + ' <button class="editbtn" data-a="group-rename-open" data-group="' + esc(g.key) + '" data-name="' + esc(g.name) + '" title="rename group">✎</button></td>';
@@ -2181,7 +2227,7 @@ function renderGroupedItems(is_today)
   {
     flat = sortedScoopItems().map(function(item)
     {
-      return { item:item, sortname:(tagsMatchActive(itemTags(item)) ? '0_' : '1_') + item.name.toLowerCase() };
+      return { item:item, sortname:(itemMatchesSearch(item) ? '0_' : '1_') + (tagsMatchActive(itemTags(item)) ? '0_' : '1_') + item.name.toLowerCase() };
     });
 
     flat.sort(function(a, b)
@@ -2377,6 +2423,17 @@ function renderLoggedFoodList()
   return h;
 }
 
+function renderScoopSearch()
+{
+  let h = '';
+
+  h += '<div class="scoopsearch">';
+  h += '<input id="scoop-search" type="search" autocomplete="off" placeholder="search pantry" value="' + esc(g_scoop_search_raw) + '">';
+  h += '</div>';
+
+  return h;
+}
+
 function renderTagFilterBar()
 {
   let names = distinctTagNames();
@@ -2423,6 +2480,8 @@ function renderScoopSection()
   h += renderLoggedFoodList();
 
   h += renderAdjustedLogDetails();
+
+  h += renderScoopSearch();
 
   h += renderTagFilterBar();
 
@@ -2609,6 +2668,13 @@ document.addEventListener('input', function(ev)
     }
     renderPreservingFocus();
     save();
+    return;
+  }
+
+  if (target.id == 'scoop-search')
+  {
+    g_scoop_search_raw = target.value;
+    renderPreservingFocus();
     return;
   }
 

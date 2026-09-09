@@ -10,6 +10,7 @@
   --faint:#666e69;
   --green:#7fae7a;
   --green-hi:#95c78f;
+  --search-hi:#cbbb7f;
   --coral:#e08a6f;
   --red:#d17a6f;
   --mono:ui-monospace,'Cascadia Code','JetBrains Mono','Fira Code',Menlo,Consolas,monospace;
@@ -73,6 +74,11 @@ tfoot td{border-top:2px solid var(--line2);font-family:var(--mono);font-weight:7
 .smallbtn:disabled{opacity:.4;cursor:default}
 .datenav{display:flex;align-items:center;gap:10px;margin:28px 0 12px}
 .tagfilterbar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.scoopsearch{margin:0 0 10px}
+.scoopsearch input{width:100%;font-family:var(--mono);font-size:12px;background:var(--panel);border-color:var(--line);color:var(--text)}
+.scooprow.searchmatch td{background:#2a281f}
+.groupheader.searchmatch td{background:#2d3023}
+.searchmatch .foodname,.searchmatch .grouptoggle{color:var(--search-hi)}
 .adjusted-log{margin:-12px 0 14px}
 .adjusted-log-toggle{font-family:var(--mono);font-size:11px;color:var(--faint);border:0;background:none;padding:0;cursor:pointer}
 .adjusted-log-toggle:hover{color:var(--text)}
