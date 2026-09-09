@@ -796,6 +796,37 @@ function adjustedEntryDetail(info)
   return detail;
 }
 
+function loggedEntryLabel(entry)
+{
+  let item;
+
+  if (entry.item_key == 'custom') return 'Custom';
+
+  item = findScoopItem(entry.item_key);
+  if (item) return item.name;
+
+  return entry.item_key;
+}
+
+function loggedEntryDetail(entry)
+{
+  let detail = '';
+
+  if (entry.grams != null) detail += fmt1(entry.grams) + ' g';
+  if (entry.protein_g != null)
+  {
+    if (detail) detail += ' / ';
+    detail += fmt1(entry.protein_g) + ' g protein';
+  }
+  if (entry.kcal != null)
+  {
+    if (detail) detail += ' / ';
+    detail += fmt10(entry.kcal) + ' kcal';
+  }
+
+  return detail || 'logged';
+}
+
 function saveAddItemDraft()
 {
   let d = g_scoop_add_draft;
@@ -2064,18 +2095,18 @@ function renderItemRow(item, is_today, indent, context)
 
   h += '<tr class="scooprow' + (indent ? ' groupmember' : '') + '">';
   h += '<td><span class="foodname">' + esc(item.name)
-     + ' <button class="editbtn" data-a="scoop-edit-open" data-key="' + item.key + '" data-context="' + esc(context) + '" title="edit name/brand/barcode/volume/scoop/protein/kcal/tags">✎</button>'
-     + '<span class="unit">' + esc(item.brand || '') /* + (item.barcode ? ' · ' + esc(item.barcode) : '') */ + '</span></span></td>';
+     + '&nbsp;<button class="editbtn" data-a="scoop-edit-open" data-key="' + item.key + '" data-context="'
+     + esc(context) + '" title="edit name/brand/barcode/volume/scoop/protein/kcal/tags">✎</button>'
+     + '<span class="unit">' + esc(item.brand || '') /* + (item.barcode ? ' · ' + esc(item.barcode) : '') */
+     + '</span></span></td>';
   h += '<td class="num pack-out measurestack"><span>' + esc(formatVolume(item)) + '</span><span>' + (item.scoop_g != null ? esc(item.scoop_g) + ' g' : '—') + '</span></td>';
   h += '<td class="num pack-out">' + (item.protein_g != null ? esc(item.protein_g) : '—') + '</td>';
   h += '<td class="num pack-out">' + (item.kcal != null ? esc(item.kcal) : '—') + '</td>';
   h += '<td class="num scoopcount">' + count + '</td>';
-  h += '<td class="scoopactions">';
+  h += '<td class="scoopactions"><div class="scoopactionstack">';
   h += '<button class="smallbtn" data-a="scoop-add" data-key="' + item.key + '"' + (!is_today ? ' disabled' : '') + '>+ scoop</button>';
-  if (count > 0) h += '<button class="smallbtn" data-a="scoop-remove" data-key="' + item.key + '"' + (!is_today ? ' disabled' : '') + '>−</button>';
-  else h += '<span class="btnslot"></span>';
   h += '<button class="smallbtn" data-a="scoop-scale-open" data-key="' + item.key + '" data-context="' + esc(context) + '">edit</button>';
-  h += '</td>';
+  h += '</div></td>';
   h += '</tr>';
 
   if ((g_fetch_pending[item.key] || g_fetch_status[item.key]) && (g_fetch_context[item.key] || 'standalone') == context)
@@ -2253,16 +2284,16 @@ function renderCustomRow()
   if (!kcal_raw && kcal_preview != null) kcal_raw = String(kcal_preview);
 
   h += '<tr class="scooprow customrow">';
-  h += '<td><span class="foodname">Custom<span class="unit">history estimate — kcal ≈ ' + fmt1(kcal_ratio) + ' × protein g</span></span></td>';
-  h += '<td class="num pack-out measurestack"><span>—</span><span>—</span></td>';
-  h += '<td class="num"><input type="text" inputmode="decimal" data-custom="protein" placeholder="g protein" value="' + esc(g_custom_protein_raw) + '"></td>';
+  h += '<td colspan="2"><span class="foodname">Custom<span class="unit">'
+    +  `history estimate<br />kcal ≈ ${fmt0(kcal_ratio)}x protein g`
+    +  '</span></span></td>';
+  /* h += '<td class="num pack-out measurestack"><span>—</span><span>—</span></td>'; */
+  h += '<td class="num"><input type="text" inputmode="decimal" data-custom="protein" placeholder="protein" value="' + esc(g_custom_protein_raw) + '"></td>';
   h += '<td class="num"><input type="text" inputmode="decimal" data-custom="kcal" placeholder="kcal" value="' + esc(kcal_raw) + '"></td>';
   h += '<td class="num scoopcount">' + count + '</td>';
-  h += '<td class="scoopactions">';
+  h += '<td class="scoopactions"><div class="scoopactionstack">';
   h += '<button class="smallbtn" data-a="custom-log"' + (!is_today ? ' disabled' : '') + '>log</button>';
-  if (count > 0) h += '<button class="smallbtn" data-a="custom-remove"' + (!is_today ? ' disabled' : '') + '>−</button>';
-  // else h += '<span class="btnslot"></span>';
-  h += '</td>';
+  h += '</div></td>';
   h += '</tr>';
 
   if (g_custom_status) h += '<tr class="scoopstatusrow"><td colspan="6" class="fetchstatus">' + esc(g_custom_status) + '</td></tr>';
@@ -2291,6 +2322,45 @@ function renderAdjustedLogDetails()
       h += '<div class="adjusted-log-item">';
       h += '<span class="adjusted-log-name">' + esc(adjustedEntryLabel(info)) + '</span>';
       h += '<span class="adjusted-log-detail">' + adjustedEntryDetail(info) + '</span>';
+      h += '</div>';
+    }
+    h += '</div>';
+  }
+
+  h += '</div>';
+  return h;
+}
+
+function renderLoggedFoodList()
+{
+  let day = g_log[g_view_date] || [];
+  let is_today = g_view_date == todayISO();
+  let h = '';
+
+  h += '<div class="logged-foods">';
+  h += '<div class="logged-foods-title">logged foods</div>';
+
+  if (!day.length)
+  {
+    h += '<div class="logged-foods-empty">none logged</div>';
+  }
+  else
+  {
+    h += '<div class="logged-foods-list">';
+    for (let i = 0; i < day.length; ++i)
+    {
+      h += '<div class="logged-food-item">';
+      h += '<div class="logged-food-main">';
+      h += '<div class="logged-food-titleline">';
+      h += '<span class="logged-food-name">' + esc(loggedEntryLabel(day[i])) + '</span>';
+      h += '<input class="logged-food-note-input' + (day[i].note ? ' has-note' : '') + '" type="text" data-lognote="' + day[i].id + '" placeholder="notes" value="' + esc(day[i].note || '') + '"' + (!is_today ? ' disabled' : '') + '>';
+      h += '</div>';
+      h += '<span class="logged-food-detail">' + esc(loggedEntryDetail(day[i])) + '</span>';
+      h += '</div>';
+      if (is_today)
+      {
+        h += '<button class="logged-food-remove" data-a="scoop-entry-delete" data-entry="' + day[i].id + '" title="remove logged entry">−</button>';
+      }
       h += '</div>';
     }
     h += '</div>';
@@ -2342,6 +2412,8 @@ function renderScoopSection()
      + '<div class="val ' + (tdiff >= 0 ? 'over' : 'under') + '">' + (tdiff >= 0 ? '+' : '') + fmt1(tdiff) + ' g</div></div>';
   h += '<div class="cell"><div class="lab">kcal</div><div class="val">' + fmt10(totals.kcal) + '</div></div>';
   h += '</div>';
+
+  h += renderLoggedFoodList();
 
   h += renderAdjustedLogDetails();
 
@@ -2472,6 +2544,7 @@ function renderPreservingFocus()
   let grouprename_field = active && active.dataset ? active.dataset.grouprename : null;
   let adddraft_field = active && active.dataset ? active.dataset.adddraft : null;
   let editdraft_field = active && active.dataset ? active.dataset.editdraft : null;
+  let lognote_id = active && active.dataset ? active.dataset.lognote : null;
   let id = active ? active.id : null;
   let sel_start = active && active.selectionStart != null ? active.selectionStart : null;
   let sel_end = active && active.selectionEnd != null ? active.selectionEnd : null;
@@ -2487,6 +2560,7 @@ function renderPreservingFocus()
   else if (grouprename_field) restored = document.querySelector('[data-grouprename]');
   else if (adddraft_field) restored = document.querySelector('[data-adddraft="'+adddraft_field+'"]');
   else if (editdraft_field) restored = document.querySelector('[data-editdraft="'+editdraft_field+'"]');
+  else if (lognote_id) restored = document.querySelector('[data-lognote="'+lognote_id+'"]');
   else restored = null;
 
   if (!restored) return;
@@ -2512,6 +2586,22 @@ document.addEventListener('input', function(ev)
 {
   let target = ev.target;
   let num;
+
+  if (target.dataset && target.dataset.lognote)
+  {
+    let day = g_log[g_view_date] || [];
+    for (let i = 0; i < day.length; ++i)
+    {
+      if (day[i].id == target.dataset.lognote)
+      {
+        day[i].note = target.value;
+        break;
+      }
+    }
+    renderPreservingFocus();
+    save();
+    return;
+  }
 
   if (target.id == 'target-input')
   {
