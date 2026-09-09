@@ -349,12 +349,21 @@ function scoopSearchTerm()
 function itemMatchesSearch(item)
 {
   let term = scoopSearchTerm();
-  let tags;
 
   if (!term) return false;
   if (item.name && item.name.toLowerCase().indexOf(term) >= 0) return true;
   if (item.brand && item.brand.toLowerCase().indexOf(term) >= 0) return true;
   if (item.barcode && item.barcode.toLowerCase().indexOf(term) >= 0) return true;
+
+  return false;
+}
+
+function itemTagsMatchSearch(item)
+{
+  let term = scoopSearchTerm();
+  let tags;
+
+  if (!term) return false;
 
   tags = itemTags(item);
   for (let i = 0; i < tags.length; ++i)
@@ -375,9 +384,30 @@ function groupMatchesSearch(group)
   for (let i = 0; i < group.members.length; ++i)
   {
     if (itemMatchesSearch(group.members[i])) return true;
+    if (itemTagsMatchSearch(group.members[i])) return true;
   }
 
   return false;
+}
+
+function sortedGroupMembersForDisplay(group)
+{
+  let members = group.members.slice();
+  let has_search = scoopSearchTerm() != '';
+
+  members.sort(function(a, b)
+  {
+    let a_matches = has_search && itemMatchesSearch(a);
+    let b_matches = has_search && itemMatchesSearch(b);
+    let a_name = a.name.toLowerCase();
+    let b_name = b.name.toLowerCase();
+
+    if (a_matches && !b_matches) return -1;
+    if (!a_matches && b_matches) return 1;
+    return a_name < b_name ? -1 : a_name > b_name ? 1 : 0;
+  });
+
+  return members;
 }
 
 function groupedNodes()
@@ -439,11 +469,15 @@ function groupedNodes()
     let b_is_group = b.type == 'group';
     let a_matches = a_is_group ? groupMatchesSearch(a.group) : itemMatchesSearch(a.item);
     let b_matches = b_is_group ? groupMatchesSearch(b.group) : itemMatchesSearch(b.item);
+    let a_active = a_is_group ? !!g_active_tags[a.group.key] : tagsMatchActive(itemTags(a.item));
+    let b_active = b_is_group ? !!g_active_tags[b.group.key] : tagsMatchActive(itemTags(b.item));
     let a_name = a_is_group ? a.group.name.toLowerCase() : a.item.name.toLowerCase();
     let b_name = b_is_group ? b.group.name.toLowerCase() : b.item.name.toLowerCase();
 
     if (a_matches && !b_matches) return -1;
     if (!a_matches && b_matches) return 1;
+    if (a_active && !b_active) return -1;
+    if (!a_active && b_active) return 1;
     if (a_is_group && !b_is_group) return -1;
     if (!a_is_group && b_is_group) return 1;
     return a_name < b_name ? -1 : a_name > b_name ? 1 : 0;
@@ -2253,7 +2287,8 @@ function renderGroupedItems(is_today)
     h += renderGroupHeader(n.group);
     if (!g_collapsed_groups[n.group.key])
     {
-      for (let j = 0; j < n.group.members.length; ++j) h += renderItemRow(n.group.members[j], is_today, true, n.group.key);
+      let members = sortedGroupMembersForDisplay(n.group);
+      for (let j = 0; j < members.length; ++j) h += renderItemRow(members[j], is_today, true, n.group.key);
     }
   }
 

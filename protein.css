@@ -88,7 +88,10 @@ tfoot td{border-top:2px solid var(--line2);font-family:var(--mono);font-weight:7
 .adjusted-log-detail{text-align:right}
 .debugbox{border:1px solid var(--coral);border-radius:6px;background:var(--panel);padding:12px;margin-bottom:14px}
 .debugpre{font-family:var(--mono);font-size:11.5px;line-height:1.5;color:var(--muted);background:#12100f;border:1px solid var(--line);border-radius:4px;padding:10px;max-height:320px;overflow:auto;white-space:pre-wrap;word-break:break-word;margin:0 0 8px}
-.tagfilterbtn{font-family:var(--mono);font-size:11px;color:var(--muted);border:1px solid var(--line);border-radius:14px;padding:6px 12px;background:var(--panel);cursor:pointer}
+.tagfilterbtn{
+  font-family:var(--mono);font-size:11px;color:var(--muted);
+  border:1px solid var(--line2);border-radius:14px;padding:6px 12px;
+  background:#2d3023;cursor:pointer}
 .tagfilterbtn:hover{color:var(--text);border-color:var(--line2)}
 .tagfilterbtn.on{background:var(--green);color:#132014;border-color:var(--green);font-weight:700}
 .tagfilterbtn.flattenbtn{margin-left:6px;border-style:dashed}
