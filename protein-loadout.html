@@ -503,6 +503,7 @@ let g_scale_item_key = null;    /* which item's scale/log panel is open */
 let g_scale_context = null;     /* 'standalone' or a group key — which rendered context the panel is attached to */
 let g_scale_draft = null;       /* { scale, grams_raw, protein_g, protein_g_raw, kcal, kcal_raw } while scaling */
 let g_custom_protein_raw = '';  /* transient, not persisted — scratch input for the Custom row */
+let g_custom_kcal_raw = '';
 let g_custom_status = '';
 let g_collapsed_groups = {};    /* lowercase group name -> true if collapsed */
 let g_active_tags = {};         /* lowercase tag key -> true if active as a float-to-top filter (not persisted) */
@@ -517,6 +518,8 @@ let g_import_text = '';
 let g_import_pending = null;    /* parsed object awaiting confirmation, or null */
 let g_import_status = '';
 let g_active_tab = 'pantry';
+let custom_kcal_ratio_fallback = 23;
+let custom_kcal_ratio_rho = 0.85;
 
 function proteinPerGram(food)
 {
@@ -644,21 +647,26 @@ function removeScoop(key)
 
 function logCustomEntry()
 {
-  let num;
+  let protein_num;
+  let kcal_num;
 
   if (g_view_date != todayISO()) return;
 
-  num = parseFloat(g_custom_protein_raw);
-  if (isNaN(num) || num <= 0)
+  protein_num = parseFloat(g_custom_protein_raw);
+  if (isNaN(protein_num) || protein_num <= 0)
   {
     g_custom_status = 'enter a protein amount first';
     render();
     return;
   }
 
-  num = round1(num);
-  pushLogEntry('custom', null, num, Math.round(23*num), null);
+  kcal_num = parseFloat(g_custom_kcal_raw);
+  protein_num = round1(protein_num);
+  if (isNaN(kcal_num)) kcal_num = customKcalEstimate(protein_num);
+
+  pushLogEntry('custom', null, protein_num, Math.round(kcal_num), null);
   g_custom_protein_raw = '';
+  g_custom_kcal_raw = '';
   g_custom_status = '';
   render();
   save();
@@ -711,6 +719,47 @@ function dayTotals(date)
   }
 
   return { protein:protein, kcal:kcal };
+}
+
+function sortedLogDatesBeforeToday()
+{
+  let today = todayISO();
+  let dates = [];
+  let date;
+
+  for (date in g_log)
+  {
+    if (date < today) dates.push(date);
+  }
+
+  dates.sort();
+  return dates;
+}
+
+function customKcalRatio()
+{
+  let dates = sortedLogDatesBeforeToday();
+  let ratio = custom_kcal_ratio_fallback;
+  let i;
+  let totals;
+  let day_ratio;
+
+  for (i = 0; i < dates.length; ++i)
+  {
+    totals = dayTotals(dates[i]);
+    if (totals.protein <= 0 || totals.kcal <= 0) continue;
+
+    day_ratio = totals.kcal/totals.protein;
+    ratio = custom_kcal_ratio_rho*ratio + (1 - custom_kcal_ratio_rho)*day_ratio;
+  }
+
+  return ratio;
+}
+
+function customKcalEstimate(protein_g)
+{
+  let ratio = customKcalRatio();
+  return Math.round(ratio*protein_g);
 }
 
 function saveAddItemDraft()
@@ -1672,6 +1721,11 @@ function fmt2(n)
   return n.toFixed(2);
 }
 
+function fmt10(n)
+{
+  return (n/10 + .4999).toFixed(0)*10;
+}
+
 function save()
 {
   let payload = { target:g_target, foods:g_foods, scoop_items:g_scoop_items, log:g_log, collapsed_groups:g_collapsed_groups };
@@ -2163,15 +2217,19 @@ function renderCustomRow()
   let is_today = g_view_date == todayISO();
   let count = logCount(g_view_date, 'custom');
   let num = parseFloat(g_custom_protein_raw);
-  let kcal_preview = !isNaN(num) && num > 0 ? Math.round(23*num) : null;
+  let kcal_ratio = customKcalRatio();
+  let kcal_preview = !isNaN(num) && num > 0 ? customKcalEstimate(num) : null;
+  let kcal_raw = g_custom_kcal_raw;
   let h = '';
 
+  if (!kcal_raw && kcal_preview != null) kcal_raw = String(kcal_preview);
+
   h += '<tr class="scooprow customrow">';
-  h += '<td><span class="foodname">Custom<span class="unit">quick estimate — kcal ≈ 23 × protein g</span></span></td>';
+  h += '<td><span class="foodname">Custom<span class="unit">history estimate — kcal ≈ ' + fmt1(kcal_ratio) + ' × protein g</span></span></td>';
   h += '<td class="num pack-out">—</td>';
   h += '<td class="num pack-out">—</td>';
   h += '<td class="num"><input type="text" inputmode="decimal" data-custom="protein" placeholder="g protein" value="' + esc(g_custom_protein_raw) + '"></td>';
-  h += '<td class="num pack-out">' + (kcal_preview != null ? kcal_preview : '—') + '</td>';
+  h += '<td class="num"><input type="text" inputmode="decimal" data-custom="kcal" placeholder="kcal" value="' + esc(kcal_raw) + '"></td>';
   h += '<td class="num scoopcount">' + count + '</td>';
   h += '<td class="scoopactions">';
   h += '<button class="smallbtn" data-a="custom-log"' + (!is_today ? ' disabled' : '') + '>log</button>';
@@ -2233,7 +2291,7 @@ function renderScoopSection()
   h += '<div class="cell"><div class="lab">logged protein</div><div class="val">' + fmt1(totals.protein) + ' g</div></div>';
   h += '<div class="cell"><div class="lab">' + (tdiff >= 0 ? 'over target' : 'under target') + '</div>'
      + '<div class="val ' + (tdiff >= 0 ? 'over' : 'under') + '">' + (tdiff >= 0 ? '+' : '') + fmt1(tdiff) + ' g</div></div>';
-  h += '<div class="cell"><div class="lab">kcal</div><div class="val">' + fmt1(totals.kcal) + '</div></div>';
+  h += '<div class="cell"><div class="lab">kcal</div><div class="val">' + fmt10(totals.kcal) + '</div></div>';
   h += '</div>';
 
   h += renderTagFilterBar();
@@ -2464,9 +2522,25 @@ document.addEventListener('input', function(ev)
 
   if (target.dataset.custom == 'protein')
   {
+    let old_num = parseFloat(g_custom_protein_raw);
+    let old_estimate = !isNaN(old_num) && old_num > 0 ? String(customKcalEstimate(old_num)) : '';
+    let new_num;
+
     g_custom_protein_raw = target.value;
+    new_num = parseFloat(g_custom_protein_raw);
+    if (!g_custom_kcal_raw || g_custom_kcal_raw == old_estimate)
+    {
+      g_custom_kcal_raw = !isNaN(new_num) && new_num > 0 ? String(customKcalEstimate(new_num)) : '';
+    }
     g_custom_status = '';
     renderPreservingFocus();
+    return;
+  }
+
+  if (target.dataset.custom == 'kcal')
+  {
+    g_custom_kcal_raw = target.value;
+    g_custom_status = '';
     return;
   }
 
