@@ -518,6 +518,7 @@ let g_import_text = '';
 let g_import_pending = null;    /* parsed object awaiting confirmation, or null */
 let g_import_status = '';
 let g_active_tab = 'pantry';
+let g_adjusted_log_open = false;
 let custom_kcal_ratio_fallback = 23;
 let custom_kcal_ratio_rho = 0.85;
 
@@ -760,6 +761,87 @@ function customKcalEstimate(protein_g)
 {
   let ratio = customKcalRatio();
   return Math.round(ratio*protein_g);
+}
+
+function loggedValueDiffers(actual, expected, tolerance)
+{
+  if (actual == null && expected == null) return false;
+  if (actual == null || expected == null) return true;
+  return Math.abs(actual - expected) > tolerance;
+}
+
+function expectedEntryScale(entry, item)
+{
+  if (entry.grams != null && item.scoop_g > 0) return entry.grams/item.scoop_g;
+  if (entry.scale != null) return entry.scale;
+  return 1;
+}
+
+function adjustedLogEntries(date)
+{
+  let day = g_log[date] || [];
+  let out = [];
+  let i;
+  let entry;
+  let item;
+  let scale;
+  let expected_protein;
+  let expected_kcal;
+
+  for (i = 0; i < day.length; ++i)
+  {
+    entry = day[i];
+    if (entry.item_key == 'custom')
+    {
+      out.push({ entry:entry, item:null, custom:true, expected_protein:null, expected_kcal:null });
+      continue;
+    }
+
+    item = findScoopItem(entry.item_key);
+    if (!item) continue;
+
+    scale = expectedEntryScale(entry, item);
+    expected_protein = item.protein_g != null ? round1(item.protein_g*scale) : null;
+    expected_kcal = item.kcal != null ? Math.round(item.kcal*scale) : null;
+
+    if (loggedValueDiffers(entry.protein_g, expected_protein, 0.05) || loggedValueDiffers(entry.kcal, expected_kcal, 0.5))
+    {
+      out.push({ entry:entry, item:item, custom:false, expected_protein:expected_protein, expected_kcal:expected_kcal });
+    }
+  }
+
+  return out;
+}
+
+function adjustedEntryLabel(info)
+{
+  if (info.custom) return 'Custom';
+  return info.item.name;
+}
+
+function valueOrDash(val)
+{
+  return val != null ? val.toFixed(0) : '—';
+}
+
+function adjustedEntryDetail(info)
+{
+  let entry = info.entry;
+  let detail = '';
+
+  let template_p = '';
+  let template_k = '';
+  if (!info.custom)
+  {
+    template_p = `<s>${valueOrDash(info.expected_protein)} </s>`;
+    template_k = `<s>${valueOrDash(info.expected_kcal)} </s>`;
+  }
+
+  detail += template_p + valueOrDash(entry.protein_g) + ' g protein';
+  detail += ' / ';
+  detail += template_k + valueOrDash(entry.kcal) + ' kcal';
+
+  return detail;
 }
 
 function saveAddItemDraft()
@@ -1520,7 +1602,7 @@ function buildDiaryText()
   {
     day = g_log[dates[d]] || [];
     totals = dayTotals(dates[d]);
-    lines.push(dates[d] + ' — ' + fmt1(totals.protein) + ' g protein / ' + fmt1(totals.kcal) + ' kcal (target ' + g_target + ' g)');
+    lines.push(dates[d] + ' — ' + fmt0(totals.protein) + ' g protein / ' + fmt10(totals.kcal) + ' kcal (target ' + g_target + ' g)');
 
     for (i = 0; i < day.length; ++i)
     {
@@ -1528,8 +1610,8 @@ function buildDiaryText()
       item = findScoopItem(entry.item_key);
       lines.push('  ' + (item ? item.name : (entry.item_key == 'custom' ? 'Custom' : entry.item_key))
         + (entry.grams != null ? ' (' + entry.grams + ' g' + (entry.scale != null && entry.scale != 1 ? ', ' + entry.scale.toFixed(2) + '×' : '') + ')' : '')
-        + (entry.protein_g != null ? ' — ' + fmt1(entry.protein_g) + ' g' : '')
-        + (entry.kcal != null ? ' / ' + fmt1(entry.kcal) + ' kcal' : ''));
+        + (entry.protein_g != null ? ' — ' + fmt0(entry.protein_g) + ' g' : '')
+        + (entry.kcal != null ? ' / ' + fmt10(entry.kcal) + ' kcal' : ''));
     }
 
     lines.push('');
@@ -1709,6 +1791,11 @@ function downloadText(filename, mime, text)
   {
     URL.revokeObjectURL(link.href);
   }, 4000);
+}
+
+function fmt0(n)
+{
+  return n.toFixed(0);
 }
 
 function fmt1(n)
@@ -2245,6 +2332,38 @@ function renderCustomRow()
   return h;
 }
 
+function renderAdjustedLogDetails()
+{
+  let entries = adjustedLogEntries(g_view_date);
+  let h = '';
+  let i;
+  let info;
+
+  if (!entries.length) return '';
+
+  h += '<div class="adjusted-log">';
+  h += '<button class="adjusted-log-toggle" data-a="adjusted-log-toggle">';
+  h += (g_adjusted_log_open ? 'hide' : 'show') + ' adjusted entries (' + entries.length + ')';
+  h += '</button>';
+
+  if (g_adjusted_log_open)
+  {
+    h += '<div class="adjusted-log-list">';
+    for (i = 0; i < entries.length; ++i)
+    {
+      info = entries[i];
+      h += '<div class="adjusted-log-item">';
+      h += '<span class="adjusted-log-name">' + esc(adjustedEntryLabel(info)) + '</span>';
+      h += '<span class="adjusted-log-detail">' + adjustedEntryDetail(info) + '</span>';
+      h += '</div>';
+    }
+    h += '</div>';
+  }
+
+  h += '</div>';
+  return h;
+}
+
 function renderTagFilterBar()
 {
   let names = distinctTagNames();
@@ -2293,6 +2412,8 @@ function renderScoopSection()
      + '<div class="val ' + (tdiff >= 0 ? 'over' : 'under') + '">' + (tdiff >= 0 ? '+' : '') + fmt1(tdiff) + ' g</div></div>';
   h += '<div class="cell"><div class="lab">kcal</div><div class="val">' + fmt10(totals.kcal) + '</div></div>';
   h += '</div>';
+
+  h += renderAdjustedLogDetails();
 
   h += renderTagFilterBar();
 
@@ -2699,6 +2820,11 @@ document.addEventListener('click', function(ev)
 
     case 'date-today':
       g_view_date = todayISO();
+      render();
+      return;
+
+    case 'adjusted-log-toggle':
+      g_adjusted_log_open = !g_adjusted_log_open;
       render();
       return;
 
