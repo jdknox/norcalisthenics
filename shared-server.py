@@ -77,7 +77,7 @@ def writeHtml(handler, path):
     handler.send_response(200)
     handler.send_header('Content-Type', 'text/html; charset=utf-8')
     handler.send_header('Content-Length', str(len(body)))
-    handler.send_header('Clear-Site-Data', '"cache"')
+    # handler.send_header('Clear-Site-Data', '"cache"')
     noCacheHeaders(handler)
     handler.end_headers()
     handler.wfile.write(body)
