@@ -2497,7 +2497,10 @@ function renderScoopSection()
   h += '<table class="pantrytable">';
   h += '<colgroup><col class="pantrycol-item"><col class="pantrycol-volume"><col class="pantrycol-protein"><col class="pantrycol-kcal"><col class="pantrycol-today"><col class="pantrycol-actions"></colgroup>';
   h += '<thead><tr>';
-  h += '<th>item</th><th class="num">volume</th><th class="num">protein g</th><th class="num">kcal</th><th class="num">today</th><th></th>';
+  h += '<th>item</th><th class="num">volume</th>'
+    +  '<th class="num" style="display: block; margin-left: -16px;">protein&nbsp;g</th>'
+    +  '<th class="num">kcal</th>'
+    +  '<th class="num">today</th><th></th>';
   h += '</tr></thead><tbody>';
 
   h += renderCustomRow();

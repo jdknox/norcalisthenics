@@ -37,16 +37,16 @@ h1{font-family:var(--mono);font-size:20px;font-weight:600;margin:6px 0 18px;lett
 table{width:100%;border-collapse:collapse;margin-bottom:20px}
 .pantrytable{table-layout:fixed}
 .pantrycol-item{width:auto; border-right: 1px dashed rgba(88, 88, 88, 0.25);}
-.pantrycol-volume{width:22%}
-.pantrycol-protein{width:42px}
+.pantrycol-volume{width:22%; text-align:left;}
+.pantrycol-protein{width:48px}
 .pantrycol-kcal{width:42px}
 .pantrycol-today{width:30px}
 .pantrycol-actions{width:36px}
 .pantrytable th,.pantrytable td{padding-left:0px;padding-right:10px}
 .pantrytable th:first-child,.pantrytable td:first-child{padding-left:8px}
 .pantrytable th:last-child,.pantrytable td:last-child{padding-left:4px;padding-right:4px}
-th{text-align:left;font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);padding:0 8px 8px;font-weight:400}
-th.num,td.num{text-align:right;}
+th{text-align:left;font-family:var(--mono);font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);padding:0 8px 8px;font-weight:400}
+th.num,td.num{text-align:center;}
 td{padding:9px 8px;border-top:1px solid var(--line);vertical-align:middle}
 tr.food td{background:var(--panel)}
 tr.food:first-child td{border-top:none}
@@ -140,7 +140,7 @@ tfoot td{border-top:2px solid var(--line2);font-family:var(--mono);font-weight:7
 .scalerow input[type=range]{flex:1;min-width:120px;accent-color:var(--green)}
 .scale-entry-list{display:flex;flex-direction:column;gap:4px}
 .scale-entry{display:flex;align-items:center;justify-content:space-between;gap:8px;font-family:var(--mono);font-size:12px;color:var(--muted);background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:5px 8px}
-.scoopcount{font-family:var(--mono);font-weight:700;color:var(--green-hi)}
+.scoopcount{text-align:right !important;font-family:var(--mono);font-weight:700;color:var(--green-hi)}
 .groupheader td{background:#20241f;border-top:1px solid var(--line);padding-top:8px;padding-bottom:8px}
 .grouptoggle{font-family:var(--mono);font-weight:700;color:var(--green-hi);background:none;border:none;cursor:pointer;font-size:13px;padding:0;display:inline-flex;align-items:center;gap:6px}
 .grouptoggle:hover{color:var(--green)}
