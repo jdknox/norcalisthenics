@@ -2104,8 +2104,8 @@ function renderItemRow(item, is_today, indent, context)
   h += '<td class="num pack-out">' + (item.kcal != null ? esc(item.kcal) : '—') + '</td>';
   h += '<td class="num scoopcount">' + count + '</td>';
   h += '<td class="scoopactions"><div class="scoopactionstack">';
-  h += '<button class="smallbtn" data-a="scoop-add" data-key="' + item.key + '"' + (!is_today ? ' disabled' : '') + '>+ scoop</button>';
-  h += '<button class="smallbtn" data-a="scoop-scale-open" data-key="' + item.key + '" data-context="' + esc(context) + '">edit</button>';
+  h += '<button class="smallbtn" data-a="scoop-add" data-key="' + item.key + '" title="log one scoop"' + (!is_today ? ' disabled' : '') + '>+</button>';
+  h += '<button class="smallbtn" data-a="scoop-scale-open" data-key="' + item.key + '" data-context="' + esc(context) + '" title="edit logged amount">✎</button>';
   h += '</div></td>';
   h += '</tr>';
 
@@ -2292,7 +2292,7 @@ function renderCustomRow()
   h += '<td class="num"><input type="text" inputmode="decimal" data-custom="kcal" placeholder="kcal" value="' + esc(kcal_raw) + '"></td>';
   h += '<td class="num scoopcount">' + count + '</td>';
   h += '<td class="scoopactions"><div class="scoopactionstack">';
-  h += '<button class="smallbtn" data-a="custom-log"' + (!is_today ? ' disabled' : '') + '>log</button>';
+  h += '<button class="smallbtn" data-a="custom-log" title="log custom entry"' + (!is_today ? ' disabled' : '') + '>+</button>';
   h += '</div></td>';
   h += '</tr>';
 
@@ -2428,7 +2428,9 @@ function renderScoopSection()
     h += '</div>';
   }
 
-  h += '<table><thead><tr>';
+  h += '<table class="pantrytable">';
+  h += '<colgroup><col class="pantrycol-item"><col class="pantrycol-volume"><col class="pantrycol-protein"><col class="pantrycol-kcal"><col class="pantrycol-today"><col class="pantrycol-actions"></colgroup>';
+  h += '<thead><tr>';
   h += '<th>item</th><th class="num">volume</th><th class="num">protein g</th><th class="num">kcal</th><th class="num">today</th><th></th>';
   h += '</tr></thead><tbody>';
 
