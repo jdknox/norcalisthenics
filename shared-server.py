@@ -135,6 +135,20 @@ def writeSharedStorageFile(data):
     writeStorageFile(shared_storage_file, text)
 
 
+def storageResponseValue(value):
+    if value == None:
+        return None
+
+    if isinstance(value, str):
+        return value
+
+    return json.dumps(value)
+
+
+def parseStorageValue(text):
+    return json.loads(text)
+
+
 def validStorageKey(key):
     if not key:
         return False
@@ -185,7 +199,7 @@ class WorkoutHandler(http.server.SimpleHTTPRequestHandler):
                 return writeJsonText(self, 400, {'error': 'invalid key'})
 
             data = readSharedStorageFile()
-            value = data.get(key, None)
+            value = storageResponseValue(data.get(key, None))
             return writeJsonText(self, 200, {'value': value})
 
         return http.server.SimpleHTTPRequestHandler.do_GET(self)
@@ -210,7 +224,7 @@ class WorkoutHandler(http.server.SimpleHTTPRequestHandler):
                 return writeJsonText(self, 400, {'error': 'invalid key'})
 
             data = readSharedStorageFile()
-            data[key] = text
+            data[key] = parseStorageValue(text)
             writeSharedStorageFile(data)
             return writeJsonText(self, 200, {'ok': True})
 
