@@ -1997,7 +1997,7 @@ function fmt2(n)
 
 function fmt_1(n)
 {
-  return (Math.floor(n/10 + .4999)*10).toFixed(0);
+  return (Math.ceil(n/10)*10).toFixed(0);
 }
 
 function save()
@@ -2335,21 +2335,33 @@ function renderGroupHeader(g)
   let h = '';
   let total_protein = 0;
   let total_kcal = 0;
+  let total_g = 0;
   let is_match = groupMatchesSearch(g);
 
   for (let i = 0; i < g.members.length; ++i)
   {
-    if (g.members[i].protein_g != null) total_protein += g.members[i].protein_g;
-    if (g.members[i].kcal != null) total_kcal += g.members[i].kcal;
+    let item = g.members[i];
+    let count = logCount(g_view_date, item.key);
+    total_protein += count*item.protein_g;
+    total_kcal    += count*item.kcal;
+    total_g       += count*item.scoop_g;
   }
 
-  h += '<tr class="groupheader' + (is_match ? ' searchmatch' : '') + '">';
-  h += '<td colspan="4"><button class="grouptoggle" data-a="group-toggle" data-group="' + esc(g.key) + '">'
-     + (collapsed ? '▸' : '▾') + ' ' + esc(g.name) + '<span class="unit">' + g.members.length + ' items</span></button>'
-     + ' <button class="editbtn" data-a="group-rename-open" data-group="' + esc(g.key) + '" data-name="' + esc(g.name) + '" title="rename group">✎</button></td>';
-  // h += '<td class="num pack-out">' + fmt1(total_protein) + ' g / ' + fmt1(total_kcal) + ' kcal</td>';
-  h += '<td colspan="2"></td>';
-  h += '</tr>';
+  let icon = (collapsed ? '▸' : '▾');
+  let searchmatch = (is_match ? ' searchmatch' : '');
+  h += `<tr class="groupheader${searchmatch}">
+  <td colspan="2">
+    <button class="grouptoggle" data-a="group-toggle" data-group="${esc(g.key)}">
+      ${icon} ${esc(g.name)}<span class="unit">${g.members.length} items</span>
+    </button>
+    <button class="editbtn" data-a="group-rename-open" data-group="${esc(g.key)}"
+      data-name="${esc(g.name)}" title="rename group">✎</button>
+  </td>
+  <td class="num pack-out protein">${fmt0(total_protein)}</td>
+  <td class="num pack-out kcal">${fmt_1(total_kcal)}</td>
+  <td />
+  <td class="num pack-out grams">${fmt_1(total_g)}</td>
+  </tr>`;
 
   if (g_group_rename_key == g.key)
   {
