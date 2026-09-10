@@ -1,7 +1,7 @@
 {
   "protein-loadout:v1": {
     "collapsed_groups": {
-      "salmon bowl": true,
+      "salmon bowl": false,
       "skyr bowl": true,
       "snack mix": true
     },
@@ -895,8 +895,8 @@
         "scoop_g": 120,
         "scoop_g_raw": "120",
         "tags": [],
-        "volume_label": null,
-        "volume_ml": 1
+        "volume_label": "1 UNIT",
+        "volume_ml": null
       },
       {
         "barcode": "860006380410",

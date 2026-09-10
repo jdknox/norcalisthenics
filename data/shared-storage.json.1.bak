@@ -889,12 +889,14 @@
         "kcal_raw": "75",
         "key": "mtsxoyl73cnhrf",
         "name": "Organic Milk A2/A2",
-        "protein_100g": 3.33333333333333,
+        "protein_100g": 3.3333333333333335,
         "protein_g": 4,
         "protein_g_raw": "4",
         "scoop_g": 120,
         "scoop_g_raw": "120",
-        "tags": []
+        "tags": [],
+        "volume_label": "1 UNIT",
+        "volume_ml": null
       },
       {
         "barcode": "860006380410",
