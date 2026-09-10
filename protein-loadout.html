@@ -926,20 +926,23 @@ function loggedEntryDetail(entry)
 
   if (entry.protein_g != null)
   {
-    detail += fmt0(entry.protein_g).padEnd(3) + ' p;';
+    let value = fmt0(entry.protein_g);
+    detail += `<span class="logged-food-protein">${value}</span>`;
   }
   detail = detail.padEnd(5);
 
   if (entry.kcal != null)
   {
-    detail += (fmt_1(entry.kcal) + ' kcal').padStart(10);
+    let value = (fmt_1(entry.kcal)).padStart(6);
+    detail += `<span class="logged-food-kcal">${value}</span>`;
   }
   detail = detail.padEnd(6);
 
   if (entry.grams != null)
   {
-    if (detail) detail += '; (';
-    detail += fmt0(entry.grams).padStart(3) + ' g)';
+    // if (detail) detail += '; (';
+    let value = `${fmt0(entry.grams).padStart(6)} g`;
+    detail += `<span class="logged-food-grams">${value}</span>`;
   }
 
   return detail || 'logged';
@@ -2295,8 +2298,8 @@ function renderItemRow(item, is_today, indent, context)
      + '<span class="unit">' + esc(item.brand || '') /* + (item.barcode ? ' · ' + esc(item.barcode) : '') */
      + '</span></span></td>';
   h += '<td class="num pack-out measurestack"><span>' + esc(formatVolume(item)) + '</span><span>' + (item.scoop_g != null ? esc(item.scoop_g) + ' g' : '—') + '</span></td>';
-  h += '<td class="num pack-out">' + (item.protein_g != null ? esc(item.protein_g) : '—') + '</td>';
-  h += '<td class="num pack-out">' + (item.kcal != null ? esc(item.kcal) : '—') + '</td>';
+  h += '<td class="num pack-out protein">' + (item.protein_g != null ? fmt0(item.protein_g) : '—') + '</td>';
+  h += '<td class="num pack-out kcal">' + (item.kcal != null ? esc(item.kcal) : '—') + '</td>';
   h += '<td class="num scoopcount">' + count + '</td>';
   h += '<td class="scoopactions"><div class="scoopactionstack">';
   h += '<button class="smallbtn" data-a="scoop-add" data-key="' + item.key + '" title="log one scoop"' + (!is_today ? ' disabled' : '') + '>+</button>';
@@ -2648,10 +2651,10 @@ function renderScoopSection()
   h += '</div>';
 
   h += '<div class="summary">';
-  h += '<div class="cell"><div class="lab">logged protein</div><div class="val">' + fmt1(totals.protein) + ' g</div></div>';
+  h += '<div class="cell"><div class="lab">logged protein</div><div class="val">' + fmt0(totals.protein) + ' g</div></div>';
   h += '<div class="cell"><div class="lab">' + (tdiff >= 0 ? 'over target' : 'under target') + '</div>'
-     + '<div class="val ' + (tdiff >= 0 ? 'over' : 'under') + '">' + (tdiff >= 0 ? '+' : '') + fmt1(tdiff) + ' g</div></div>';
-  h += '<div class="cell"><div class="lab">kcal</div><div class="val">' + fmt_1(totals.kcal) + '</div></div>';
+     + '<div class="val ' + (tdiff >= 0 ? 'over' : 'under') + '">' + (tdiff >= 0 ? '+' : '') + fmt0(tdiff) + ' g</div></div>';
+  h += '<div class="cell"><div class="lab">kcal</div><div class="val kval">' + fmt_1(totals.kcal) + '</div></div>';
   h += '</div>';
 
   h += renderLoggedFoodList();
