@@ -704,7 +704,7 @@ function logCustomEntry()
   if (g_view_date != todayISO()) return;
 
   protein_num = parseFloat(g_custom_protein_raw);
-  if (isNaN(protein_num) || protein_num <= 0)
+  if (isNaN(protein_num) || protein_num < 0)
   {
     g_custom_status = 'enter a protein amount first';
     render();
@@ -2470,12 +2470,12 @@ function renderCustomRow()
   if (!kcal_raw && kcal_preview != null) kcal_raw = String(kcal_preview);
 
   h += '<tr class="scooprow customrow">';
-  h += '<td colspan="2"><span class="foodname">Custom<span class="unit">'
-    +  `history estimate<br />kcal ≈ ${fmt0(kcal_ratio)}x protein g`
+  h += '<td colspan="1"><span class="foodname">Custom<span class="unit">'
+    +  `history estimate<br />kcal ≈ ${fmt0(kcal_ratio)}x protein`
     +  '</span></span></td>';
   /* h += '<td class="num pack-out measurestack"><span>—</span><span>—</span></td>'; */
-  h += '<td class="num"><input type="text" inputmode="decimal" data-custom="protein" placeholder="protein" value="' + esc(g_custom_protein_raw) + '"></td>';
-  h += '<td class="num"><input type="text" inputmode="decimal" data-custom="kcal" placeholder="kcal" value="' + esc(kcal_raw) + '"></td>';
+  h += '<td class="num" colspan="3"><input type="text" inputmode="decimal" data-custom="protein" placeholder="protein" value="' + esc(g_custom_protein_raw) + '">';
+  h += ' <input type="text" inputmode="decimal" data-custom="kcal" placeholder="kcal" value="' + esc(kcal_raw) + '"></td>';
   h += '<td class="num scoopcount">' + count + '</td>';
   h += '<td class="scoopactions"><div class="scoopactionstack">';
   h += '<button class="smallbtn" data-a="custom-log" title="log custom entry"' + (!is_today ? ' disabled' : '') + '>+</button>';

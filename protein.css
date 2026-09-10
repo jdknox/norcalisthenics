@@ -156,6 +156,9 @@ tfoot td{border-top:2px solid var(--line2);font-family:var(--mono);font-weight:7
 .groupmember td:first-child{padding-left:22px}
 .groupmember td:first-child .foodname{font-weight:500}
 .customrow td{background:#23201a;border-bottom:1px solid #4a3a24}
+.customrow input {
+  min-width:64px;
+}
 .customrow .foodname{color:var(--orange)}
 .fetchstatus{font-size:11.5px;color:var(--faint);padding:2px 8px 12px}
 .addform {
@@ -201,7 +204,7 @@ tfoot td{border-top:2px solid var(--line2);font-family:var(--mono);font-weight:7
   .scoopactions .smallbtn{padding-left:0;padding-right:0}
   .scoopsearch input{font-size:calc(14px*var(--mobile-text-scale))}
   .foodname{font-size:calc(15px*var(--mobile-text-scale));line-height:1.2}
-  .foodname .unit{font-size:calc(11.5px*var(--mobile-text-scale));line-height:1.25}
+  .foodname .unit{font-size:calc(11.0px*var(--mobile-text-scale));line-height:1.25}
   .pack-out{font-size:calc(13.5px*var(--mobile-text-scale))}
   td input{font-size:calc(13px*var(--mobile-text-scale))}
   .note{font-size:calc(13px*var(--mobile-text-scale))}
