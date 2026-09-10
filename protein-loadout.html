@@ -2535,17 +2535,37 @@ function renderLoggedFoodList()
     h += '<div class="logged-foods-list">';
     for (let i = 0; i < day.length; ++i)
     {
+      let entry = day[i];
+      let is_custom = entry.item_key == 'custom';
+      let note = entry.note || '';
+      let note_size = Math.max(5, note.length + 1);
+      let custom_note_label = is_custom && note;
+
       h += '<div class="logged-food-item">';
       h += '<div class="logged-food-main">';
-      h += '<div class="logged-food-titleline">';
-      h += '<span class="logged-food-name">' + esc(loggedEntryLabel(day[i])) + '</span>';
-      h += '<input class="logged-food-note-input' + (day[i].note ? ' has-note' : '') + '" type="text" data-lognote="' + day[i].id + '" placeholder="notes" value="' + esc(day[i].note || '') + '"' + (!is_today ? ' disabled' : '') + '>';
+      h += '<div class="logged-food-titleline' + (!note ? ' empty-note' : '') + '">';
+      if (custom_note_label)
+      {
+        h += '*<input class="logged-food-note-input logged-food-custom-name has-note" type="text" data-lognote="' + entry.id + '" size="' + note_size + '" placeholder="Custom" value="' + esc(note) + '"' + (!is_today ? ' disabled' : '') + '>';
+      }
+      else
+      {
+        h += '<span class="logged-food-name">' + esc(loggedEntryLabel(entry)) + '</span>';
+      }
+      if ((is_custom && !custom_note_label) || !note)
+      {
+        h += '<input class="logged-food-note-input' + (note ? ' has-note' : '') + '" type="text" data-lognote="' + entry.id + '" size="' + note_size + '" placeholder="notes" value="' + esc(note) + '"' + (!is_today ? ' disabled' : '') + '>';
+      }
       h += '</div>';
-      h += '<span class="logged-food-detail">' + (loggedEntryDetail(day[i])) + '</span>';
+      if (!is_custom && note)
+      {
+        h += '<input class="logged-food-note-input logged-food-note-line has-note" type="text" data-lognote="' + entry.id + '" size="' + note_size + '" placeholder="notes" value="' + esc(note) + '"' + (!is_today ? ' disabled' : '') + '>';
+      }
+      h += '<span class="logged-food-detail">' + (loggedEntryDetail(entry)) + '</span>';
       h += '</div>';
       if (is_today)
       {
-        h += '<button class="logged-food-remove" data-a="scoop-entry-delete" data-entry="' + day[i].id + '" title="remove logged entry">−</button>';
+        h += '<button class="logged-food-remove" data-a="scoop-entry-delete" data-entry="' + entry.id + '" title="remove logged entry">−</button>';
       }
       h += '</div>';
     }

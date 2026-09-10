@@ -99,7 +99,7 @@ tfoot td{border-top:2px solid var(--line2);font-family:var(--mono);font-weight:7
 .datelabel{font-family:var(--mono);font-size:13px;color:var(--muted)}
 .scoopactions{vertical-align:top}
 .scoopactionstack{display:flex;flex-direction:column;align-items:stretch;gap:5px;width:100%;min-width:0}
-.scoopactions .smallbtn{width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-left:0;padding-right:0;text-align:center}
+.scoopactions .smallbtn{width:100%;white-space:nowrap;overflow:hidden;text-overflow:inherit;padding-left:0;padding-right:0;text-align:center}
 .btnslot{display:block}
 .logged-foods{margin:-10px 0 14px;border:1px solid var(--line);border-radius:6px;background:var(--panel);padding:8px 10px}
 .logged-foods-title{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin-bottom:6px}
@@ -108,14 +108,17 @@ tfoot td{border-top:2px solid var(--line2);font-family:var(--mono);font-weight:7
 .logged-food-item{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .logged-food-main{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:1px;overflow-x:auto}
 .logged-food-main > *{min-width:max-content}
-.logged-food-titleline{min-width:0;display:flex;align-items:center;gap:8px}
-.logged-food-name{flex:0 1 auto;min-width:0;font-weight:700;font-size:12.5px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.logged-food-titleline{min-width:max-content;display:flex;align-items:center;gap:8px}
+.logged-food-name{flex:0 0 auto;min-width:0;font-weight:700;font-size:12.5px;color:var(--text);
+  white-space:nowrap;text-overflow: ellipsis;}
+.logged-food-titleline.empty-note{min-width:0;gap:4px}
+.logged-food-titleline.empty-note .logged-food-name{flex:1 1 auto;overflow:hidden;text-overflow:ellipsis}
+.logged-food-titleline.empty-note .logged-food-note-input{flex:0 0 5ch;min-width:5ch}
 .logged-food-note-input {
   text-align: left;
-  flex:1 1 56px;min-width:42px;font-family:var(--sans);font-size:12.5px;
+  flex:0 0 auto;min-width:5ch;font-family:var(--sans);font-size:12.5px;
   font-weight:600;line-height:1.2;color:var(--faint);background:transparent;
-  border:0;border-radius:0;padding:0;white-space:nowrap;overflow:hidden;
-  text-overflow:ellipsis
+  border:0;border-radius:0;padding:0;white-space:nowrap;
 }
 .logged-food-note-input::placeholder{
   color:var(--faint);
@@ -124,6 +127,8 @@ tfoot td{border-top:2px solid var(--line2);font-family:var(--mono);font-weight:7
 .logged-food-note-input.has-note{color:var(--muted);opacity:0.666;}
 .logged-food-note-input:focus{color:var(--muted);background:var(--panel2);border:0;outline:1px solid var(--line2)}
 .logged-food-note-input:disabled{opacity:1}
+.logged-food-note-line{display:block;margin-top:1px}
+.logged-food-custom-name{font-weight:700;color:var(--text)}
 .logged-food-detail{
   text-align-last: left;
   padding-left: 4.5em;
