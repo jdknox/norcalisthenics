@@ -1,0 +1,827 @@
+{
+  "target": 110,
+  "foods": [
+    {
+      "key": "egg",
+      "name": "Egg",
+      "kind": "unit",
+      "unit_grams": 50,
+      "unit_protein": 6,
+      "daily": 2,
+      "price": 10,
+      "package_units": 12,
+      "daily_raw": "2",
+      "price_raw": "10",
+      "package_units_raw": "12"
+    },
+    {
+      "key": "seitan",
+      "name": "Seitan",
+      "kind": "bulk",
+      "package_grams": 227,
+      "package_protein": 72,
+      "daily": 40,
+      "price": 8,
+      "daily_raw": "40",
+      "price_raw": "8"
+    },
+    {
+      "key": "pink_salmon",
+      "name": "Pink salmon (canned)",
+      "kind": "bulk",
+      "package_grams": 170,
+      "package_protein": 36,
+      "daily": 170,
+      "price": 4,
+      "daily_raw": "170",
+      "price_raw": "4"
+    },
+    {
+      "key": "edamame",
+      "name": "Edamame (shelled)",
+      "kind": "bulk",
+      "package_grams": 283,
+      "package_protein": 36,
+      "daily": 80,
+      "price": 4,
+      "daily_raw": "80",
+      "price_raw": "4"
+    },
+    {
+      "key": "barramundi",
+      "name": "Barramundi",
+      "kind": "bulk",
+      "package_grams": 340,
+      "package_protein": 63,
+      "daily": 50,
+      "price": 8,
+      "daily_raw": "50",
+      "price_raw": "8"
+    },
+    {
+      "key": "skyr",
+      "name": "Skyr",
+      "kind": "bulk",
+      "package_grams": 680,
+      "package_protein": 76,
+      "daily": 300,
+      "price": 4,
+      "daily_raw": "300",
+      "price_raw": "4"
+    },
+    {
+      "key": "rice",
+      "name": "Rice (dry, uncooked)",
+      "kind": "bulk",
+      "package_grams": 2250,
+      "package_protein": 160,
+      "daily": 60,
+      "price": 15,
+      "daily_raw": "60",
+      "price_raw": "15"
+    }
+  ],
+  "scoop_items": [
+    {
+      "barcode": "00505154",
+      "brand": "Trader Joe's",
+      "kcal": 275,
+      "kcal_100g": 572.9167,
+      "kcal_raw": "275",
+      "key": "cashew_tj",
+      "name": "Cashew Pieces",
+      "protein_100g": 16.6667,
+      "protein_g": 8,
+      "protein_g_raw": "8",
+      "scoop_g": 48,
+      "scoop_g_raw": "48",
+      "tags": [
+        "skyr bowl",
+        "snack mix"
+      ],
+      "volume_label": null,
+      "volume_ml": 80
+    },
+    {
+      "barcode": "855140002991",
+      "brand": "purely elizabeth",
+      "kcal": 175,
+      "kcal_100g": 437.5,
+      "kcal_raw": "175",
+      "key": "granola_pe",
+      "name": "Granola; M.A.B.",
+      "protein_100g": 10,
+      "protein_g": 4,
+      "protein_g_raw": "4",
+      "scoop_g": 40,
+      "scoop_g_raw": "40",
+      "tags": [
+        "skyr bowl",
+        "snack mix"
+      ],
+      "volume_label": null,
+      "volume_ml": 120
+    },
+    {
+      "barcode": "898248001411",
+      "brand": "siggi's",
+      "kcal": 150,
+      "kcal_100g": 60,
+      "kcal_raw": "150",
+      "key": "skyr_siggis",
+      "name": "Skyr; plain 0%",
+      "protein_100g": 11.2,
+      "protein_g": 28,
+      "protein_g_raw": "28",
+      "scoop_g": 250,
+      "scoop_g_raw": "250",
+      "tags": [
+        "skyr bowl"
+      ],
+      "volume_label": "BOWL",
+      "volume_ml": null
+    },
+    {
+      "barcode": "099482477196",
+      "brand": "365",
+      "kcal": 65,
+      "kcal_100g": 541.6667,
+      "kcal_raw": "65",
+      "key": "099482477196",
+      "name": "Flaxseed; ground",
+      "protein_100g": 16.6667,
+      "protein_g": 2.8,
+      "protein_g_raw": "2.8",
+      "scoop_g": 12,
+      "scoop_g_raw": "12",
+      "tags": [
+        "skyr bowl"
+      ],
+      "volume_label": null,
+      "volume_ml": 23
+    },
+    {
+      "barcode": "898248001428",
+      "brand": "siggi's",
+      "kcal": 180,
+      "kcal_100g": 72,
+      "kcal_raw": "180",
+      "key": "898248001428",
+      "name": "Skyr; vanilla 0%",
+      "protein_100g": 10,
+      "protein_g": 25,
+      "protein_g_raw": "25",
+      "scoop_g": 250,
+      "scoop_g_raw": "250",
+      "tags": [
+        "skyr bowl"
+      ],
+      "volume_label": "BOWL",
+      "volume_ml": null
+    },
+    {
+      "barcode": "00914055",
+      "brand": "Trader Joe's",
+      "kcal": 220,
+      "kcal_100g": 129.4118,
+      "kcal_raw": "220",
+      "key": "00914055",
+      "name": "Salmon; AK",
+      "protein_100g": 20,
+      "protein_g": 34,
+      "protein_g_raw": "34",
+      "scoop_g": 170,
+      "scoop_g_raw": "170",
+      "tags": [
+        "salmon bowl"
+      ],
+      "volume_label": "CAN",
+      "volume_ml": null
+    },
+    {
+      "barcode": "829696000473",
+      "brand": "Gus's",
+      "kcal": 180,
+      "kcal_100g": 105.8824,
+      "kcal_raw": "180",
+      "key": "829696000473",
+      "name": "Salmon; pink",
+      "protein_100g": 21.1765,
+      "protein_g": 36,
+      "protein_g_raw": "36",
+      "scoop_g": 170,
+      "scoop_g_raw": "170",
+      "tags": [
+        "salmon bowl"
+      ],
+      "volume_label": "CAN",
+      "volume_ml": null
+    },
+    {
+      "barcode": "011152066301",
+      "brand": "Nishiki",
+      "kcal": 215,
+      "kcal_100g": 143.3333,
+      "kcal_raw": "215",
+      "key": "011152066301",
+      "name": "Rice; sushi",
+      "protein_100g": 2.6667,
+      "protein_g": 4,
+      "protein_g_raw": "4",
+      "scoop_g": 150,
+      "scoop_g_raw": "150",
+      "tags": [
+        "salmon bowl"
+      ],
+      "volume_label": "BOWL",
+      "volume_ml": null
+    },
+    {
+      "barcode": "099482479657",
+      "brand": "365",
+      "kcal": 200,
+      "kcal_100g": 454.5455,
+      "kcal_raw": "200",
+      "key": "099482479657",
+      "name": "Granola; M.A.B.",
+      "protein_100g": 13.6364,
+      "protein_g": 6,
+      "protein_g_raw": "6",
+      "scoop_g": 44,
+      "scoop_g_raw": "44",
+      "tags": [
+        "skyr bowl"
+      ],
+      "volume_label": null,
+      "volume_ml": 120
+    },
+    {
+      "barcode": null,
+      "brand": "Gott's Roadside",
+      "kcal": 900,
+      "kcal_raw": "900",
+      "key": "mtjhxp1v9so0uy",
+      "name": "Falafel Salad",
+      "protein_g": 26,
+      "protein_g_raw": "26",
+      "scoop_g": null,
+      "scoop_g_raw": "",
+      "tags": [],
+      "volume_label": "BOWL",
+      "volume_ml": null
+    },
+    {
+      "barcode": "705105357713",
+      "brand": "Upton's Naturals",
+      "kcal": 63,
+      "kcal_100g": 157.5,
+      "kcal_raw": "63",
+      "key": "705105357713",
+      "name": "Seitan; traditional",
+      "protein_100g": 31.5,
+      "protein_g": 12.6,
+      "protein_g_raw": "12.6",
+      "scoop_g": 40,
+      "scoop_g_raw": "40",
+      "tags": [
+        "salmon bowl"
+      ],
+      "volume_label": null,
+      "volume_ml": 80
+    },
+    {
+      "barcode": "638031605026",
+      "brand": "Field Roast",
+      "kcal": 120,
+      "kcal_100g": 218.1818,
+      "kcal_raw": "120",
+      "key": "638031605026",
+      "name": "Deli slices; M&B",
+      "protein_100g": 30.9091,
+      "protein_g": 17,
+      "protein_g_raw": "17",
+      "scoop_g": 55,
+      "scoop_g_raw": "55",
+      "tags": [],
+      "volume_label": "3 SLICES",
+      "volume_ml": null
+    },
+    {
+      "barcode": "042563007805",
+      "brand": "Woodstock",
+      "kcal": 113,
+      "kcal_100g": 141.25,
+      "kcal_raw": "113",
+      "key": "042563007805",
+      "name": "Edamame; shelled",
+      "protein_100g": 13,
+      "protein_g": 10.4,
+      "protein_g_raw": "10.4",
+      "scoop_g": 80,
+      "scoop_g_raw": "80",
+      "tags": [
+        "salmon bowl"
+      ],
+      "volume_label": null,
+      "volume_ml": 120
+    },
+    {
+      "barcode": null,
+      "brand": "",
+      "kcal": 300,
+      "kcal_100g": 150,
+      "kcal_raw": "300",
+      "key": "mtrhq338r8a51q",
+      "name": "MB Shake",
+      "protein_100g": 13,
+      "protein_g": 26,
+      "protein_g_raw": "26",
+      "scoop_g": 200,
+      "scoop_g_raw": "200",
+      "tags": [],
+      "volume_label": "CUP",
+      "volume_ml": null
+    },
+    {
+      "barcode": "193908005175",
+      "brand": "RXBAR",
+      "kcal": 220,
+      "kcal_100g": 400,
+      "kcal_raw": "220",
+      "key": "mts1t8nzcykk1w",
+      "name": "Nut Butter & Oat",
+      "protein_100g": 18.1818181818182,
+      "protein_g": 10,
+      "protein_g_raw": "10",
+      "scoop_g": 55,
+      "scoop_g_raw": "55",
+      "tags": [],
+      "volume_label": null,
+      "volume_ml": null
+    },
+    {
+      "barcode": null,
+      "brand": "Lucca",
+      "kcal": 1500,
+      "kcal_100g": 300,
+      "kcal_raw": "1500",
+      "key": "mts266nqclc1d3",
+      "name": "Mackerel sandwich",
+      "protein_100g": 12,
+      "protein_g": 60,
+      "protein_g_raw": "60",
+      "scoop_g": 500,
+      "scoop_g_raw": "500",
+      "tags": [],
+      "volume_label": "ENTYRE SANDWICH!",
+      "volume_ml": null
+    },
+    {
+      "barcode": "00809719",
+      "brand": "Trader Joe's",
+      "kcal": 75,
+      "kcal_100g": 62.5,
+      "kcal_raw": "75",
+      "key": "mtsxoyl73cnhrf",
+      "name": "Organic Milk A2/A2",
+      "protein_100g": 3.33333333333333,
+      "protein_g": 4,
+      "protein_g_raw": "4",
+      "scoop_g": 120,
+      "scoop_g_raw": "120",
+      "tags": []
+    },
+    {
+      "barcode": "860006380410",
+      "brand": "Fishwife",
+      "kcal": 340,
+      "kcal_100g": 377.777777777778,
+      "kcal_raw": "340",
+      "key": "mtte4bo4knozir",
+      "name": "Smoked Salmon with Sichuan Chili Crisp",
+      "protein_100g": 21.111111111111,
+      "protein_g": 19,
+      "protein_g_raw": "19",
+      "scoop_g": 90,
+      "scoop_g_raw": "90",
+      "tags": [],
+      "volume_label": "CAN",
+      "volume_ml": null
+    }
+  ],
+  "log": {
+    "2026-09-01": [
+      {
+        "grams": 48,
+        "id": "mtkt8uc2t7m8s9",
+        "item_key": "cashew_tj",
+        "kcal": 275,
+        "protein_g": 8,
+        "scale": 1
+      },
+      {
+        "grams": 48,
+        "id": "mtkt8uc2ud0lya",
+        "item_key": "cashew_tj",
+        "kcal": 275,
+        "protein_g": 8,
+        "scale": 1
+      },
+      {
+        "grams": 12,
+        "id": "mtkt8uc2g4b5xn",
+        "item_key": "099482477196",
+        "kcal": 65,
+        "protein_g": 2.8,
+        "scale": 1
+      },
+      {
+        "grams": 12,
+        "id": "mtkt8uc2dzmklx",
+        "item_key": "099482477196",
+        "kcal": 65,
+        "protein_g": 2.8,
+        "scale": 1
+      },
+      {
+        "grams": 40,
+        "id": "mtkt8uc20g2b4c",
+        "item_key": "granola_pe",
+        "kcal": 175,
+        "protein_g": 4,
+        "scale": 1
+      },
+      {
+        "grams": 40,
+        "id": "mtkt8uc26gezf6",
+        "item_key": "granola_pe",
+        "kcal": 175,
+        "protein_g": 4,
+        "scale": 1
+      },
+      {
+        "grams": 250,
+        "id": "mtkt8uc2jvij43",
+        "item_key": "898248001428",
+        "kcal": 180,
+        "protein_g": 25,
+        "scale": 1
+      },
+      {
+        "grams": 250,
+        "id": "mtkt8uc2tcl9qi",
+        "item_key": "898248001428",
+        "kcal": 180,
+        "protein_g": 25,
+        "scale": 1
+      },
+      {
+        "grams": null,
+        "id": "mtkt8uc2wf6s8f",
+        "item_key": "mtjhxp1v9so0uy",
+        "kcal": 900,
+        "protein_g": 26,
+        "scale": 1
+      }
+    ],
+    "2026-09-02": [
+      {
+        "grams": 200,
+        "id": "mtktg6eqg7qryt",
+        "item_key": "898248001428",
+        "kcal": 144,
+        "protein_g": 20,
+        "scale": 0.8
+      },
+      {
+        "grams": 40.8,
+        "id": "mtktgy3xsb1akh",
+        "item_key": "cashew_tj",
+        "kcal": 234,
+        "protein_g": 6.8,
+        "scale": 0.85
+      },
+      {
+        "grams": 80,
+        "id": "mtkthauwmjrd49",
+        "item_key": "042563007805",
+        "kcal": 113,
+        "protein_g": 10.4,
+        "scale": 1
+      },
+      {
+        "grams": 40,
+        "id": "mtkthe4vxgs7wc",
+        "item_key": "granola_pe",
+        "kcal": 175,
+        "protein_g": 4,
+        "scale": 1
+      },
+      {
+        "grams": 150,
+        "id": "mtkthr4otm581m",
+        "item_key": "011152066301",
+        "kcal": 215,
+        "protein_g": 4,
+        "scale": 1
+      },
+      {
+        "grams": 170,
+        "id": "mtkti5qyp6yodo",
+        "item_key": "829696000473",
+        "kcal": 180,
+        "protein_g": 36,
+        "scale": 1
+      },
+      {
+        "grams": 40,
+        "id": "mtktibng0c62ns",
+        "item_key": "705105357713",
+        "kcal": 63,
+        "protein_g": 12.6,
+        "scale": 1
+      },
+      {
+        "grams": null,
+        "id": "mtktqdzffenf29",
+        "item_key": "custom",
+        "kcal": 345,
+        "protein_g": 15,
+        "scale": null
+      }
+    ],
+    "2026-09-03": [
+      {
+        "grams": null,
+        "id": "mtm1rwyqs5ebzr",
+        "item_key": "custom",
+        "kcal": 805,
+        "protein_g": 35,
+        "scale": null
+      },
+      {
+        "grams": 80,
+        "id": "mtm1so33vctr2d",
+        "item_key": "00914055",
+        "kcal": 104,
+        "protein_g": 16,
+        "scale": 0.47058823529411764
+      },
+      {
+        "grams": 220,
+        "id": "mtmi940jtptuoc",
+        "item_key": "898248001428",
+        "kcal": 198,
+        "protein_g": 23.1,
+        "scale": 1.1
+      },
+      {
+        "grams": 40,
+        "id": "mtmi9isjr7o6vk",
+        "item_key": "855140002991",
+        "kcal": 175,
+        "protein_g": 4,
+        "scale": 1
+      },
+      {
+        "grams": 12,
+        "id": "mtmi9m8hjsxn8e",
+        "item_key": "099482477196",
+        "kcal": 65,
+        "protein_g": 2,
+        "scale": 1
+      },
+      {
+        "grams": 48,
+        "id": "mtmi9r8clw4ob4",
+        "item_key": "00505154",
+        "kcal": 275,
+        "protein_g": 8,
+        "scale": 1
+      }
+    ],
+    "2026-09-04": [
+      {
+        "grams": null,
+        "id": "mtn77qnpguwvj5",
+        "item_key": "custom",
+        "kcal": 253,
+        "protein_g": 11,
+        "scale": null
+      },
+      {
+        "grams": 24,
+        "id": "mtn784y7jpgksh",
+        "item_key": "00505154",
+        "kcal": 138,
+        "protein_g": 4,
+        "scale": 0.5
+      },
+      {
+        "grams": 96,
+        "id": "mtnslafd7rdyit",
+        "item_key": "042563007805",
+        "kcal": 138,
+        "protein_g": 12.5,
+        "scale": 1.2
+      },
+      {
+        "grams": 85,
+        "id": "mtnslqoazq7754",
+        "item_key": "00914055",
+        "kcal": 110,
+        "protein_g": 17,
+        "scale": 0.5
+      },
+      {
+        "grams": 40,
+        "id": "mtnslvm64gi8av",
+        "item_key": "705105357713",
+        "kcal": 63,
+        "protein_g": 12.6,
+        "scale": 1
+      },
+      {
+        "grams": 150,
+        "id": "mtnsmh60jngr58",
+        "item_key": "011152066301",
+        "kcal": 215,
+        "protein_g": 4,
+        "scale": 1
+      }
+    ],
+    "2026-09-05": [
+      {
+        "grams": null,
+        "id": "mtp3qgjrahbsao",
+        "item_key": "custom",
+        "kcal": 920,
+        "protein_g": 40,
+        "scale": null
+      },
+      {
+        "grams": null,
+        "id": "mtp3qvnw6vii1v",
+        "item_key": "custom",
+        "kcal": 184,
+        "protein_g": 8,
+        "scale": null
+      },
+      {
+        "grams": null,
+        "id": "mtp3uy6lnx4o7a",
+        "item_key": "custom",
+        "kcal": 184,
+        "protein_g": 8,
+        "scale": null
+      },
+      {
+        "grams": 119,
+        "id": "mtp49kkiv061xp",
+        "item_key": "00914055",
+        "kcal": 154,
+        "protein_g": 23.8,
+        "scale": 0.7
+      },
+      {
+        "grams": null,
+        "id": "mtp49vc6m6rfhg",
+        "item_key": "custom",
+        "kcal": 460,
+        "protein_g": 20,
+        "scale": null
+      },
+      {
+        "grams": null,
+        "id": "mtpa4b2yq4bt7d",
+        "item_key": "custom",
+        "kcal": 460,
+        "protein_g": 20,
+        "scale": null
+      }
+    ],
+    "2026-09-06": [
+      {
+        "grams": null,
+        "id": "mtqdbei42sd2qf",
+        "item_key": "custom",
+        "kcal": 506,
+        "protein_g": 22,
+        "scale": null
+      },
+      {
+        "grams": null,
+        "id": "mtqdbj361kwni3",
+        "item_key": "custom",
+        "kcal": 1035,
+        "protein_g": 45,
+        "scale": null
+      },
+      {
+        "grams": 250,
+        "id": "mtqt32g1foklln",
+        "item_key": "898248001411",
+        "kcal": 150,
+        "protein_g": 28,
+        "scale": 1
+      },
+      {
+        "grams": 44,
+        "id": "mtqt32vgzwnjqj",
+        "item_key": "099482479657",
+        "kcal": 200,
+        "protein_g": 6,
+        "scale": 1
+      },
+      {
+        "grams": 12,
+        "id": "mtqt3391t17r9d",
+        "item_key": "099482477196",
+        "kcal": 65,
+        "protein_g": 2,
+        "scale": 1
+      },
+      {
+        "grams": 48,
+        "id": "mtqt344o0ju7f5",
+        "item_key": "00505154",
+        "kcal": 275,
+        "protein_g": 8,
+        "scale": 1
+      },
+      {
+        "grams": null,
+        "id": "mtqt80emwwaeyj",
+        "item_key": "custom",
+        "kcal": 207,
+        "protein_g": 9,
+        "scale": null
+      }
+    ],
+    "2026-09-07": [
+      {
+        "grams": null,
+        "id": "mtrhzdobdk4r8o",
+        "item_key": "custom",
+        "kcal": 69,
+        "protein_g": 3,
+        "scale": null
+      },
+      {
+        "grams": 500,
+        "id": "mts28n18xztqjo",
+        "item_key": "mts266nqclc1d3",
+        "kcal": 1500,
+        "protein_g": 60,
+        "scale": 1
+      },
+      {
+        "grams": 55,
+        "id": "mts3p06k15xer5",
+        "item_key": "mts1t8nzcykk1w",
+        "kcal": 220,
+        "protein_g": 10,
+        "scale": 1
+      },
+      {
+        "grams": 200,
+        "id": "mts424ipsr10g0",
+        "item_key": "mtrhq338r8a51q",
+        "kcal": 300,
+        "protein_g": 26,
+        "scale": 1
+      }
+    ],
+    "2026-09-08": [
+      {
+        "grams": 55,
+        "id": "mtsxu2vnwzu7hn",
+        "item_key": "mts1t8nzcykk1w",
+        "kcal": 220,
+        "protein_g": 10,
+        "scale": 1
+      },
+      {
+        "grams": 85.5,
+        "id": "mttj0088i29waf",
+        "item_key": "mtte4bo4knozir",
+        "kcal": 323,
+        "protein_g": 18.1,
+        "scale": 0.95
+      },
+      {
+        "grams": 200,
+        "id": "mttj5g3odhx568",
+        "item_key": "mtrhq338r8a51q",
+        "kcal": 75,
+        "protein_g": 24,
+        "scale": 1
+      }
+    ]
+  },
+  "collapsed_groups": {
+    "salmon bowl": true,
+    "skyr bowl": true,
+    "snack mix": true
+  }
+}
