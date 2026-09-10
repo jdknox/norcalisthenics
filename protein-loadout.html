@@ -897,16 +897,22 @@ function loggedEntryDetail(entry)
 {
   let detail = '';
 
-  if (entry.grams != null) detail += fmt1(entry.grams) + ' g';
   if (entry.protein_g != null)
   {
-    if (detail) detail += ' / ';
-    detail += fmt1(entry.protein_g) + ' g protein';
+    detail += fmt0(entry.protein_g).padEnd(3) + ' p;';
   }
+  detail = detail.padEnd(5);
+
   if (entry.kcal != null)
   {
-    if (detail) detail += ' / ';
-    detail += fmt10(entry.kcal) + ' kcal';
+    detail += (fmt_1(entry.kcal) + ' kcal').padStart(10);
+  }
+  detail = detail.padEnd(6);
+
+  if (entry.grams != null)
+  {
+    if (detail) detail += '; (';
+    detail += fmt0(entry.grams).padStart(3) + ' g)';
   }
 
   return detail || 'logged';
@@ -1678,7 +1684,7 @@ function buildDiaryText()
   {
     let day = g_log[dates[d]] || [];
     let totals = dayTotals(dates[d]);
-    lines.push(dates[d] + ' — ' + fmt0(totals.protein) + ' g protein / ' + fmt10(totals.kcal) + ' kcal (target ' + g_target + ' g)');
+    lines.push(dates[d] + ' — ' + fmt0(totals.protein) + ' g protein / ' + fmt_1(totals.kcal) + ' kcal (target ' + g_target + ' g)');
 
     for (let i = 0; i < day.length; ++i)
     {
@@ -1687,7 +1693,7 @@ function buildDiaryText()
       lines.push('  ' + (item ? item.name : (entry.item_key == 'custom' ? 'Custom' : entry.item_key))
         + (entry.grams != null ? ' (' + entry.grams + ' g' + (entry.scale != null && entry.scale != 1 ? ', ' + entry.scale.toFixed(2) + '×' : '') + ')' : '')
         + (entry.protein_g != null ? ' — ' + fmt0(entry.protein_g) + ' g' : '')
-        + (entry.kcal != null ? ' / ' + fmt10(entry.kcal) + ' kcal' : ''));
+        + (entry.kcal != null ? ' / ' + fmt_1(entry.kcal) + ' kcal' : ''));
     }
 
     lines.push('');
@@ -1883,9 +1889,9 @@ function fmt2(n)
   return n.toFixed(2);
 }
 
-function fmt10(n)
+function fmt_1(n)
 {
-  return (n/10 + .4999).toFixed(0)*10;
+  return (Math.floor(n/10 + .4999)*10).toFixed(0);
 }
 
 function save()
@@ -2443,7 +2449,7 @@ function renderLoggedFoodList()
       h += '<span class="logged-food-name">' + esc(loggedEntryLabel(day[i])) + '</span>';
       h += '<input class="logged-food-note-input' + (day[i].note ? ' has-note' : '') + '" type="text" data-lognote="' + day[i].id + '" placeholder="notes" value="' + esc(day[i].note || '') + '"' + (!is_today ? ' disabled' : '') + '>';
       h += '</div>';
-      h += '<span class="logged-food-detail">' + esc(loggedEntryDetail(day[i])) + '</span>';
+      h += '<span class="logged-food-detail">' + (loggedEntryDetail(day[i])) + '</span>';
       h += '</div>';
       if (is_today)
       {
@@ -2509,7 +2515,7 @@ function renderScoopSection()
   h += '<div class="cell"><div class="lab">logged protein</div><div class="val">' + fmt1(totals.protein) + ' g</div></div>';
   h += '<div class="cell"><div class="lab">' + (tdiff >= 0 ? 'over target' : 'under target') + '</div>'
      + '<div class="val ' + (tdiff >= 0 ? 'over' : 'under') + '">' + (tdiff >= 0 ? '+' : '') + fmt1(tdiff) + ' g</div></div>';
-  h += '<div class="cell"><div class="lab">kcal</div><div class="val">' + fmt10(totals.kcal) + '</div></div>';
+  h += '<div class="cell"><div class="lab">kcal</div><div class="val">' + fmt_1(totals.kcal) + '</div></div>';
   h += '</div>';
 
   h += renderLoggedFoodList();

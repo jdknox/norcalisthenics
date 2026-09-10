@@ -106,7 +106,8 @@ tfoot td{border-top:2px solid var(--line2);font-family:var(--mono);font-weight:7
 .logged-foods-empty{font-family:var(--mono);font-size:11.5px;color:var(--faint)}
 .logged-foods-list{display:flex;flex-direction:column;gap:5px}
 .logged-food-item{display:flex;align-items:center;justify-content:space-between;gap:8px}
-.logged-food-main{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:1px}
+.logged-food-main{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:1px;overflow-x:auto}
+.logged-food-main > *{min-width:max-content}
 .logged-food-titleline{min-width:0;display:flex;align-items:center;gap:8px}
 .logged-food-name{flex:0 1 auto;min-width:0;font-weight:700;font-size:12.5px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .logged-food-note-input {
@@ -126,7 +127,7 @@ tfoot td{border-top:2px solid var(--line2);font-family:var(--mono);font-weight:7
 .logged-food-detail{
   text-align-last: left;
   padding-left: 4.5em;
-  font-family:var(--mono);font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  font-family:var(--mono);font-size:11px;color:var(--muted);white-space:pre;overflow:hidden;text-overflow:ellipsis;
 }
 .logged-food-remove{flex:0 0 auto;width:24px;height:24px;font-family:var(--mono);font-size:13px;color:var(--faint);border:1px solid var(--line);border-radius:4px;background:var(--panel2);cursor:pointer}
 .logged-food-remove:hover{color:var(--text);border-color:var(--line2)}
