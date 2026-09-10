@@ -161,6 +161,12 @@ tfoot td{border-top:2px solid var(--line2);font-family:var(--mono);font-weight:7
   font-size:smaller;
 }
 .addform input{width:120px}
+.macromode{display:inline-flex;align-items:center;border:1px solid var(--line2);border-radius:4px;overflow:hidden;background:var(--panel2)}
+.macromodelabel{font-family:var(--mono);font-size:10px;color:var(--faint);padding:0 7px;white-space:nowrap}
+.macromodebtn{font-family:var(--mono);font-size:11px;color:var(--muted);border:0;border-left:1px solid var(--line2);background:transparent;padding:6px 8px;cursor:pointer}
+.macromodebtn.on{background:var(--green);color:#132014;font-weight:700}
+.macromodebtn:hover{color:var(--text)}
+.macromodebtn.on:hover{color:#132014}
 .unitinput{position:relative;display:inline-block}
 .unitinput input{padding-right:46px}
 .unitghost{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-family:var(--mono);font-size:13px;color:var(--faint);pointer-events:none;user-select:none}
