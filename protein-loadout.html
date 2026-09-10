@@ -599,6 +599,7 @@ let g_import_pending = null;    /* parsed object awaiting confirmation, or null 
 let g_import_status = '';
 let g_active_tab = 'pantry';
 let g_adjusted_log_open = false;
+let g_logged_food_details_open = false;
 let custom_kcal_ratio_fallback = 23;
 let custom_kcal_ratio_rho = 0.85;
 
@@ -2533,7 +2534,10 @@ function renderLoggedFoodList()
   let h = '';
 
   h += '<div class="logged-foods">';
+  h += '<div class="logged-foods-head">';
   h += '<div class="logged-foods-title">logged foods</div>';
+  h += '<button class="logged-foods-detail-toggle" data-a="logged-food-details-toggle">' + (g_logged_food_details_open ? 'hide' : 'details') + '</button>';
+  h += '</div>';
 
   if (!day.length)
   {
@@ -2570,7 +2574,7 @@ function renderLoggedFoodList()
       {
         h += '<input class="logged-food-note-input logged-food-note-line has-note" type="text" data-lognote="' + entry.id + '" size="' + note_size + '" placeholder="notes" value="' + esc(note) + '"' + (!is_today ? ' disabled' : '') + '>';
       }
-      h += '<span class="logged-food-detail">' + (loggedEntryDetail(entry)) + '</span>';
+      if (g_logged_food_details_open) h += '<span class="logged-food-detail">' + (loggedEntryDetail(entry)) + '</span>';
       h += '</div>';
       if (is_today)
       {
@@ -3072,6 +3076,11 @@ document.addEventListener('click', function(ev)
 
     case 'adjusted-log-toggle':
       g_adjusted_log_open = !g_adjusted_log_open;
+      render();
+      return;
+
+    case 'logged-food-details-toggle':
+      g_logged_food_details_open = !g_logged_food_details_open;
       render();
       return;
 
