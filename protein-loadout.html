@@ -2336,6 +2336,7 @@ function renderGroupHeader(g)
   let total_protein = 0;
   let total_kcal = 0;
   let total_g = 0;
+  let total_count = 0;
   let is_match = groupMatchesSearch(g);
 
   for (let i = 0; i < g.members.length; ++i)
@@ -2345,6 +2346,7 @@ function renderGroupHeader(g)
     total_protein += count*item.protein_g;
     total_kcal    += count*item.kcal;
     total_g       += count*item.scoop_g;
+    total_count   += count;
   }
 
   let icon = (collapsed ? '▸' : '▾');
@@ -2352,7 +2354,7 @@ function renderGroupHeader(g)
   h += `<tr class="groupheader${searchmatch}">
   <td colspan="2">
     <button class="grouptoggle" data-a="group-toggle" data-group="${esc(g.key)}">
-      ${icon} ${esc(g.name)}<span class="unit">${g.members.length} items</span>
+      ${icon} ${esc(g.name)}<span class="unit">(${total_count}/${g.members.length})</span>
     </button>
     <button class="editbtn" data-a="group-rename-open" data-group="${esc(g.key)}"
       data-name="${esc(g.name)}" title="rename group">✎</button>
