@@ -2381,7 +2381,7 @@ function renderGroupHeader(g)
   let icon = (collapsed ? '▸' : '▾');
   let searchmatch = (is_match ? ' searchmatch' : '');
   h += `<tr class="groupheader${searchmatch}">
-  <td colspan="2">
+  <td colspan="3">
     <button class="grouptoggle" data-a="group-toggle" data-group="${esc(g.key)}">
       ${icon} ${esc(g.name)}<span class="unit">(${total_count}/${g.members.length})</span>
     </button>
@@ -2390,7 +2390,6 @@ function renderGroupHeader(g)
   </td>
   <td class="num pack-out protein">${fmt0(total_protein)}</td>
   <td class="num pack-out kcal">${fmt_1(total_kcal)}</td>
-  <td />
   <td class="num pack-out grams">${fmt_1(total_g)}</td>
   </tr>`;
 
