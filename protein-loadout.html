@@ -493,6 +493,31 @@ function formatVolume(item)
   return '—';
 }
 
+function parseVolumeDraft(text)
+{
+  let vol_text = text.trim();
+  let lower_text = vol_text.toLowerCase();
+  let number_text;
+  let num;
+
+  if (!vol_text) return { volume_ml:null, volume_label:null };
+
+  if (/^[0-9]+(\.[0-9]+)?$/.test(vol_text))
+  {
+    num = parseFloat(vol_text);
+    return { volume_ml:num, volume_label:null };
+  }
+
+  if (/^[0-9]+(\.[0-9]+)?[ ]*ml$/.test(lower_text))
+  {
+    number_text = lower_text.replace('ml', '').trim();
+    num = parseFloat(number_text);
+    return { volume_ml:num, volume_label:null };
+  }
+
+  return { volume_ml:null, volume_label:vol_text.toUpperCase() };
+}
+
 function round1(n)
 {
   return Math.round(n*10)/10;
@@ -1147,8 +1172,7 @@ function saveScoopEdit()
   let item = findScoopItem(g_edit_item_key);
   let d = g_edit_draft;
   let fields;
-  let vol_text;
-  let num;
+  let volume;
 
   if (!item || !d) return;
   if (!d.name.trim()) return;
@@ -1165,24 +1189,9 @@ function saveScoopEdit()
   item.protein_100g = fields.protein_100g;
   item.kcal_100g = fields.kcal_100g;
 
-  vol_text = d.volume.trim();
-  num = parseFloat(vol_text);
-
-  if (!vol_text)
-  {
-    item.volume_ml = null;
-    item.volume_label = null;
-  }
-  else if (!isNaN(num))
-  {
-    item.volume_ml = num;
-    item.volume_label = null;
-  }
-  else
-  {
-    item.volume_ml = null;
-    item.volume_label = vol_text.toUpperCase();
-  }
+  volume = parseVolumeDraft(d.volume);
+  item.volume_ml = volume.volume_ml;
+  item.volume_label = volume.volume_label;
 
   g_edit_item_key = null;
   g_edit_context = null;
@@ -1214,7 +1223,7 @@ function renderScoopEditRow(item)
   h += '<input type="text" data-editdraft="name" placeholder="name" value="' + esc(d.name) + '">';
   h += '<input type="text" data-editdraft="brand" placeholder="brand" value="' + esc(d.brand) + '">';
   h += '<input type="text" data-editdraft="barcode" placeholder="barcode" value="' + esc(d.barcode) + '">';
-  h += '<input type="text" data-editdraft="volume" placeholder="volume (mL, or BOWL/CAN)" value="' + esc(d.volume) + '">';
+  h += '<input type="text" data-editdraft="volume" autocapitalize="characters" placeholder="volume (mL, or BOWL/CAN)" value="' + esc(d.volume) + '">';
   h += '<span class="unitinput"><input type="text" inputmode="decimal" data-editdraft="scoop_g" placeholder="scoop" value="' + esc(d.scoop_g) + '"><span class="unitghost" aria-hidden="true">g</span></span>';
   h += renderMacroModeControl('edit', draftMacroMode(d));
   h += '<span class="unitinput"><input type="text" inputmode="decimal" data-editdraft="macro_protein" placeholder="protein" value="' + esc(d.macro_protein) + '"><span class="unitghost" aria-hidden="true">' + (draftMacroMode(d) == '100g' ? '/100g' : 'g') + '</span></span>';
@@ -2933,6 +2942,7 @@ document.addEventListener('input', function(ev)
   if (editdraft_field)
   {
     g_edit_draft[editdraft_field] = target.value;
+    if (editdraft_field == 'volume') return;
     if (editdraft_field == 'scoop_g' || editdraft_field == 'macro_protein' || editdraft_field == 'macro_kcal') recomputeEditDraftMacros();
     renderPreservingFocus();
     return;
