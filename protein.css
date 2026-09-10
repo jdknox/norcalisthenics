@@ -37,6 +37,18 @@ h1{font-family:var(--mono);font-size:20px;font-weight:600;margin:6px 0 18px;lett
 .summary .val.over{color:var(--green-hi)}
 .summary .val.under{color:var(--coral)}
 .summary .val.kval{color:var(--blue)}
+.bodyweightrow{margin-top:-4px;margin-bottom:14px}
+.protein-kg-scale{border:1px solid var(--line);border-radius:6px;background:var(--panel);padding:10px 12px 18px;margin:-14px 0 18px}
+.protein-kg-scale-head{display:flex;align-items:center;justify-content:space-between;gap:10px;font-family:var(--mono);font-size:11px;color:var(--faint);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px}
+.protein-kg-scale-head strong{color:var(--search-hi);font-size:13px;letter-spacing:0;text-transform:none}
+.protein-kg-scale.under .protein-kg-scale-head strong{color:var(--coral)}
+.protein-kg-scale.over .protein-kg-scale-head strong{color:var(--green-hi)}
+.protein-kg-track{position:relative;height:28px;margin:0 7px}
+.protein-kg-track::before{content:'';position:absolute;left:0;right:0;top:7px;height:3px;border-radius:3px;background:linear-gradient(90deg,var(--coral),var(--search-hi),var(--green-hi))}
+.protein-kg-marker{position:absolute;top:0;width:13px;height:13px;border:2px solid var(--text);border-radius:50%;background:var(--panel2);transform:translateX(-50%);z-index:2}
+.protein-kg-tick{position:absolute;top:4px;transform:translateX(-50%);font-family:var(--mono);font-size:10.5px;color:var(--faint);text-align:center}
+.protein-kg-tick i{display:block;width:1px;height:9px;background:var(--line2);margin:0 auto 4px}
+.protein-kg-tick b{font-weight:400}
 table{width:100%;border-collapse:collapse;margin-bottom:20px}
 .pantrytable{table-layout:fixed}
 .pantrycol-item{width:auto; border-right: 1px dashed rgba(88, 88, 88, 0.25);}
