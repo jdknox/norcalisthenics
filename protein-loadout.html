@@ -84,7 +84,9 @@ let g_foods = [
 let g_target = 128;
 let g_target_raw = String(g_target);
 let g_bodyweight_kg = 82;
-let g_bodyweight_kg_raw = String(g_bodyweight_kg);
+let g_bodyweight_by_date = {};
+let g_bodyweight_raw_by_date = {};
+let g_bodyweight_dirty_dates = {};
 
 {
 
@@ -1892,8 +1894,12 @@ function applyImport()
   if (parsed.bodyweight_kg != null)
   {
     g_bodyweight_kg = parsed.bodyweight_kg;
-    g_bodyweight_kg_raw = String(g_bodyweight_kg);
   }
+
+  g_bodyweight_by_date = {};
+  if (parsed.bodyweight_by_date && typeof parsed.bodyweight_by_date == 'object') g_bodyweight_by_date = parsed.bodyweight_by_date;
+  else g_bodyweight_by_date[todayISO()] = g_bodyweight_kg;
+  clearBodyweightDirtyDates();
 
   if (Array.isArray(parsed.foods))
   {
@@ -2041,6 +2047,7 @@ function makeSavePayload()
   return {
     target:g_target,
     bodyweight_kg:g_bodyweight_kg,
+    bodyweight_by_date:g_bodyweight_by_date,
     foods:g_foods,
     scoop_items:g_scoop_items,
     log:g_log,
@@ -2059,6 +2066,47 @@ function storagePayloadFromValue(value)
 function markDeletedLogEntry(entry)
 {
   if (entry && entry.id) g_deleted_log_entry_ids[entry.id] = true;
+}
+
+function bodyweightForDate(date)
+{
+  if (g_bodyweight_by_date[date] != null) return g_bodyweight_by_date[date];
+  return g_bodyweight_kg;
+}
+
+function bodyweightRawForDate(date)
+{
+  if (g_bodyweight_raw_by_date[date] != null) return g_bodyweight_raw_by_date[date];
+  return String(bodyweightForDate(date));
+}
+
+function setBodyweightForDate(date, kg, raw)
+{
+  if (date == todayISO()) g_bodyweight_kg = kg;
+  g_bodyweight_by_date[date] = kg;
+  g_bodyweight_raw_by_date[date] = raw;
+  g_bodyweight_dirty_dates[date] = true;
+}
+
+function mergeBodyweightByDate(remote_bodyweight_by_date)
+{
+  if (!remote_bodyweight_by_date || typeof remote_bodyweight_by_date != 'object') return;
+
+  for (let date in remote_bodyweight_by_date)
+  {
+    if (g_bodyweight_dirty_dates[date]) continue;
+    if (remote_bodyweight_by_date[date] == null) continue;
+
+    g_bodyweight_by_date[date] = remote_bodyweight_by_date[date];
+    delete g_bodyweight_raw_by_date[date];
+    if (date == todayISO()) g_bodyweight_kg = remote_bodyweight_by_date[date];
+  }
+}
+
+function clearBodyweightDirtyDates()
+{
+  g_bodyweight_dirty_dates = {};
+  g_bodyweight_raw_by_date = {};
 }
 
 function mergeDeletedLogEntryIds(ids)
@@ -2127,6 +2175,13 @@ function mergeLoadedPayload(payload)
 {
   if (!payload || typeof payload != 'object') return;
 
+  if (payload.bodyweight_kg != null && !g_bodyweight_dirty_dates[todayISO()])
+  {
+    g_bodyweight_kg = payload.bodyweight_kg;
+  }
+
+  mergeBodyweightByDate(payload.bodyweight_by_date);
+
   mergeDeletedLogEntryIds(payload.deleted_log_entry_ids);
   mergeLogEntries(payload.log);
   pruneDeletedLogEntries();
@@ -2160,15 +2215,24 @@ function save()
         if (result && result.value) mergeLoadedPayload(storagePayloadFromValue(result.value));
         merged_json_text = JSON.stringify(makeSavePayload());
         saveLocalJson(merged_json_text);
-        window.storage.set(g_storage_key, merged_json_text).catch(function(){});
+        window.storage.set(g_storage_key, merged_json_text).then(function()
+        {
+          clearBodyweightDirtyDates();
+        }).catch(function(){});
       }, function()
       {
-        window.storage.set(g_storage_key, json_text).catch(function(){});
+        window.storage.set(g_storage_key, json_text).then(function()
+        {
+          clearBodyweightDirtyDates();
+        }).catch(function(){});
       });
       return;
     }
 
-    window.storage.set(g_storage_key, json_text).catch(function(){});
+    window.storage.set(g_storage_key, json_text).then(function()
+    {
+      clearBodyweightDirtyDates();
+    }).catch(function(){});
   }
 }
 
@@ -2187,8 +2251,11 @@ function load()
     if (payload.bodyweight_kg != null)
     {
       g_bodyweight_kg = payload.bodyweight_kg;
-      g_bodyweight_kg_raw = String(g_bodyweight_kg);
     }
+
+    if (payload.bodyweight_by_date && typeof payload.bodyweight_by_date == 'object') g_bodyweight_by_date = payload.bodyweight_by_date;
+    else g_bodyweight_by_date[todayISO()] = g_bodyweight_kg;
+    clearBodyweightDirtyDates();
 
     for (let i = 0; i < payload.foods.length; ++i)
     {
@@ -2338,25 +2405,17 @@ function renderTargetRow()
   return h;
 }
 
-function renderBodyweightRow()
-{
-  let h = '';
-
-  h += `<div class="targetrow bodyweightrow">
-    <label>bodyweight kg</label>
-    <input type="text" inputmode="decimal" id="bodyweight-input" value="${g_bodyweight_kg_raw}">
-  </div>`;
-
-  return h;
-}
-
-function renderProteinKgScale(logged_protein, mean_protein)
+function renderProteinKgScale(logged_protein)
 {
   let scale_min = 1.2;
   let scale_max = 1.8;
   let scale_target = 1.666;
-  let ratio = g_bodyweight_kg > 0 ? logged_protein/g_bodyweight_kg : 0;
-  let ratio_text = g_bodyweight_kg > 0 ? fmt2(ratio) : '—';
+  let bodyweight_kg = bodyweightForDate(g_view_date);
+  let bodyweight_raw = bodyweightRawForDate(g_view_date);
+  let mean_protein = calculateMeanLoggedProtein(g_view_date, 7);
+  let ratio = bodyweight_kg > 0 ? logged_protein/bodyweight_kg : 0;
+  let ratio_text = bodyweight_kg > 0 ? fmt2(ratio) : '—';
+  let mean_ratio_text = bodyweight_kg > 0 ? fmt2(mean_protein/bodyweight_kg) : '—';
   let marker_pct = (ratio - scale_min)/(scale_max - scale_min)*100;
   let marker_clamped = Math.max(0.0, Math.min(100.0, marker_pct));
   let range_class = ratio < scale_min ? ' under' : ratio > scale_target ? ' over' : '';
@@ -2370,7 +2429,11 @@ function renderProteinKgScale(logged_protein, mean_protein)
   h += `<div class="protein-kg-scale${range_class}">
     <div class="protein-kg-scale-head">
       <span>protein/bodyweight</span>
-      <strong>${ratio_text} g/kg</strong>
+      <span class="protein-kg-controls">
+        <label>kg</label>
+        <input type="text" inputmode="decimal" id="bodyweight-input" value="${bodyweight_raw}">
+        <strong>${ratio_text} g/kg</strong>
+      </span>
     </div>
     <div class="protein-kg-track">
       <span class="protein-kg-marker${range_class}" style="left:${marker_clamped}%${marker_transform}"></span>
@@ -2381,7 +2444,7 @@ function renderProteinKgScale(logged_protein, mean_protein)
     </div>
     <span class="protein-kg-note">Weekly average:
       <span class="${range_class}">${fmt0(mean_protein)} g
-        (${fmt2(mean_protein/g_bodyweight_kg)} g/kg)
+        (${mean_ratio_text} g/kg)
       </span>
     </span>
   </div>`;
@@ -2399,8 +2462,6 @@ function renderLoadoutSection()
   let diff_sign = diff >= 0 ? '+' : '';
   let cost_text = cost > 0 ? '$' + fmt2(cost) : '—';
   let h = '';
-
-  h += renderBodyweightRow();
 
   h += `<div class="summary">
     <div class="cell"><div class="lab">total protein</div><div class="val">${fmt1(total)} g</div></div>
@@ -2902,7 +2963,7 @@ function calculateMeanLoggedProtein(start_date, ndays)
   let total_days = ndays;
   for (let d = 0; d < ndays; ++d)
   {
-    let date = shiftDateISO(g_view_date, -d);
+    let date = shiftDateISO(start_date, -d);
     let protein = dayTotals(date).protein;
     if (protein > 0) { total_protein += protein; }
     else { --total_days; }
@@ -2954,8 +3015,7 @@ function renderScoopSection()
     </div>
   </div>`;
 
-  let mean_protein = calculateMeanLoggedProtein(g_view_date, 7);
-  h += renderProteinKgScale(totals.protein, mean_protein);
+  h += renderProteinKgScale(totals.protein);
 
   h += renderLoggedFoodList();
 
@@ -3213,9 +3273,8 @@ document.addEventListener('input', function(ev)
 
   if (target.id == 'bodyweight-input')
   {
-    g_bodyweight_kg_raw = target.value;
     num = parseFloat(target.value);
-    g_bodyweight_kg = isNaN(num) ? 0 : num;
+    setBodyweightForDate(g_view_date, isNaN(num) ? 0 : num, target.value);
     renderPreservingFocus();
     save();
     return;
@@ -3418,7 +3477,8 @@ document.addEventListener('click', function(ev)
       g_target = 128;
       g_target_raw = '128';
       g_bodyweight_kg = 82;
-      g_bodyweight_kg_raw = '82';
+      g_bodyweight_by_date[todayISO()] = g_bodyweight_kg;
+      g_bodyweight_dirty_dates[todayISO()] = true;
       render();
       save();
       return;
