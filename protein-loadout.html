@@ -567,7 +567,8 @@ function migrateLogFormat()
   }
 }
 
-let g_log = {};                 /* isoDate -> { item_key: count } */
+let g_log = {};                 /* isoDate -> [entry, ...] */
+let g_deleted_log_entry_ids = {}; /* entry_id -> true */
 let g_view_date = todayISO();   /* editing only allowed when this == todayISO() */
 let g_fetch_status = {};        /* item_key -> transient status text, not persisted */
 let g_fetch_pending = {};       /* item_key -> true while awaiting in-page overwrite confirmation */
@@ -719,6 +720,7 @@ function removeScoop(key)
   {
     if (day[i].item_key == key)
     {
+      markDeletedLogEntry(day[i]);
       day.splice(i, 1);
       return;
     }
@@ -762,6 +764,7 @@ function removeLogEntry(entry_id)
   {
     if (day[i].id == entry_id)
     {
+      markDeletedLogEntry(day[i]);
       day.splice(i, 1);
       return;
     }
@@ -1834,7 +1837,7 @@ function buildDiaryText()
 
 function buildExportJSON()
 {
-  return JSON.stringify({ target:g_target, bodyweight_kg:g_bodyweight_kg, foods:g_foods, scoop_items:g_scoop_items, log:g_log, collapsed_groups:g_collapsed_groups }, null, 2);
+  return JSON.stringify(makeSavePayload(), null, 2);
 }
 
 function parseImportText()
@@ -1915,11 +1918,14 @@ function applyImport()
   }
 
   if (parsed.log && typeof parsed.log == 'object') g_log = parsed.log;
+  g_deleted_log_entry_ids = {};
+  if (parsed.deleted_log_entry_ids && typeof parsed.deleted_log_entry_ids == 'object') g_deleted_log_entry_ids = parsed.deleted_log_entry_ids;
   if (parsed.collapsed_groups && typeof parsed.collapsed_groups == 'object') g_collapsed_groups = parsed.collapsed_groups;
 
   mergeKnownItems(); /* pick up any known items added to this tool since the backup was made */
   migrateLogFormat();
   migrateTagsFormat();
+  pruneDeletedLogEntries();
 
   g_import_pending = null;
   g_import_text = '';
@@ -2030,20 +2036,138 @@ function fmt_1(n)
   return (Math.ceil(n/10)*10).toFixed(0);
 }
 
-function save()
+function makeSavePayload()
 {
-  let payload = { target:g_target, bodyweight_kg:g_bodyweight_kg, foods:g_foods, scoop_items:g_scoop_items, log:g_log, collapsed_groups:g_collapsed_groups };
-  let json_text = JSON.stringify(payload);
+  return {
+    target:g_target,
+    bodyweight_kg:g_bodyweight_kg,
+    foods:g_foods,
+    scoop_items:g_scoop_items,
+    log:g_log,
+    deleted_log_entry_ids:g_deleted_log_entry_ids,
+    collapsed_groups:g_collapsed_groups
+  };
+}
 
+function storagePayloadFromValue(value)
+{
+  if (!value) return null;
+  if (typeof value == 'string') return JSON.parse(value);
+  return value;
+}
+
+function markDeletedLogEntry(entry)
+{
+  if (entry && entry.id) g_deleted_log_entry_ids[entry.id] = true;
+}
+
+function mergeDeletedLogEntryIds(ids)
+{
+  if (!ids || typeof ids != 'object') return;
+
+  for (let id in ids)
+  {
+    if (ids[id]) g_deleted_log_entry_ids[id] = true;
+  }
+}
+
+function pruneDeletedLogEntries()
+{
+  for (let date in g_log)
+  {
+    let day = g_log[date];
+    if (!Array.isArray(day)) continue;
+
+    for (let i = day.length - 1; i >= 0; --i)
+    {
+      if (day[i].id && g_deleted_log_entry_ids[day[i].id]) day.splice(i, 1);
+    }
+  }
+}
+
+function mergeLogEntries(remote_log)
+{
+  if (!remote_log || typeof remote_log != 'object') return;
+
+  pruneDeletedLogEntries();
+
+  for (let date in remote_log)
+  {
+    let remote_day = remote_log[date];
+    let local_day = g_log[date];
+    let local_ids = {};
+
+    if (!Array.isArray(remote_day)) continue;
+
+    if (!Array.isArray(local_day))
+    {
+      local_day = [];
+      g_log[date] = local_day;
+    }
+
+    for (let i = 0; i < local_day.length; ++i)
+    {
+      if (local_day[i].id) local_ids[local_day[i].id] = true;
+    }
+
+    for (let i = 0; i < remote_day.length; ++i)
+    {
+      let entry = remote_day[i];
+      if (!entry.id) continue;
+      if (g_deleted_log_entry_ids[entry.id]) continue;
+      if (local_ids[entry.id]) continue;
+
+      local_day.push(entry);
+      local_ids[entry.id] = true;
+    }
+  }
+}
+
+function mergeLoadedPayload(payload)
+{
+  if (!payload || typeof payload != 'object') return;
+
+  mergeDeletedLogEntryIds(payload.deleted_log_entry_ids);
+  mergeLogEntries(payload.log);
+  pruneDeletedLogEntries();
+}
+
+function saveLocalJson(json_text)
+{
   try
   {
     localStorage.setItem(g_storage_key, json_text);
   }
   catch (e)
   {}
+}
+
+function save()
+{
+  let payload = makeSavePayload();
+  let json_text = JSON.stringify(payload);
+
+  saveLocalJson(json_text);
 
   if (window.storage && window.storage.set)
   {
+    if (window.storage.get)
+    {
+      window.storage.get(g_storage_key).then(function(result)
+      {
+        let merged_json_text;
+
+        if (result && result.value) mergeLoadedPayload(storagePayloadFromValue(result.value));
+        merged_json_text = JSON.stringify(makeSavePayload());
+        saveLocalJson(merged_json_text);
+        window.storage.set(g_storage_key, merged_json_text).catch(function(){});
+      }, function()
+      {
+        window.storage.set(g_storage_key, json_text).catch(function(){});
+      });
+      return;
+    }
+
     window.storage.set(g_storage_key, json_text).catch(function(){});
   }
 }
@@ -2098,6 +2222,7 @@ function load()
     }
 
     if (payload.log) g_log = payload.log;
+    if (payload.deleted_log_entry_ids && typeof payload.deleted_log_entry_ids == 'object') g_deleted_log_entry_ids = payload.deleted_log_entry_ids;
     if (payload.collapsed_groups) g_collapsed_groups = payload.collapsed_groups;
   }
 
@@ -2118,15 +2243,7 @@ function load()
 
   function applyStorageValue(value)
   {
-    if (!value) return;
-
-    if (typeof value == 'string')
-    {
-      applyLoaded(JSON.parse(value));
-      return;
-    }
-
-    applyLoaded(value);
+    applyLoaded(storagePayloadFromValue(value));
   }
 
   function finishLoad()
@@ -2134,6 +2251,7 @@ function load()
     mergeKnownItems();
     migrateLogFormat();
     migrateTagsFormat();
+    pruneDeletedLogEntries();
     render();
   }
 
