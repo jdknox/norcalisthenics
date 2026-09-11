@@ -44,8 +44,31 @@ h1{font-family:var(--mono);font-size:20px;font-weight:600;margin:6px 0 18px;lett
 .protein-kg-scale.under .protein-kg-scale-head strong{color:var(--coral)}
 .protein-kg-scale.over .protein-kg-scale-head strong{color:var(--green-hi)}
 .protein-kg-track{position:relative;height:28px;margin:0 7px}
-.protein-kg-track::before{content:'';position:absolute;left:0;right:0;top:7px;height:3px;border-radius:3px;background:linear-gradient(90deg,var(--coral),var(--search-hi),var(--green-hi))}
-.protein-kg-marker{position:absolute;top:0;width:13px;height:13px;border:2px solid var(--text);border-radius:50%;background:var(--panel2);transform:translateX(-50%);z-index:2}
+.protein-kg-track::before{content:'';position:absolute;left:0;right:0;top:7px;height:3px;border-radius:3px;
+  background:linear-gradient(90deg,
+    var(--coral) 0%,
+    var(--search-hi),
+    var(--green-hi) 30%,
+    var(--green-hi) 50%,
+    var(--search-hi) 80%,
+    var(--coral))}
+.protein-kg-marker {
+  position: absolute;
+  top: 0;
+  width: 8px;
+  height: 15px;
+  border: 2px solid var(--text);
+  border-radius: 30%;
+  background: var(--panel2);
+  transform: translateX(-50%);
+  z-index: 2
+}
+.protein-kg-marker.under {
+  border: 1px dashed var(--coral);
+}
+.protein-kg-marker.over {
+  border: 1px dashed var(--coral);
+}
 .protein-kg-tick{position:absolute;top:4px;transform:translateX(-50%);font-family:var(--mono);font-size:10.5px;color:var(--faint);text-align:center}
 .protein-kg-tick i{display:block;width:1px;height:9px;background:var(--line2);margin:0 auto 4px}
 .protein-kg-tick b{font-weight:400}

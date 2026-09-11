@@ -2236,20 +2236,26 @@ function renderProteinKgScale(logged_protein)
 {
   let scale_min = 1.2;
   let scale_max = 1.8;
+  let scale_target = 1.666;
   let ratio = g_bodyweight_kg > 0 ? logged_protein/g_bodyweight_kg : 0;
   let ratio_text = g_bodyweight_kg > 0 ? fmt2(ratio) : '—';
-  let marker_ratio = Math.max(scale_min, Math.min(scale_max, ratio));
-  let marker_pct = (marker_ratio - scale_min)/(scale_max - scale_min)*100;
-  let range_class = ratio < scale_min ? ' under' : ratio > scale_max ? ' over' : '';
+  let marker_pct = (ratio - scale_min)/(scale_max - scale_min)*100;
+  let marker_clamped = Math.max(0.0, Math.min(100.0, marker_pct));
+  let range_class = ratio < scale_min ? ' under' : ratio > scale_target ? ' over' : '';
+  let marker_transform = '';
+  if ((ratio < scale_min) || (ratio > scale_max))
+  {
+    marker_transform = `; transform: translateX(${(marker_pct - 50).toFixed()}%)`;
+  }
   let h = '';
 
   h += `<div class="protein-kg-scale${range_class}">
     <div class="protein-kg-scale-head">
-      <span>protein / bodyweight</span>
+      <span>protein/bodyweight</span>
       <strong>${ratio_text} g/kg</strong>
     </div>
     <div class="protein-kg-track">
-      <span class="protein-kg-marker" style="left:${marker_pct}%"></span>
+      <span class="protein-kg-marker${range_class}" style="left:${marker_clamped}%${marker_transform}"></span>
       <span class="protein-kg-tick" style="left:0%"><i></i><b>1.2</b></span>
       <span class="protein-kg-tick" style="left:33.333%"><i></i><b>1.4</b></span>
       <span class="protein-kg-tick" style="left:66.667%"><i></i><b>1.6</b></span>
