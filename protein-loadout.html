@@ -2412,12 +2412,13 @@ function renderProteinKgScale(logged_protein)
   let scale_target = 1.666;
   let bodyweight_kg = bodyweightForDate(g_view_date);
   let bodyweight_raw = bodyweightRawForDate(g_view_date);
-  let {mean_protein, mean_kcal} = calculateMeanLoggedProtein(g_view_date, 7);
+  let {mean_protein, mean_kcal, mean_bodyweight_kg} = calculateMeanLoggedProtein(g_view_date, 7);
   let ratio = bodyweight_kg > 0 ? logged_protein/bodyweight_kg : 0;
   let ratio_text = bodyweight_kg > 0 ? fmt2(ratio) : '—';
   let mean_ratio_text = bodyweight_kg > 0 ? fmt2(mean_protein/bodyweight_kg) : '—';
   let mean_protein_text = fmt0(mean_protein);
   let mean_kcal_text = fmt_1(mean_kcal);
+  let mean_bodyweight_text = fmt1(mean_bodyweight_kg);
   let marker_pct = (ratio - scale_min)/(scale_max - scale_min)*100;
   let marker_clamped = Math.max(0.0, Math.min(100.0, marker_pct));
   let range_class = ratio < scale_min ? ' under' : ratio > scale_target ? ' over' : '';
@@ -2448,6 +2449,7 @@ function renderProteinKgScale(logged_protein)
       <span class="protein-kg-note-protein">${mean_protein_text}</span>
       <span>(${mean_ratio_text} g/kg)</span>
       <span class="protein-kg-note-kcal">${mean_kcal_text}</span>
+      <span class="protein-kg-note-bodyweight">${mean_bodyweight_text} kg</span>
     </span>
   </div>`;
 
@@ -2963,14 +2965,17 @@ function calculateMeanLoggedProtein(start_date, ndays)
 {
   let total_protein = 0;
   let total_kcal = 0;
+  let total_bodyweight_kg = 0;
   let protein_days = 0;
   let kcal_days = 0;
-  let result = {mean_protein: 0, mean_kcal: 0};
+  let bodyweight_days = 0;
+  let result = {mean_protein: 0, mean_kcal: 0, mean_bodyweight_kg: 0};
 
   for (let d = 0; d < ndays; ++d)
   {
     let date = shiftDateISO(start_date, -d);
     let day_totals = dayTotals(date);
+    let bodyweight_kg = bodyweightForDate(date);
 
     let protein = day_totals.protein;
     total_protein += protein;
@@ -2979,10 +2984,14 @@ function calculateMeanLoggedProtein(start_date, ndays)
     let kcal = day_totals.kcal;
     total_kcal += kcal;
     kcal_days += kcal > 0;
+
+    total_bodyweight_kg += bodyweight_kg;
+    bodyweight_days += bodyweight_kg > 0;
   }
 
   if (protein_days) { result.mean_protein = total_protein/protein_days; }
   if (kcal_days) { result.mean_kcal = total_kcal/kcal_days; }
+  if (bodyweight_days) { result.mean_bodyweight_kg = total_bodyweight_kg/bodyweight_days; }
 
   return result;
 }
