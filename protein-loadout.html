@@ -2232,7 +2232,7 @@ function renderBodyweightRow()
   return h;
 }
 
-function renderProteinKgScale(logged_protein)
+function renderProteinKgScale(logged_protein, mean_protein)
 {
   let scale_min = 1.2;
   let scale_max = 1.8;
@@ -2261,6 +2261,11 @@ function renderProteinKgScale(logged_protein)
       <span class="protein-kg-tick" style="left:66.667%"><i></i><b>1.6</b></span>
       <span class="protein-kg-tick" style="left:100%"><i></i><b>1.8</b></span>
     </div>
+    <span class="protein-kg-note">Weekly average:
+      <span class="${range_class}">${fmt0(mean_protein)} g
+        (${fmt2(mean_protein/g_bodyweight_kg)} g/kg)
+      </span>
+    </span>
   </div>`;
 
   return h;
@@ -2773,6 +2778,25 @@ function renderTagFilterBar()
   return h;
 }
 
+function calculateMeanLoggedProtein(start_date, ndays)
+{
+  let total_protein = 0;
+  let total_days = ndays;
+  for (let d = 0; d < ndays; ++d)
+  {
+    let date = shiftDateISO(g_view_date, -d);
+    let protein = dayTotals(date).protein;
+    if (protein > 0) { total_protein += protein; }
+    else { --total_days; }
+  }
+  if (total_days)
+  {
+    return total_protein/total_days;
+  }
+
+  return 0;
+}
+
 function renderScoopSection()
 {
   let h = '';
@@ -2798,12 +2822,22 @@ function renderScoopSection()
   h += `</div>`;
 
   h += `<div class="summary">
-    <div class="cell"><div class="lab">logged protein</div><div class="val">${fmt0(totals.protein)} g</div></div>
-    <div class="cell"><div class="lab">${target_label}</div><div class="val ${target_class}">${target_sign}${fmt0(tdiff)} g</div></div>
-    <div class="cell"><div class="lab">kcal</div><div class="val kval">${fmt_1(totals.kcal)}</div></div>
+    <div class="cell">
+      <div class="lab">logged protein</div>
+      <div class="val">${fmt0(totals.protein)} g</div>
+    </div>
+    <div class="cell">
+      <div class="lab">${target_label}</div>
+      <div class="val ${target_class}">${target_sign}${fmt0(tdiff)} g</div>
+    </div>
+    <div class="cell">
+      <div class="lab">kcal</div>
+      <div class="val kval">${fmt_1(totals.kcal)}</div>
+    </div>
   </div>`;
 
-  h += renderProteinKgScale(totals.protein);
+  let mean_protein = calculateMeanLoggedProtein(g_view_date, 7);
+  h += renderProteinKgScale(totals.protein, mean_protein);
 
   h += renderLoggedFoodList();
 
