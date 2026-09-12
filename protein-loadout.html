@@ -1844,6 +1844,188 @@ function buildExportJSON()
   return JSON.stringify(makeSavePayload(), null, 2);
 }
 
+function countObjectKeys(obj)
+{
+  if (!obj || typeof obj != 'object') return 0;
+  return Object.keys(obj).length;
+}
+
+function keyedArraySet(items)
+{
+  let result = {};
+
+  if (!Array.isArray(items)) return result;
+
+  for (let i = 0; i < items.length; ++i)
+  {
+    if (items[i] && items[i].key) result[items[i].key] = true;
+  }
+
+  return result;
+}
+
+function logEntryIds(log)
+{
+  let result = {};
+
+  if (!log || typeof log != 'object') return result;
+
+  for (let date in log)
+  {
+    let day = log[date];
+    if (!Array.isArray(day)) continue;
+
+    for (let i = 0; i < day.length; ++i)
+    {
+      let entry = day[i];
+      if (entry && entry.id) result[entry.id] = true;
+    }
+  }
+
+  return result;
+}
+
+function importArrayChangeStats(current_items, import_items, replace)
+{
+  let current_keys = keyedArraySet(current_items);
+  let import_keys = keyedArraySet(import_items);
+  let result = {
+    total: replace ? countObjectKeys(import_keys) : countObjectKeys(current_keys),
+    added: 0,
+    removed: 0
+  };
+
+  for (let key in import_keys)
+  {
+    if (!current_keys[key])
+    {
+      ++result.added;
+      if (!replace) ++result.total;
+    }
+  }
+
+  if (replace)
+  {
+    for (let key in current_keys)
+    {
+      if (!import_keys[key]) ++result.removed;
+    }
+  }
+
+  return result;
+}
+
+function importLogDayChangeStats(import_log, replace)
+{
+  let result = {
+    total: replace ? countObjectKeys(import_log) : countObjectKeys(g_log),
+    added: 0,
+    removed: 0
+  };
+
+  if (import_log && typeof import_log == 'object')
+  {
+    for (let date in import_log)
+    {
+      if (!g_log[date])
+      {
+        ++result.added;
+        if (!replace) ++result.total;
+      }
+    }
+  }
+
+  if (replace)
+  {
+    for (let date in g_log)
+    {
+      if (!import_log || !import_log[date]) ++result.removed;
+    }
+  }
+
+  return result;
+}
+
+function importLogEntryChangeStats(import_log, replace)
+{
+  let current_ids = logEntryIds(g_log);
+  let import_ids = logEntryIds(import_log);
+  let result = {
+    total: replace ? countObjectKeys(import_ids) : countObjectKeys(current_ids),
+    added: 0,
+    removed: 0
+  };
+
+  for (let id in import_ids)
+  {
+    if (!current_ids[id] && !g_deleted_log_entry_ids[id])
+    {
+      ++result.added;
+      if (!replace) ++result.total;
+    }
+  }
+
+  if (replace)
+  {
+    for (let id in current_ids)
+    {
+      if (!import_ids[id]) ++result.removed;
+    }
+  }
+
+  return result;
+}
+
+function importChangeHtml(label, stats)
+{
+  let h = '';
+
+  h += `<div class="import-change">
+    <span>${esc(stats.total)} ${label}</span>`;
+
+  if (stats.added || stats.removed)
+  {
+    if (stats.added) h += ` <span class="import-plus">+${esc(stats.added)}</span>`;
+    if (stats.removed) h += ` <span class="import-minus">-${esc(stats.removed)}</span>`;
+  }
+  else
+  {
+    h += ` <span class="import-neutral">(no change)</span>`;
+  }
+
+  h += `</div>`;
+
+  return h;
+}
+
+function renderImportPreview(mode)
+{
+  let parsed = g_import_pending;
+  let replace = mode == 'replace';
+  let loadout_stats;
+  let pantry_stats;
+  let day_stats;
+  let entry_stats;
+  let h = '';
+
+  if (!parsed) return '';
+
+  loadout_stats = importArrayChangeStats(g_foods, parsed.foods, replace);
+  pantry_stats = importArrayChangeStats(g_scoop_items, parsed.scoop_items, replace);
+  day_stats = importLogDayChangeStats(parsed.log || {}, replace);
+  entry_stats = importLogEntryChangeStats(parsed.log || {}, replace);
+
+  h += `<div class="import-preview">
+    <div class="import-preview-title">${replace ? 'replace everything' : 'merge missing data'}</div>
+    ${importChangeHtml('loadout foods', loadout_stats)}
+    ${importChangeHtml('pantry items', pantry_stats)}
+    ${importChangeHtml('logged days', day_stats)}
+    ${importChangeHtml('logged food items', entry_stats)}
+  </div>`;
+
+  return h;
+}
+
 function parseImportText()
 {
   let parsed;
@@ -1876,12 +2058,25 @@ function parseImportText()
   }
 
   g_import_pending = parsed;
-  g_import_status = 'ready to import: ' + parsed.foods.length + ' loadout foods, ' + parsed.scoop_items.length + ' pantry items, '
-    + Object.keys(parsed.log || {}).length + ' logged day(s). This will replace everything currently in the app.';
+  g_import_status = '';
   render();
 }
 
-function applyImport()
+function copyLoadoutRawFields(food)
+{
+  food.daily_raw = food.daily != null ? String(food.daily) : '0';
+  food.price_raw = food.price != null ? String(food.price) : '';
+  if (food.package_units != null) food.package_units_raw = String(food.package_units);
+}
+
+function copyScoopRawFields(item)
+{
+  item.scoop_g_raw = item.scoop_g != null ? String(item.scoop_g) : '';
+  item.protein_g_raw = item.protein_g != null ? String(item.protein_g) : '';
+  item.kcal_raw = item.kcal != null ? String(item.kcal) : '';
+}
+
+function applyReplaceImport()
 {
   let parsed = g_import_pending;
 
@@ -1908,9 +2103,7 @@ function applyImport()
     g_foods = parsed.foods;
     for (let i = 0; i < g_foods.length; ++i)
     {
-      g_foods[i].daily_raw = g_foods[i].daily != null ? String(g_foods[i].daily) : '0';
-      g_foods[i].price_raw = g_foods[i].price != null ? String(g_foods[i].price) : '';
-      if (g_foods[i].package_units != null) g_foods[i].package_units_raw = String(g_foods[i].package_units);
+      copyLoadoutRawFields(g_foods[i]);
     }
   }
 
@@ -1919,9 +2112,7 @@ function applyImport()
     g_scoop_items = parsed.scoop_items;
     for (let i = 0; i < g_scoop_items.length; ++i)
     {
-      g_scoop_items[i].scoop_g_raw = g_scoop_items[i].scoop_g != null ? String(g_scoop_items[i].scoop_g) : '';
-      g_scoop_items[i].protein_g_raw = g_scoop_items[i].protein_g != null ? String(g_scoop_items[i].protein_g) : '';
-      g_scoop_items[i].kcal_raw = g_scoop_items[i].kcal != null ? String(g_scoop_items[i].kcal) : '';
+      copyScoopRawFields(g_scoop_items[i]);
     }
   }
 
@@ -1938,6 +2129,71 @@ function applyImport()
   g_import_pending = null;
   g_import_text = '';
   g_import_status = 'imported ✓';
+  g_import_open = false;
+  render();
+  save();
+}
+
+function applyMergeImport()
+{
+  let parsed = g_import_pending;
+  let loadout_keys = keyedArraySet(g_foods);
+  let pantry_keys = keyedArraySet(g_scoop_items);
+
+  if (!parsed) return;
+
+  if (parsed.bodyweight_by_date && typeof parsed.bodyweight_by_date == 'object')
+  {
+    for (let date in parsed.bodyweight_by_date)
+    {
+      if (g_bodyweight_by_date[date] == null) g_bodyweight_by_date[date] = parsed.bodyweight_by_date[date];
+    }
+  }
+
+  if (Array.isArray(parsed.foods))
+  {
+    for (let i = 0; i < parsed.foods.length; ++i)
+    {
+      let food = parsed.foods[i];
+      if (!food || !food.key || loadout_keys[food.key]) continue;
+
+      copyLoadoutRawFields(food);
+      g_foods.push(food);
+      loadout_keys[food.key] = true;
+    }
+  }
+
+  if (Array.isArray(parsed.scoop_items))
+  {
+    for (let i = 0; i < parsed.scoop_items.length; ++i)
+    {
+      let item = parsed.scoop_items[i];
+      if (!item || !item.key || pantry_keys[item.key]) continue;
+
+      copyScoopRawFields(item);
+      g_scoop_items.push(item);
+      pantry_keys[item.key] = true;
+    }
+  }
+
+  mergeLogEntries(parsed.log);
+
+  if (parsed.collapsed_groups && typeof parsed.collapsed_groups == 'object')
+  {
+    for (let key in parsed.collapsed_groups)
+    {
+      if (parsed.collapsed_groups[key]) g_collapsed_groups[key] = true;
+    }
+  }
+
+  mergeKnownItems();
+  migrateLogFormat();
+  migrateTagsFormat();
+  pruneDeletedLogEntries();
+
+  g_import_pending = null;
+  g_import_text = '';
+  g_import_status = 'merged import ✓';
   g_import_open = false;
   render();
   save();
@@ -3230,7 +3486,7 @@ function renderScoopSection()
   if (g_import_open)
   {
     h += `<div class="exportbox">
-      <div class="hint" style="margin-top:0">Restore a "full backup (json)" export from another machine. This replaces the loadout, pantry, and log currently in this app — export from here first if you want a copy of what's about to be overwritten.</div>
+      <div class="hint" style="margin-top:0">Restore a "full backup (json)" export from another machine. Merge keeps current data and adds anything missing; replace makes the backup authoritative.</div>
       <input type="file" accept=".json,application/json" data-a="import-file">
       <textarea class="exp-out" placeholder="…or paste exported JSON here" data-field="import-text">${esc(g_import_text)}</textarea>
       <div class="btnrow2">
@@ -3238,11 +3494,18 @@ function renderScoopSection()
 
     if (g_import_pending)
     {
-      h += `<button class="smallbtn" data-a="import-confirm">confirm import (overwrites current data)</button>
+      h += `<button class="smallbtn import-plus" data-a="import-merge">merge import</button>
+        <button class="smallbtn import-danger" data-a="import-replace">replace everything</button>
         <button class="smallbtn" data-a="import-cancel">cancel</button>`;
     }
 
     h += `</div>`;
+
+    if (g_import_pending)
+    {
+      h += renderImportPreview('merge');
+      h += renderImportPreview('replace');
+    }
 
     if (g_import_status)
     {
@@ -3801,8 +4064,13 @@ document.addEventListener('click', function(ev)
       parseImportText();
       return;
 
-    case 'import-confirm':
-      applyImport();
+    case 'import-merge':
+      applyMergeImport();
+      return;
+
+    case 'import-replace':
+      if (!window.confirm('Replace everything currently in the app with this backup?')) return;
+      applyReplaceImport();
       return;
 
     case 'import-cancel':
