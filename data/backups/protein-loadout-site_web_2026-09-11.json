@@ -686,6 +686,23 @@
       "tags": [],
       "volume_label": "KNIFEFULL",
       "volume_ml": null
+    },
+    {
+      "barcode": "784830004055",
+      "brand": "Straus Family Creamery",
+      "kcal": 191,
+      "kcal_100g": 76.4,
+      "kcal_raw": "191",
+      "key": "mtwbwpsygqiaav",
+      "name": "Greek Yogurt; Plain Organic",
+      "protein_100g": 8.84,
+      "protein_g": 22.1,
+      "protein_g_raw": "22.1",
+      "scoop_g": 250,
+      "scoop_g_raw": "250",
+      "tags": [],
+      "volume_label": "BOWL",
+      "volume_ml": null
     }
   ],
   "log": {

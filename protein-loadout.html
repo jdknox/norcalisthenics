@@ -2530,10 +2530,11 @@ function renderProteinKgScale(logged_protein)
       <span class="protein-kg-tick" style="left:66.667%"><i></i><b>1.6</b></span>
       <span class="protein-kg-tick" style="left:100%"><i></i><b>1.8</b></span>
     </div>
-    <span class="protein-kg-note">Weekly averages:
+    <span class="protein-kg-note"><p>Weekly averages:</p>
       <span class="protein-kg-note-protein">${mean_protein_text}</span>
       <span>(${mean_ratio_text} g/kg)</span>
       <span class="protein-kg-note-kcal">${mean_kcal_text}</span>
+      <span>(${fmt1(mean_kcal/mean_protein)} kcal/g)</span>
       <span class="protein-kg-note-bodyweight">${mean_bodyweight_text} kg</span>
     </span>
   </div>`;

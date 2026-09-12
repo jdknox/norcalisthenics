@@ -158,9 +158,9 @@ tfoot td{border-top:2px solid var(--line2);font-family:var(--mono);font-weight:6
 .scoopactions .smallbtn{width:100%;white-space:nowrap;overflow:hidden;text-overflow:inherit;padding-left:0;padding-right:0;text-align:center}
 .btnslot{display:block}
 .logged-foods{margin:-10px 0 14px;border:1px solid var(--line);border-radius:6px;background:var(--panel);padding:8px 10px}
-.logged-foods-head{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.logged-foods-head{display:flex;align-items:center;gap:8px;margin-bottom:11px}
 .logged-foods-title{flex:1 1 auto;font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint)}
-.logged-foods-controls{display:flex;align-items:center;gap:9px}
+.logged-foods-controls{display:flex;align-items:center;gap:9px;margin-right:32px}
 .logged-foods-headbtn{font-family:var(--mono);font-size:10.5px;color:var(--faint);border:0;background:none;padding:0;cursor:pointer}
 .logged-foods-collapse{width:16px;text-align:left;font-size:12px}
 .logged-foods-headbtn:hover{color:var(--text)}
