@@ -606,6 +606,8 @@ let g_active_tab = 'pantry';
 let g_adjusted_log_open = false;
 let g_logged_foods_open = true;
 let g_logged_food_details_open = false;
+let g_sync_failed = false;
+let g_sync_status = '';
 let custom_kcal_ratio_fallback = 23;
 let custom_kcal_ratio_rho = 0.85;
 
@@ -2063,6 +2065,46 @@ function storagePayloadFromValue(value)
   return value;
 }
 
+function updateSyncChrome()
+{
+  let node;
+
+  if (!document.body) return;
+
+  document.body.classList.toggle('sync-failed', g_sync_failed);
+  node = document.getElementById('sync-status');
+
+  if (!g_sync_failed)
+  {
+    if (node) node.remove();
+    return;
+  }
+
+  if (!node)
+  {
+    node = document.createElement('div');
+    node.id = 'sync-status';
+    node.className = 'sync-status';
+    document.body.appendChild(node);
+  }
+
+  node.textContent = g_sync_status || 'local only / sync failed';
+}
+
+function setSyncFailed(status)
+{
+  g_sync_failed = true;
+  g_sync_status = status || 'local only / sync failed';
+  updateSyncChrome();
+}
+
+function setSyncOk()
+{
+  g_sync_failed = false;
+  g_sync_status = '';
+  updateSyncChrome();
+}
+
 function markDeletedLogEntry(entry)
 {
   if (entry && entry.id) g_deleted_log_entry_ids[entry.id] = true;
@@ -2218,13 +2260,14 @@ function save()
         window.storage.set(g_storage_key, merged_json_text).then(function()
         {
           clearBodyweightDirtyDates();
-        }).catch(function(){});
+          setSyncOk();
+        }).catch(function()
+        {
+          setSyncFailed('local only / sync failed');
+        });
       }, function()
       {
-        window.storage.set(g_storage_key, json_text).then(function()
-        {
-          clearBodyweightDirtyDates();
-        }).catch(function(){});
+        setSyncFailed('local only / sync failed');
       });
       return;
     }
@@ -2232,8 +2275,15 @@ function save()
     window.storage.set(g_storage_key, json_text).then(function()
     {
       clearBodyweightDirtyDates();
-    }).catch(function(){});
+      setSyncOk();
+    }).catch(function()
+    {
+      setSyncFailed('local only / sync failed');
+    });
+    return;
   }
+
+  setSyncFailed('local only / shared storage unavailable');
 }
 
 function load()
@@ -2313,6 +2363,28 @@ function load()
     applyLoaded(storagePayloadFromValue(value));
   }
 
+  function saveMergedLoad()
+  {
+    let json_text = JSON.stringify(makeSavePayload());
+
+    saveLocalJson(json_text);
+
+    if (!window.storage || !window.storage.set)
+    {
+      setSyncFailed('local only / shared storage unavailable');
+      return;
+    }
+
+    window.storage.set(g_storage_key, json_text).then(function()
+    {
+      clearBodyweightDirtyDates();
+      setSyncOk();
+    }).catch(function()
+    {
+      setSyncFailed('local only / sync failed');
+    });
+  }
+
   function finishLoad()
   {
     mergeKnownItems();
@@ -2326,11 +2398,23 @@ function load()
   {
     window.storage.get(g_storage_key).then(function(result)
     {
-      if (result && result.value) applyStorageValue(result.value);
-      else applyLoaded(readLocal());
+      let local_payload = readLocal();
+
+      if (result && result.value)
+      {
+        applyStorageValue(result.value);
+        mergeLoadedPayload(local_payload);
+      }
+      else
+      {
+        applyLoaded(local_payload);
+      }
+
       finishLoad();
+      saveMergedLoad();
     }, function()
     {
+      setSyncFailed('local only / sync failed');
       applyLoaded(readLocal());
       finishLoad();
     }).catch(function(error)
@@ -2342,6 +2426,7 @@ function load()
 
   applyLoaded(readLocal());
   finishLoad();
+  setSyncFailed('local only / shared storage unavailable');
 }
 
 function errorMessage(error)
