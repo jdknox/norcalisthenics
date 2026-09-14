@@ -70,6 +70,7 @@ function shiftDateISO(iso, delta)
 }
 
 let g_storage_key = 'protein-loadout:v1';
+let g_unsynced_key = g_storage_key + ':unsynced';
 
 let g_foods = [
   { key:'egg',          name:'Egg',                     kind:'unit', unit_grams:50,  unit_protein:6,  daily:2,   price:null, package_units:12 },
@@ -2360,6 +2361,7 @@ function setSyncOk()
   g_sync_failed = false;
   g_sync_status = '';
   g_unsynced_changes = false;
+  saveUnsyncedFlag(false);
   updateSyncChrome();
 }
 
@@ -2497,6 +2499,29 @@ function saveLocalJson(json_text)
   {}
 }
 
+function saveUnsyncedFlag(value)
+{
+  try
+  {
+    if (value) localStorage.setItem(g_unsynced_key, '1');
+    else localStorage.removeItem(g_unsynced_key);
+  }
+  catch (e)
+  {}
+}
+
+function readUnsyncedFlag()
+{
+  try
+  {
+    return localStorage.getItem(g_unsynced_key) == '1';
+  }
+  catch (e)
+  {
+    return false;
+  }
+}
+
 function save()
 {
   let payload = makeSavePayload();
@@ -2504,6 +2529,7 @@ function save()
 
   saveLocalJson(json_text);
   g_unsynced_changes = true;
+  saveUnsyncedFlag(true);
 
   if (window.storage && window.storage.set)
   {
@@ -2547,6 +2573,8 @@ function save()
 
 function load()
 {
+  g_unsynced_changes = readUnsyncedFlag();
+
   function applyLoaded(payload)
   {
 
@@ -4133,7 +4161,7 @@ window.addEventListener('beforeunload', function(event)
 
 if ('serviceWorker' in navigator)
 {
-  navigator.serviceWorker.register('/protein-service-worker.js').catch(function(){});
+  navigator.serviceWorker.register('/protein-service-worker.js', { updateViaCache:'none' }).catch(function(){});
 }
 
 load();

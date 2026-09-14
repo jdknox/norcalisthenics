@@ -48,7 +48,6 @@ def noCacheHeaders(handler):
     handler.send_header('Pragma', 'no-cache')
     handler.send_header('Expires', '0')
     handler.send_header('Surrogate-Control', 'no-store')
-    handler.send_header('Vary', '*')
 
 
 def versionHtmlScripts(html_text):
