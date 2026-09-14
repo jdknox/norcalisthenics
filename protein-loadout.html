@@ -4159,14 +4159,33 @@ window.addEventListener('beforeunload', function(event)
   event.returnValue = '';
 });
 
-history.replaceState({ protein_loadout:true }, '', window.location.href);
-history.pushState({ protein_loadout_guard:true }, '', window.location.href);
-
-window.addEventListener('popstate', function()
+function shouldGuardBrowserBack()
 {
+  if (navigator.maxTouchPoints > 0) return true;
+  if (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) return true;
+  return false;
+}
+
+function armBrowserBackGuard()
+{
+  if (!shouldGuardBrowserBack()) return;
+  if (history.state && history.state.protein_loadout_guard) return;
+
+  history.replaceState({ protein_loadout_root:true }, '', window.location.href);
   history.pushState({ protein_loadout_guard:true }, '', window.location.href);
+}
+
+window.addEventListener('popstate', function(event)
+{
+  if (!shouldGuardBrowserBack()) return;
+  if (event.state && event.state.protein_loadout_guard) return;
+
+  history.forward();
   if (g_sync_failed || g_unsynced_changes) setSyncFailed(g_sync_status || 'local only / sync failed');
 });
+
+window.addEventListener('pageshow', armBrowserBackGuard);
+armBrowserBackGuard();
 
 if ('serviceWorker' in navigator)
 {
