@@ -205,6 +205,37 @@ function sortedScoopItems()
   return copy;
 }
 
+function itemIsArchived(item)
+{
+  return !!item.archived;
+}
+
+function sortedActiveScoopItems()
+{
+  let sorted = sortedScoopItems();
+  let items = [];
+
+  for (let i = 0; i < sorted.length; ++i)
+  {
+    if (!itemIsArchived(sorted[i])) items.push(sorted[i]);
+  }
+
+  return items;
+}
+
+function sortedArchivedScoopItems()
+{
+  let sorted = sortedScoopItems();
+  let items = [];
+
+  for (let i = 0; i < sorted.length; ++i)
+  {
+    if (itemIsArchived(sorted[i])) items.push(sorted[i]);
+  }
+
+  return items;
+}
+
 function itemTags(item)
 {
   return Array.isArray(item.tags) ? item.tags : [];
@@ -238,7 +269,12 @@ function distinctTagNames()
 
   for (let i = 0; i < g_scoop_items.length; ++i)
   {
-    let tags = itemTags(g_scoop_items[i]);
+    let item = g_scoop_items[i];
+    let tags;
+
+    if (itemIsArchived(item)) continue;
+
+    tags = itemTags(item);
     for (let j = 0; j < tags.length; ++j)
     {
       let key = tags[j].toLowerCase();
@@ -417,7 +453,7 @@ function sortedGroupMembersForDisplay(group)
 
 function groupedNodes()
 {
-  let sorted = sortedScoopItems();
+  let sorted = sortedActiveScoopItems();
   let tag_counts = {};
   let tag_display = {};
   let groups = {};
@@ -1169,7 +1205,8 @@ function openScoopEdit(key, context)
     macro_mode: 'serving',
     macro_protein: '',
     macro_kcal: '',
-    tags: itemTags(item).join(', ')
+    tags: itemTags(item).join(', '),
+    archived: itemIsArchived(item)
   };
   setEditDraftMacrosFromItem(g_edit_draft, item);
   render();
@@ -1197,6 +1234,7 @@ function saveScoopEdit()
   item.brand = d.brand.trim();
   item.barcode = d.barcode.trim() ? d.barcode.trim() : null;
   item.tags = parseTagsInput(d.tags);
+  item.archived = !!d.archived;
 
   fields = macroFieldsFromDraft(d);
   item.scoop_g = fields.scoop_g;
@@ -1214,6 +1252,14 @@ function saveScoopEdit()
   g_edit_draft = null;
   render();
   save();
+}
+
+function archiveScoopEdit(archived)
+{
+  if (!g_edit_draft) return;
+
+  g_edit_draft.archived = archived;
+  saveScoopEdit();
 }
 
 function recomputeEditDraftMacros()
@@ -1236,6 +1282,8 @@ function renderScoopEditRow(item)
   let mode = draftMacroMode(d);
   let protein_unit = mode == '100g' ? '/100g' : 'g';
   let kcal_unit = mode == '100g' ? '/100g' : 'kcal';
+  let archive_action = itemIsArchived(item) ? 'scoop-edit-unarchive' : 'scoop-edit-archive';
+  let archive_label = itemIsArchived(item) ? 'unarchive' : 'archive';
 
   h += `<tr class="editrow"><td colspan="6">
     <div class="addform">
@@ -1272,6 +1320,7 @@ function renderScoopEditRow(item)
 
   h += `<button class="smallbtn" data-a="scoop-edit-save">save</button>
       <button class="smallbtn" data-a="scoop-edit-cancel">cancel</button>
+      <button class="smallbtn archivebtn" data-a="${archive_action}">${archive_label}</button>
       <div class="hint" style="width:100%;margin-top:2px">Use 100g for label/O.F.F. values per 100g; use serving for values that belong to the scoop mass entered here. This changes future logs only, not days already logged. Tags are comma separated.</div>
     </div>
   </td></tr>`;
@@ -2935,11 +2984,13 @@ function renderItemRow(item, is_today, indent, context)
   let count = logCount(g_view_date, item.key);
   let h = '';
   let is_match = itemMatchesSearch(item);
-  let row_class = (indent ? ' groupmember' : '') + (is_match ? ' searchmatch' : '');
+  let archived = itemIsArchived(item);
+  let row_class = (indent ? ' groupmember' : '') + (is_match ? ' searchmatch' : '') + (archived ? ' archiveditem' : '');
   let scoop_g = item.scoop_g != null ? esc(item.scoop_g) + ' g' : '—';
   let protein = item.protein_g != null ? fmt0(item.protein_g) : '—';
   let kcal = item.kcal != null ? esc(item.kcal) : '—';
-  let disabled = !is_today ? ' disabled' : '';
+  let disabled = !is_today || archived ? ' disabled' : '';
+  let scale_disabled = archived ? ' disabled' : '';
 
   /* barcode could be shown beside the brand with: item.barcode ? ' · ' + esc(item.barcode) : '' */
   h += `<tr class="scooprow${row_class}">
@@ -2955,7 +3006,7 @@ function renderItemRow(item, is_today, indent, context)
     <td class="scoopactions">
       <div class="scoopactionstack">
         <button class="smallbtn" data-a="scoop-add" data-key="${item.key}" title="log one scoop"${disabled}>+</button>
-        <button class="smallbtn" data-a="scoop-scale-open" data-key="${item.key}" data-context="${esc(context)}" title="edit logged amount">✎</button>
+        <button class="smallbtn" data-a="scoop-scale-open" data-key="${item.key}" data-context="${esc(context)}" title="edit logged amount"${scale_disabled}>✎</button>
       </div>
     </td>
   </tr>`;
@@ -3039,7 +3090,7 @@ function renderGroupedItems(is_today)
 
   if (g_flatten_view)
   {
-    flat = sortedScoopItems().map(function(item)
+    flat = sortedActiveScoopItems().map(function(item)
     {
       return { item:item, sortname:(itemMatchesSearch(item) ? '0_' : '1_') + (tagsMatchActive(itemTags(item)) ? '0_' : '1_') + item.name.toLowerCase() };
     });
@@ -3069,6 +3120,35 @@ function renderGroupedItems(is_today)
     {
       let members = sortedGroupMembersForDisplay(n.group);
       for (let j = 0; j < members.length; ++j) h += renderItemRow(members[j], is_today, true, n.group.key);
+    }
+  }
+
+  return h;
+}
+
+function renderArchivedItems()
+{
+  let items = sortedArchivedScoopItems();
+  let key = '__archived';
+  let collapsed = !!g_collapsed_groups[key];
+  let icon = collapsed ? '▸' : '▾';
+  let h = '';
+
+  if (!items.length) return '';
+
+  h += `<tr class="groupheader archivedheader">
+    <td colspan="6">
+      <button class="grouptoggle" data-a="group-toggle" data-group="${key}">
+        ${icon} archived<span class="unit">(${items.length})</span>
+      </button>
+    </td>
+  </tr>`;
+
+  if (!collapsed)
+  {
+    for (let i = 0; i < items.length; ++i)
+    {
+      h += renderItemRow(items[i], false, false, 'archived');
     }
   }
 
@@ -3442,6 +3522,7 @@ function renderScoopSection()
   h += renderCustomRow();
 
   h += renderGroupedItems(is_today);
+  h += renderArchivedItems();
 
   h += `</tbody></table>`;
 
@@ -4011,6 +4092,14 @@ document.addEventListener('click', function(ev)
 
     case 'scoop-edit-save':
       saveScoopEdit();
+      return;
+
+    case 'scoop-edit-archive':
+      archiveScoopEdit(true);
+      return;
+
+    case 'scoop-edit-unarchive':
+      archiveScoopEdit(false);
       return;
 
     case 'scoop-scale-open':

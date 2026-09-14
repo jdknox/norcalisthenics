@@ -135,6 +135,10 @@ tfoot td{border-top:2px solid var(--line2);font-family:var(--mono);font-weight:6
 .scooprow.searchmatch td{background:#2a281f}
 .groupheader.searchmatch td{background:#2d3023}
 .searchmatch .foodname,.searchmatch .grouptoggle{color:var(--search-hi)}
+.archivedheader td{background:#1c201f}
+.archivedheader .grouptoggle{ color:var(--coral); opacity:.58 }
+.archiveditem td{opacity:.58}
+.archivebtn{color:var(--coral);border-color:var(--line2)}
 .adjusted-log{margin:-12px 0 14px}
 .adjusted-log-toggle{font-family:var(--mono);font-size:11px;color:var(--faint);border:0;background:none;padding:0;cursor:pointer}
 .adjusted-log-toggle:hover{color:var(--text)}
@@ -162,7 +166,16 @@ tfoot td{border-top:2px solid var(--line2);font-family:var(--mono);font-weight:6
 .datelabel{font-family:var(--mono);font-size:13px;color:var(--muted)}
 .scoopactions{vertical-align:top}
 .scoopactionstack{display:flex;flex-direction:column;align-items:stretch;gap:5px;width:100%;min-width:0}
-.scoopactions .smallbtn{width:100%;white-space:nowrap;overflow:hidden;text-overflow:inherit;padding-left:0;padding-right:0;text-align:center}
+.scoopactions .smallbtn {
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: inherit;
+  padding-left: 0;
+  padding-right: 0;
+  text-align: center;
+  color: var(--text);
+}
 .btnslot{display:block}
 .logged-foods{margin:-10px 0 14px;border:1px solid var(--line);border-radius:6px;background:var(--panel);padding:8px 10px}
 .logged-foods-head{display:flex;align-items:center;gap:8px;margin-bottom:11px}
