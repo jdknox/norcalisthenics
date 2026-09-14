@@ -633,7 +633,7 @@ let g_flatten_view = false;     /* true = ignore grouping entirely, show every i
 let g_group_rename_key = null;  /* lowercase group key currently being renamed, or null */
 let g_group_rename_draft = '';
 let g_export_open = false;
-let g_export_fmt = 'diary';     /* 'diary' | 'json' */
+let g_export_fmt = 'diary';     /* 'diary' | 'json' | 'bodyweight_kcal_csv' */
 let g_copy_status = '';
 let g_import_open = false;
 let g_import_text = '';
@@ -1909,6 +1909,46 @@ function buildDiaryText()
 function buildExportJSON()
 {
   return JSON.stringify(makeSavePayload(), null, 2);
+}
+
+function csvCell(value)
+{
+  let text = String(value == null ? '' : value);
+
+  if (text.indexOf('"') < 0 && text.indexOf(',') < 0 && text.indexOf('\n') < 0 && text.indexOf('\r') < 0) return text;
+  return '"' + text.replace(/"/g, '""') + '"';
+}
+
+function buildBodyweightKcalCSV()
+{
+  let dates = Object.keys(g_bodyweight_by_date).sort();
+  let lines = ['date,body_mass_kg,daily_kcal'];
+
+  for (let i = 0; i < dates.length; ++i)
+  {
+    let date = dates[i];
+    let bodyweight_kg = g_bodyweight_by_date[date];
+    let totals = dayTotals(date);
+
+    if (bodyweight_kg == null) continue;
+    if (!g_log[date]) continue;
+    if (totals.kcal <= 0) continue;
+
+    lines.push(csvCell(date) + ',' + csvCell(fmt1(bodyweight_kg)) + ',' + csvCell(fmt0(totals.kcal)));
+  }
+
+  return lines.join('\n') + '\n';
+}
+
+function buildCurrentExportText()
+{
+  switch (g_export_fmt)
+  {
+    case 'json': return buildExportJSON();
+    case 'bodyweight_kcal_csv': return buildBodyweightKcalCSV();
+  }
+
+  return buildDiaryText();
 }
 
 function countObjectKeys(obj)
@@ -3595,12 +3635,14 @@ function renderScoopSection()
   {
     let diary_on = g_export_fmt == 'diary' ? ' on' : '';
     let json_on = g_export_fmt == 'json' ? ' on' : '';
-    let export_text = esc(g_export_fmt == 'json' ? buildExportJSON() : buildDiaryText());
+    let bodyweight_kcal_csv_on = g_export_fmt == 'bodyweight_kcal_csv' ? ' on' : '';
+    let export_text = esc(buildCurrentExportText());
     let copy_status = g_copy_status ? `<span class="fetchstatus" style="padding:6px 0 0">${esc(g_copy_status)}</span>` : '';
 
     h += `<div class="exportbox">
       <div class="exp-tabs">
         <button class="smallbtn${diary_on}" data-a="export-fmt" data-f="diary">diary (text)</button>
+        <button class="smallbtn${bodyweight_kcal_csv_on}" data-a="export-fmt" data-f="bodyweight_kcal_csv">bodymass/kcal (csv)</button>
         <button class="smallbtn${json_on}" data-a="export-fmt" data-f="json">full backup (json)</button>
       </div>
       <textarea class="exp-out" readonly spellcheck="false">${export_text}</textarea>
@@ -4214,11 +4256,12 @@ document.addEventListener('click', function(ev)
       return;
 
     case 'export-copy':
-      copyText(g_export_fmt == 'json' ? buildExportJSON() : buildDiaryText());
+      copyText(buildCurrentExportText());
       return;
 
     case 'export-download':
       if (g_export_fmt == 'json') downloadText('protein-loadout-export-' + todayISO() + '.json', 'application/json', buildExportJSON());
+      else if (g_export_fmt == 'bodyweight_kcal_csv') downloadText('protein-bodyweight-kcal-' + todayISO() + '.csv', 'text/csv', buildBodyweightKcalCSV());
       else downloadText('protein-loadout-export-' + todayISO() + '.txt', 'text/plain', buildDiaryText());
       return;
 
