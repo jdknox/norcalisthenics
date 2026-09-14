@@ -3568,6 +3568,7 @@ function renderPreservingFocus()
   let id = active ? active.id : null;
   let sel_start = active && active.selectionStart != null ? active.selectionStart : null;
   let sel_end = active && active.selectionEnd != null ? active.selectionEnd : null;
+  let scroll_left = active && active.scrollLeft != null ? active.scrollLeft : 0;
   let restored;
 
   render();
@@ -3587,6 +3588,13 @@ function renderPreservingFocus()
 
   restored.focus();
   if (sel_start != null) restored.setSelectionRange(sel_start, sel_end);
+  if (restored.scrollLeft != null) restored.scrollLeft = scroll_left;
+
+  setTimeout(function()
+  {
+    if (restored.scrollLeft == null) return;
+    restored.scrollLeft = scroll_left;
+  }, 0);
 }
 
 function defaults()
@@ -3722,7 +3730,10 @@ document.addEventListener('input', function(ev)
   if (adddraft_field)
   {
     g_scoop_add_draft[adddraft_field] = target.value;
-    renderPreservingFocus();
+    if (adddraft_field == 'scoop_g' || adddraft_field == 'macro_protein' || adddraft_field == 'macro_kcal')
+    {
+      renderPreservingFocus();
+    }
     return;
   }
 
