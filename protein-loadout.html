@@ -608,6 +608,7 @@ let g_logged_foods_open = true;
 let g_logged_food_details_open = false;
 let g_sync_failed = false;
 let g_sync_status = '';
+let g_unsynced_changes = false;
 let custom_kcal_ratio_fallback = 23;
 let custom_kcal_ratio_rho = 0.85;
 
@@ -2358,6 +2359,7 @@ function setSyncOk()
 {
   g_sync_failed = false;
   g_sync_status = '';
+  g_unsynced_changes = false;
   updateSyncChrome();
 }
 
@@ -2501,6 +2503,7 @@ function save()
   let json_text = JSON.stringify(payload);
 
   saveLocalJson(json_text);
+  g_unsynced_changes = true;
 
   if (window.storage && window.storage.set)
   {
@@ -4119,6 +4122,22 @@ window.addEventListener('unhandledrejection', function(event)
 {
   renderBlankStartupError('Could not finish loading protein_loadout', event.reason);
 });
+
+window.addEventListener('beforeunload', function(event)
+{
+  if (!g_sync_failed && !g_unsynced_changes) return;
+
+  event.preventDefault();
+  event.returnValue = '';
+});
+
+if ('serviceWorker' in navigator)
+{
+  window.addEventListener('load', function()
+  {
+    navigator.serviceWorker.register('/protein-service-worker.js').catch(function(){});
+  });
+}
 
 load();
 </script>
