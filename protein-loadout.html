@@ -2896,6 +2896,7 @@ function render()
 
   app.innerHTML = h;
   renderPrintList();
+  fitDraftTextareas();
 }
 
 function renderItemRow(item, is_today, indent, context)
@@ -3435,8 +3436,8 @@ function renderScoopSection()
     h += `<div class="addform">
       <input type="text" data-adddraft="barcode" placeholder="barcode" value="${esc(d.barcode)}">
       <button class="smallbtn" data-a="addex-lookup-off">look up on O.F.F.</button>
-      <input type="text" data-adddraft="name" placeholder="name" value="${esc(d.name)}">
-      <input type="text" data-adddraft="brand" placeholder="brand" value="${esc(d.brand)}">
+      <textarea rows="1" data-adddraft="name" placeholder="name">${esc(d.name)}</textarea>
+      <textarea rows="1" data-adddraft="brand" placeholder="brand">${esc(d.brand)}</textarea>
       <input type="text" inputmode="decimal" data-adddraft="scoop_g" placeholder="scoop g" value="${esc(d.scoop_g)}">`;
 
     h += renderMacroModeControl('add', mode);
@@ -3597,6 +3598,24 @@ function renderPreservingFocus()
   }, 0);
 }
 
+function fitDraftTextarea(target)
+{
+  if (!target || target.tagName != 'TEXTAREA') return;
+
+  target.style.height = 'auto';
+  target.style.height = target.scrollHeight + 'px';
+}
+
+function fitDraftTextareas()
+{
+  let fields = document.querySelectorAll('.addform textarea[data-adddraft="name"], .addform textarea[data-adddraft="brand"]');
+
+  for (let i = 0; i < fields.length; ++i)
+  {
+    fitDraftTextarea(fields[i]);
+  }
+}
+
 function defaults()
 {
   return [
@@ -3730,6 +3749,7 @@ document.addEventListener('input', function(ev)
   if (adddraft_field)
   {
     g_scoop_add_draft[adddraft_field] = target.value;
+    fitDraftTextarea(target);
     if (adddraft_field == 'scoop_g' || adddraft_field == 'macro_protein' || adddraft_field == 'macro_kcal')
     {
       renderPreservingFocus();
