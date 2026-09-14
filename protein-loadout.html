@@ -4133,10 +4133,7 @@ window.addEventListener('beforeunload', function(event)
 
 if ('serviceWorker' in navigator)
 {
-  window.addEventListener('load', function()
-  {
-    navigator.serviceWorker.register('/protein-service-worker.js').catch(function(){});
-  });
+  navigator.serviceWorker.register('/protein-service-worker.js').catch(function(){});
 }
 
 load();
