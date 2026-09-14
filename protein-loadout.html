@@ -967,6 +967,23 @@ function loggedEntryLabel(entry)
   return entry.item_key;
 }
 
+function diaryEntryLabel(entry)
+{
+  let item;
+  let note;
+
+  if (entry.item_key == 'custom')
+  {
+    note = (entry.note || '').trim();
+    return note ? '* ' + note : 'Custom';
+  }
+
+  item = findScoopItem(entry.item_key);
+  if (item) return item.name;
+
+  return entry.item_key;
+}
+
 function loggedEntryDetail(entry)
 {
   let detail = '';
@@ -1877,8 +1894,7 @@ function buildDiaryText()
     for (let i = 0; i < day.length; ++i)
     {
       let entry = day[i];
-      let item = findScoopItem(entry.item_key);
-      lines.push('  ' + (item ? item.name : (entry.item_key == 'custom' ? 'Custom' : entry.item_key))
+      lines.push('  ' + diaryEntryLabel(entry)
         + (entry.grams != null ? ' (' + entry.grams + ' g' + (entry.scale != null && entry.scale != 1 ? ', ' + entry.scale.toFixed(2) + '×' : '') + ')' : '')
         + (entry.protein_g != null ? ' — ' + fmt0(entry.protein_g) + ' g' : '')
         + (entry.kcal != null ? ' / ' + fmt_1(entry.kcal) + ' kcal' : ''));
