@@ -4164,10 +4164,8 @@ history.pushState({ protein_loadout_guard:true }, '', window.location.href);
 
 window.addEventListener('popstate', function()
 {
-  if (!g_sync_failed && !g_unsynced_changes) return;
-
   history.pushState({ protein_loadout_guard:true }, '', window.location.href);
-  setSyncFailed(g_sync_status || 'local only / sync failed');
+  if (g_sync_failed || g_unsynced_changes) setSyncFailed(g_sync_status || 'local only / sync failed');
 });
 
 if ('serviceWorker' in navigator)
