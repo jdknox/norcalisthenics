@@ -88,6 +88,7 @@ let g_bodyweight_kg = 82;
 let g_bodyweight_by_date = {};
 let g_bodyweight_raw_by_date = {};
 let g_bodyweight_dirty_dates = {};
+let g_bodyweight_refresh_status = '';
 
 {
 
@@ -2493,6 +2494,70 @@ function setBodyweightForDate(date, kg, raw)
   g_bodyweight_by_date[date] = kg;
   g_bodyweight_raw_by_date[date] = raw;
   g_bodyweight_dirty_dates[date] = true;
+  g_bodyweight_refresh_status = '';
+}
+
+function refreshBodyweightFromShared()
+{
+  let date = g_view_date;
+
+  g_bodyweight_refresh_status = 'refreshing...';
+  render();
+
+  if (!window.storage || !window.storage.get)
+  {
+    g_bodyweight_refresh_status = 'shared unavailable';
+    setSyncFailed('local only / shared storage unavailable');
+    render();
+    return;
+  }
+
+  window.storage.get(g_storage_key).then(function(result)
+  {
+    let payload;
+    let bodyweight_kg;
+
+    if (!result || !result.value)
+    {
+      g_bodyweight_refresh_status = 'no shared data';
+      render();
+      return;
+    }
+
+    payload = storagePayloadFromValue(result.value);
+    bodyweight_kg = null;
+
+    if (payload && payload.bodyweight_by_date && typeof payload.bodyweight_by_date == 'object')
+    {
+      bodyweight_kg = payload.bodyweight_by_date[date];
+    }
+
+    if (bodyweight_kg == null && date == todayISO() && payload && payload.bodyweight_kg != null)
+    {
+      bodyweight_kg = payload.bodyweight_kg;
+    }
+
+    if (bodyweight_kg == null)
+    {
+      g_bodyweight_refresh_status = 'not in shared';
+      render();
+      return;
+    }
+
+    g_bodyweight_by_date[date] = bodyweight_kg;
+    delete g_bodyweight_raw_by_date[date];
+    delete g_bodyweight_dirty_dates[date];
+    if (date == todayISO()) g_bodyweight_kg = bodyweight_kg;
+
+    saveLocalJson(JSON.stringify(makeSavePayload()));
+    g_bodyweight_refresh_status = 'shared ' + fmt1(bodyweight_kg) + ' kg';
+    render();
+  }).catch(function()
+  {
+    g_bodyweight_refresh_status = 'refresh failed';
+    setSyncFailed('local only / sync failed');
+    render();
+  });
 }
 
 function mergeBodyweightByDate(remote_bodyweight_by_date)
@@ -2904,6 +2969,7 @@ function renderProteinKgScale(logged_protein)
   {
     marker_transform = `; transform: translateX(${(marker_pct - 50).toFixed()}%)`;
   }
+  let refresh_status = g_bodyweight_refresh_status ? `<span class="bodyweight-refresh-status">${esc(g_bodyweight_refresh_status)}</span>` : '';
   let h = '';
 
   h += `<div class="protein-kg-scale${range_class}">
@@ -2912,7 +2978,9 @@ function renderProteinKgScale(logged_protein)
       <span class="protein-kg-controls">
         <label>kg</label>
         <input type="text" inputmode="decimal" id="bodyweight-input" value="${bodyweight_raw}">
+        <button class="smallbtn bodyweight-refresh" data-a="bodyweight-refresh" title="refresh bodyweight from shared storage" aria-label="refresh bodyweight from shared storage">↻</button>
         <strong>${ratio_text} g/kg</strong>
+        ${refresh_status}
       </span>
     </div>
     <div class="protein-kg-track">
@@ -4263,6 +4331,10 @@ document.addEventListener('click', function(ev)
       if (g_export_fmt == 'json') downloadText('protein-loadout-export-' + todayISO() + '.json', 'application/json', buildExportJSON());
       else if (g_export_fmt == 'bodyweight_kcal_csv') downloadText('protein-bodyweight-kcal-' + todayISO() + '.csv', 'text/csv', buildBodyweightKcalCSV());
       else downloadText('protein-loadout-export-' + todayISO() + '.txt', 'text/plain', buildDiaryText());
+      return;
+
+    case 'bodyweight-refresh':
+      refreshBodyweightFromShared();
       return;
 
     case 'import-toggle':
