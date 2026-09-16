@@ -610,7 +610,8 @@ function migrateLogFormat()
 
 let g_log = {};                 /* isoDate -> [entry, ...] */
 let g_deleted_log_entry_ids = {}; /* entry_id -> true */
-let g_view_date = todayISO();   /* editing only allowed when this == todayISO() */
+let g_view_date = todayISO();   /* editing allowed for today, or viewed date in admin mode */
+let g_admin_mode = false;       /* session-only: lets the viewed day behave as editable */
 let g_fetch_status = {};        /* item_key -> transient status text, not persisted */
 let g_fetch_pending = {};       /* item_key -> true while awaiting in-page overwrite confirmation */
 let g_fetch_context = {};       /* item_key -> which rendered context ('standalone' or a group key) triggered the fetch */
@@ -733,6 +734,17 @@ function logCount(date, key)
   return n;
 }
 
+function viewDateIsEditable()
+{
+  return g_admin_mode || g_view_date == todayISO();
+}
+
+function adminBannerHTML()
+{
+  if (!g_admin_mode) return '';
+  return `<div class="admin-banner">ADMIN MODE ON · editing ${esc(g_view_date)}</div>`;
+}
+
 function addScoop(key)
 {
   let item = findScoopItem(key);
@@ -776,7 +788,7 @@ function logCustomEntry()
   let protein_num;
   let kcal_num;
 
-  if (g_view_date != todayISO()) return;
+  if (!viewDateIsEditable()) return;
 
   protein_num = parseFloat(g_custom_protein_raw);
   if (isNaN(protein_num) || protein_num < 0)
@@ -1479,7 +1491,7 @@ function logScaledEntry()
   let kcal;
 
   if (!item || !d) return;
-  if (g_view_date != todayISO()) return;
+  if (!viewDateIsEditable()) return;
 
   grams = parseFloat(d.grams_raw);
   protein_g = d.protein_g_raw.trim() === '' ? null : parseFloat(d.protein_g_raw);
@@ -1495,7 +1507,7 @@ function logScaledEntry()
 function renderScalePanel(item)
 {
   let d = g_scale_draft;
-  let is_today = g_view_date == todayISO();
+  let is_today = viewDateIsEditable();
   let today_entries = entriesForItem(g_view_date, item.key);
   let volume_preview;
   let h = '';
@@ -3090,6 +3102,9 @@ function render()
   let app = document.getElementById('app');
   let h = '';
 
+  document.body.classList.toggle('admin-mode', g_admin_mode);
+  h += adminBannerHTML();
+
   h += `<div class="eyebrow">// daily protein loadout</div>
   <h1>protein_loadout</h1>`;
 
@@ -3346,7 +3361,7 @@ function saveGroupRename()
 
 function renderCustomRow()
 {
-  let is_today = g_view_date == todayISO();
+  let is_today = viewDateIsEditable();
   let count = logCount(g_view_date, 'custom');
   let num = parseFloat(g_custom_protein_raw);
   let kcal_ratio = customKcalRatio();
@@ -3415,7 +3430,7 @@ function renderAdjustedLogDetails()
 function renderLoggedFoodList()
 {
   let day = g_log[g_view_date] || [];
-  let is_today = g_view_date == todayISO();
+  let is_today = viewDateIsEditable();
   let collapse_toggle = g_logged_foods_open ? '▾' : '▸';
   let details_button = '';
   let h = '';
@@ -3592,10 +3607,13 @@ function renderScoopSection()
 {
   let h = '';
   let is_today = g_view_date == todayISO();
+  let is_editable = viewDateIsEditable();
   let totals = dayTotals(g_view_date);
   let tdiff = totals.protein - g_target;
   let today_text = is_today ? 'today · ' : '';
   let next_disabled = g_view_date >= todayISO() ? ' disabled' : '';
+  let admin_class = g_admin_mode ? ' admin-on' : '';
+  let admin_label = g_admin_mode ? 'ADMIN ON' : 'admin';
   let target_label = tdiff >= 0 ? 'over target' : 'under target';
   let target_class = tdiff >= 0 ? 'over' : 'under';
   let target_sign = tdiff >= 0 ? '+' : '';
@@ -3609,6 +3627,8 @@ function renderScoopSection()
   {
     h += `<button class="smallbtn" data-a="date-today">back to today</button>`;
   }
+
+  h += `<button class="smallbtn admin-toggle${admin_class}" data-a="admin-toggle">${admin_label}</button>`;
 
   h += `</div>`;
 
@@ -3659,7 +3679,7 @@ function renderScoopSection()
 
   h += renderCustomRow();
 
-  h += renderGroupedItems(is_today);
+  h += renderGroupedItems(is_editable);
   h += renderArchivedItems();
 
   h += `</tbody></table>`;
@@ -3768,7 +3788,7 @@ function renderScoopSection()
     h += `</div>`;
   }
 
-  h += `<div class="note">Tap "+ scoop" to log one serving of an item to today's tally; "−" removes one. Past days are viewable but read-only. "fetch O.F.F." pulls protein/kcal from Open Food Facts for a barcode'd item — it asks in-page before overwriting existing values (no popup), and a miss just means the barcode isn't in O.F.F. (store-internal barcodes especially).</div>`;
+  h += `<div class="note">Tap "+ scoop" to log one serving. Past days are read-only unless admin mode is on. "fetch O.F.F." pulls protein/kcal from Open Food Facts for a barcode'd item — it asks in-page before overwriting existing values (no popup), and a miss just means the barcode isn't in O.F.F. (store-internal barcodes especially).</div>`;
 
   return h;
 }
@@ -4154,6 +4174,11 @@ document.addEventListener('click', function(ev)
       render();
       return;
 
+    case 'admin-toggle':
+      g_admin_mode = !g_admin_mode;
+      render();
+      return;
+
     case 'adjusted-log-toggle':
       g_adjusted_log_open = !g_adjusted_log_open;
       render();
@@ -4170,14 +4195,14 @@ document.addEventListener('click', function(ev)
       return;
 
     case 'scoop-add':
-      if (g_view_date != todayISO()) return;
+      if (!viewDateIsEditable()) return;
       addScoop(target.dataset.key);
       render();
       save();
       return;
 
     case 'scoop-remove':
-      if (g_view_date != todayISO()) return;
+      if (!viewDateIsEditable()) return;
       removeScoop(target.dataset.key);
       render();
       save();
@@ -4262,6 +4287,7 @@ document.addEventListener('click', function(ev)
       return;
 
     case 'scoop-entry-delete':
+      if (!viewDateIsEditable()) return;
       removeLogEntry(target.dataset.entry);
       render();
       save();
@@ -4272,7 +4298,7 @@ document.addEventListener('click', function(ev)
       return;
 
     case 'custom-remove':
-      if (g_view_date != todayISO()) return;
+      if (!viewDateIsEditable()) return;
       removeScoop('custom');
       render();
       save();

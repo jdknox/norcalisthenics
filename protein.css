@@ -22,10 +22,13 @@
 html,body{margin:0;padding:0}
 body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:15px;line-height:1.45;padding-bottom:40px}
 body.sync-failed::before{content:'';position:fixed;inset:6px;border:3px dashed var(--coral);border-radius:6px;pointer-events:none;z-index:9998}
+body.admin-mode::after{content:'';position:fixed;inset:14px;border:3px solid var(--coral);border-radius:6px;pointer-events:none;z-index:9997}
+.admin-banner{position:fixed;left:50%;top:12px;transform:translateX(-50%);z-index:9999;font-family:var(--mono);font-size:12px;color:#1b0f0b;background:var(--coral);border:2px solid #f0b09c;border-radius:4px;padding:7px 12px;text-transform:uppercase;letter-spacing:.1em;box-shadow:0 6px 18px rgba(0,0,0,.35)}
 .sync-status{position:fixed;top:14px;right:14px;z-index:9999;font-family:var(--mono);font-size:12px;color:var(--coral);background:rgba(27,32,32,.96);border:2px dashed var(--coral);border-radius:6px;padding:8px 10px;text-transform:uppercase;letter-spacing:.08em;box-shadow:0 6px 18px rgba(0,0,0,.28)}
 input{font:inherit;color:var(--text);background:var(--panel2);border:1px solid var(--line2);border-radius:4px;padding:6px 8px;outline:none;font-family:var(--mono)}
 input:focus{border-color:var(--green)}
 main{max-width:760px;margin:0 auto;padding:20px 16px}
+body.admin-mode main{padding-top:58px}
 .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
 h1{font-family:var(--mono);font-size:20px;font-weight:600;margin:6px 0 18px;letter-spacing:.01em}
 .targetrow{display:flex;align-items:center;gap:10px;margin-bottom:18px;flex-wrap:wrap}
@@ -130,6 +133,7 @@ tfoot td{border-top:2px solid var(--line2);font-family:var(--mono);font-weight:6
 .smallbtn{font-family:var(--mono);font-size:11px;color:var(--faint);border:1px solid var(--line);border-radius:4px;padding:6px 9px;background:var(--panel);cursor:pointer}
 .smallbtn:hover{color:var(--text);border-color:var(--line2)}
 .smallbtn:disabled{opacity:.4;cursor:default}
+.admin-toggle.admin-on{color:#1b0f0b;background:var(--coral);border-color:#f0b09c;font-weight:666}
 .datenav{display:flex;align-items:center;gap:10px;margin:28px 0 12px}
 .tagfilterbar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
 .scoopsearch{margin:0 0 10px}
