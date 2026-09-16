@@ -3100,12 +3100,17 @@ function renderLoadoutSection()
 function render()
 {
   let app = document.getElementById('app');
+  let admin_class = g_admin_mode ? ' admin-on' : '';
+  let admin_label = g_admin_mode ? 'ADMIN ON' : 'admin mode';
   let h = '';
 
   document.body.classList.toggle('admin-mode', g_admin_mode);
   h += adminBannerHTML();
 
-  h += `<div class="eyebrow">// daily protein loadout</div>
+  h += `<div class="eyebrow">// daily protein loadout
+    <button class="smallbtn admin-toggle${admin_class}" data-a="admin-toggle">
+      ${admin_label}</button>
+  </div>
   <h1>protein_loadout</h1>`;
 
   h += renderTargetRow();
@@ -3612,8 +3617,6 @@ function renderScoopSection()
   let tdiff = totals.protein - g_target;
   let today_text = is_today ? 'today · ' : '';
   let next_disabled = g_view_date >= todayISO() ? ' disabled' : '';
-  let admin_class = g_admin_mode ? ' admin-on' : '';
-  let admin_label = g_admin_mode ? 'ADMIN ON' : 'admin';
   let target_label = tdiff >= 0 ? 'over target' : 'under target';
   let target_class = tdiff >= 0 ? 'over' : 'under';
   let target_sign = tdiff >= 0 ? '+' : '';
@@ -3627,8 +3630,6 @@ function renderScoopSection()
   {
     h += `<button class="smallbtn" data-a="date-today">back to today</button>`;
   }
-
-  h += `<button class="smallbtn admin-toggle${admin_class}" data-a="admin-toggle">${admin_label}</button>`;
 
   h += `</div>`;
 
