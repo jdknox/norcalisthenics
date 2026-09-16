@@ -3417,6 +3417,7 @@ function renderLoggedFoodList()
   let is_today = g_view_date == todayISO();
   let collapse_toggle = g_logged_foods_open ? '▾' : '▸';
   let details_button = '';
+  let kcal_g = 0;
   let h = '';
 
   if (g_logged_foods_open)
@@ -3426,8 +3427,10 @@ function renderLoggedFoodList()
 
   h += `<div class="logged-foods">
     <div class="logged-foods-head">
-      <button class="logged-foods-headbtn logged-foods-collapse" data-a="logged-foods-toggle">${collapse_toggle}</button>
-      <div class="logged-foods-title">logged foods</div>
+      <button class="logged-foods-headbtn logged-foods-collapse" data-a="logged-foods-toggle">${collapse_toggle}
+        <span class="logged-foods-title">logged foods</span>
+      </button>
+      <div class="logged-foods-title info"><span>__LOGGED-FOODS-ENERGY-INFO__</span></div>
       <div class="logged-foods-controls">${details_button}</div>
     </div>`;
 
@@ -3445,9 +3448,13 @@ function renderLoggedFoodList()
   {
     h += `<div class="logged-foods-list">`;
 
+    let total_kcal = 0;
+    let total_protein = 0;
     for (let i = 0; i < day.length; ++i)
     {
       let entry = day[i];
+      total_kcal += entry.kcal;
+      total_protein += entry.protein_g;
       let is_custom = entry.item_key == 'custom';
       let note = entry.note || '';
       let note_size = Math.max(5, note.length + 1);
@@ -3501,9 +3508,12 @@ function renderLoggedFoodList()
     }
 
     h += `</div>`;
+    kcal_g = total_kcal/total_protein;
   }
 
   h += `</div>`;
+  h = h.replace('__LOGGED-FOODS-ENERGY-INFO__', `(avg&nbsp;${fmt1(kcal_g).padStart(4)} kcal/g)`)
+
   return h;
 }
 
