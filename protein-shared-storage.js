@@ -15,12 +15,18 @@ function proteinStorageUrl(key)
 
 function readProteinStorageJson(response)
 {
-  if (!response.ok)
+  return response.json().then(function(result)
   {
-    throw new Error('storage request failed: ' + response.status);
-  }
+    if (!response.ok)
+    {
+      let error = new Error('storage request failed: ' + response.status);
+      error.status = response.status;
+      error.result = result;
+      throw error;
+    }
 
-  return response.json();
+    return result;
+  });
 }
 
 function proteinStorageFetch(url, options)
@@ -52,13 +58,17 @@ function getProteinStorage(key)
   }).then(readProteinStorageJson);
 }
 
-function setProteinStorage(key, value)
+function setProteinStorage(key, value, revision)
 {
+  let headers = {
+    'Content-Type': 'application/json; charset=utf-8'
+  };
+
+  if (revision) headers['If-Match'] = revision;
+
   return proteinStorageFetch(proteinStorageUrl(key), {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json; charset=utf-8'
-    },
+    headers: headers,
     body: value
   }).then(readProteinStorageJson);
 }

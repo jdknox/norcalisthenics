@@ -5,8 +5,10 @@
 
 import http.server
 import glob
+import hashlib
 import json
 import os
+import threading
 import time
 import urllib.parse
 
@@ -144,6 +146,11 @@ def storageResponseValue(value):
     return json.dumps(value)
 
 
+def storageRevision(value):
+    text = json.dumps(value, sort_keys=True, separators=(',', ':'))
+    return hashlib.sha256(text.encode('utf-8')).hexdigest()
+
+
 def parseStorageValue(text):
     return json.loads(text)
 
@@ -197,9 +204,13 @@ class WorkoutHandler(http.server.SimpleHTTPRequestHandler):
             if not validStorageKey(key):
                 return writeJsonText(self, 400, {'error': 'invalid key'})
 
+            storage_lock.acquire()
             data = readSharedStorageFile()
-            value = storageResponseValue(data.get(key, None))
-            return writeJsonText(self, 200, {'value': value})
+            stored_value = data.get(key, None)
+            value = storageResponseValue(stored_value)
+            revision = storageRevision(stored_value)
+            storage_lock.release()
+            return writeJsonText(self, 200, {'value': value, 'revision': revision})
 
         return http.server.SimpleHTTPRequestHandler.do_GET(self)
 
@@ -222,10 +233,30 @@ class WorkoutHandler(http.server.SimpleHTTPRequestHandler):
             if not validStorageKey(key):
                 return writeJsonText(self, 400, {'error': 'invalid key'})
 
+            expected_revision = self.headers.get('If-Match', '')
+            if key == 'protein-loadout:v1' and not expected_revision:
+                return writeJsonText(self, 428, {'error': 'storage revision required'})
+
+            storage_lock.acquire()
             data = readSharedStorageFile()
-            data[key] = parseStorageValue(text)
+            stored_value = data.get(key, None)
+            current_revision = storageRevision(stored_value)
+
+            if expected_revision and expected_revision != current_revision:
+                value = storageResponseValue(stored_value)
+                storage_lock.release()
+                return writeJsonText(self, 409, {
+                    'error': 'storage conflict',
+                    'value': value,
+                    'revision': current_revision
+                })
+
+            new_value = parseStorageValue(text)
+            data[key] = new_value
             writeSharedStorageFile(data)
-            return writeJsonText(self, 200, {'ok': True})
+            new_revision = storageRevision(new_value)
+            storage_lock.release()
+            return writeJsonText(self, 200, {'ok': True, 'revision': new_revision})
 
         return writePlainText(self, 404, 'not found\n', 'text/plain; charset=utf-8')
 
@@ -236,6 +267,7 @@ class WorkoutHandler(http.server.SimpleHTTPRequestHandler):
 data_file       = './data/workout-data.tsv'
 library_file    = './data/workout-library.tsv'
 shared_storage_file = './data/shared-storage.json'
+storage_lock = threading.Lock()
 
 def main():
     host = default_host

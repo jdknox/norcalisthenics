@@ -649,6 +649,9 @@ let g_logged_food_details_open = false;
 let g_sync_failed = false;
 let g_sync_status = '';
 let g_unsynced_changes = false;
+let g_sync_in_flight = false;
+let g_local_revision = 0;
+let g_sync_retry_timer = null;
 let custom_kcal_ratio_fallback = 23;
 let custom_kcal_ratio_rho = 0.85;
 
@@ -2594,6 +2597,29 @@ function clearBodyweightDirtyDates()
   g_bodyweight_raw_by_date = {};
 }
 
+function mergeScoopItems(remote_items)
+{
+  let local_keys = {};
+
+  if (!Array.isArray(remote_items)) return;
+
+  for (let i = 0; i < g_scoop_items.length; ++i)
+  {
+    let item = g_scoop_items[i];
+    if (item && item.key) local_keys[item.key] = true;
+  }
+
+  for (let i = 0; i < remote_items.length; ++i)
+  {
+    let item = remote_items[i];
+    if (!item || !item.key || local_keys[item.key]) continue;
+
+    copyScoopRawFields(item);
+    g_scoop_items.push(item);
+    local_keys[item.key] = true;
+  }
+}
+
 function mergeDeletedLogEntryIds(ids)
 {
   if (!ids || typeof ids != 'object') return;
@@ -2667,6 +2693,7 @@ function mergeLoadedPayload(payload)
 
   mergeBodyweightByDate(payload.bodyweight_by_date);
 
+  mergeScoopItems(payload.scoop_items);
   mergeDeletedLogEntryIds(payload.deleted_log_entry_ids);
   mergeLogEntries(payload.log);
   pruneDeletedLogEntries();
@@ -2705,53 +2732,84 @@ function readUnsyncedFlag()
   }
 }
 
+function scheduleSyncRetry()
+{
+  if (g_sync_retry_timer != null) return;
+
+  g_sync_retry_timer = setTimeout(function()
+  {
+    g_sync_retry_timer = null;
+    syncPendingChanges();
+  }, 3000);
+}
+
+function syncPendingChanges()
+{
+  if (g_sync_in_flight || !g_unsynced_changes) return;
+
+  if (!window.storage || !window.storage.get || !window.storage.set)
+  {
+    setSyncFailed('local only / shared storage unavailable');
+    scheduleSyncRetry();
+    return;
+  }
+
+  g_sync_in_flight = true;
+
+  window.storage.get(g_storage_key).then(function(result)
+  {
+    let merged_json_text;
+    let write_revision;
+
+    if (!result || !result.revision) throw new Error('shared storage does not support safe revision checks');
+    if (result.value) mergeLoadedPayload(storagePayloadFromValue(result.value));
+
+    merged_json_text = JSON.stringify(makeSavePayload());
+    saveLocalJson(merged_json_text);
+    write_revision = g_local_revision;
+
+    return window.storage.set(g_storage_key, merged_json_text, result.revision).then(function()
+    {
+      g_sync_in_flight = false;
+
+      if (write_revision != g_local_revision)
+      {
+        syncPendingChanges();
+        return;
+      }
+
+      clearBodyweightDirtyDates();
+      setSyncOk();
+    });
+  }).catch(function(error)
+  {
+    g_sync_in_flight = false;
+
+    if (error && error.status == 409)
+    {
+      if (error.result && error.result.value)
+      {
+        mergeLoadedPayload(storagePayloadFromValue(error.result.value));
+        saveLocalJson(JSON.stringify(makeSavePayload()));
+      }
+      syncPendingChanges();
+      return;
+    }
+
+    setSyncFailed('local only / sync failed');
+    scheduleSyncRetry();
+  });
+}
+
 function save()
 {
-  let payload = makeSavePayload();
-  let json_text = JSON.stringify(payload);
+  let json_text = JSON.stringify(makeSavePayload());
 
   saveLocalJson(json_text);
   g_unsynced_changes = true;
   saveUnsyncedFlag(true);
-
-  if (window.storage && window.storage.set)
-  {
-    if (window.storage.get)
-    {
-      window.storage.get(g_storage_key).then(function(result)
-      {
-        let merged_json_text;
-
-        if (result && result.value) mergeLoadedPayload(storagePayloadFromValue(result.value));
-        merged_json_text = JSON.stringify(makeSavePayload());
-        saveLocalJson(merged_json_text);
-        window.storage.set(g_storage_key, merged_json_text).then(function()
-        {
-          clearBodyweightDirtyDates();
-          setSyncOk();
-        }).catch(function()
-        {
-          setSyncFailed('local only / sync failed');
-        });
-      }, function()
-      {
-        setSyncFailed('local only / sync failed');
-      });
-      return;
-    }
-
-    window.storage.set(g_storage_key, json_text).then(function()
-    {
-      clearBodyweightDirtyDates();
-      setSyncOk();
-    }).catch(function()
-    {
-      setSyncFailed('local only / sync failed');
-    });
-    return;
-  }
-
-  setSyncFailed('local only / shared storage unavailable');
+  ++g_local_revision;
+  syncPendingChanges();
 }
 
 function load()
@@ -2833,28 +2891,6 @@ function load()
     applyLoaded(storagePayloadFromValue(value));
   }
 
-  function saveMergedLoad()
-  {
-    let json_text = JSON.stringify(makeSavePayload());
-
-    saveLocalJson(json_text);
-
-    if (!window.storage || !window.storage.set)
-    {
-      setSyncFailed('local only / shared storage unavailable');
-      return;
-    }
-
-    window.storage.set(g_storage_key, json_text).then(function()
-    {
-      clearBodyweightDirtyDates();
-      setSyncOk();
-    }).catch(function()
-    {
-      setSyncFailed('local only / sync failed');
-    });
-  }
-
   function finishLoad()
   {
     mergeKnownItems();
@@ -2872,8 +2908,16 @@ function load()
 
       if (result && result.value)
       {
-        applyStorageValue(result.value);
-        mergeLoadedPayload(local_payload);
+        if (g_unsynced_changes && local_payload)
+        {
+          applyLoaded(local_payload);
+          mergeLoadedPayload(storagePayloadFromValue(result.value));
+        }
+        else
+        {
+          applyStorageValue(result.value);
+          mergeLoadedPayload(local_payload);
+        }
       }
       else
       {
@@ -2881,7 +2925,7 @@ function load()
       }
 
       finishLoad();
-      saveMergedLoad();
+      save();
     }, function()
     {
       setSyncFailed('local only / sync failed');
@@ -4448,6 +4492,7 @@ window.addEventListener('popstate', function(event)
 });
 
 window.addEventListener('pageshow', armBrowserBackGuard);
+window.addEventListener('online', syncPendingChanges);
 armBrowserBackGuard();
 
 if ('serviceWorker' in navigator)
