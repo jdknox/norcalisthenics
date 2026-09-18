@@ -1018,9 +1018,9 @@ function loggedEntryDetail(entry)
   }
   detail = detail.padEnd(6);
 
-  if (entry.grams != null)
+  if (entry.protein_g)
   {
-    let value = `${fmt0(entry.grams).padStart(6)} g`;
+    let value = `(${fmt1(entry.kcal/entry.protein_g).padStart(4)}/g)`.padStart(10);
     detail += `<span class="logged-food-grams">${value}</span>`;
   }
 
@@ -3550,12 +3550,16 @@ function renderLoggedFoodList()
       if ((is_custom && !custom_note_label) || !note)
       {
         let note_class = note ? ' has-note' : '';
-        inline_note_input = `<input class="logged-food-note-input${note_class}" type="text" data-lognote="${entry.id}" size="${note_size}" placeholder="notes" value="${esc(note)}"${disabled}>`;
+        inline_note_input = `<input class="logged-food-note-input${note_class}"
+          type="text" data-lognote="${entry.id}" size="${note_size}"
+          placeholder="notes" value="${esc(note)}"${disabled}>`;
       }
 
       if (!is_custom && note)
       {
-        note_line_input = `<input class="logged-food-note-input logged-food-note-line has-note" type="text" data-lognote="${entry.id}" size="${note_size}" placeholder="notes" value="${esc(note)}"${disabled}>`;
+        note_line_input = `<input class="logged-food-note-input logged-food-note-line has-note"
+          type="text" data-lognote="${entry.id}" size="${note_size}" placeholder="notes"
+          value="${esc(note)}"${disabled}>`;
       }
 
       if (g_logged_food_details_open)
