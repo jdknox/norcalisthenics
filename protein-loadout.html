@@ -2517,7 +2517,7 @@ function refreshBodyweightFromShared()
 {
   let date = g_view_date;
 
-  g_bodyweight_refresh_status = 'refreshing...';
+  g_bodyweight_refresh_status = 'pulling...';
   render();
 
   if (!window.storage || !window.storage.get)
@@ -2566,11 +2566,60 @@ function refreshBodyweightFromShared()
     if (date == todayISO()) g_bodyweight_kg = bodyweight_kg;
 
     saveLocalJson(JSON.stringify(makeSavePayload()));
-    g_bodyweight_refresh_status = 'shared ' + fmt1(bodyweight_kg) + ' kg';
+    g_bodyweight_refresh_status = 'pulled ' + fmt1(bodyweight_kg) + ' kg';
     render();
   }).catch(function()
   {
-    g_bodyweight_refresh_status = 'refresh failed';
+    g_bodyweight_refresh_status = 'pull failed';
+    setSyncFailed('local only / sync failed');
+    render();
+  });
+}
+
+function pushBodyweightToShared()
+{
+  let date = g_view_date;
+  let bodyweight_kg = bodyweightForDate(date);
+
+  g_bodyweight_refresh_status = 'pushing...';
+  render();
+
+  if (!window.storage || !window.storage.get || !window.storage.set)
+  {
+    g_bodyweight_refresh_status = 'shared unavailable';
+    setSyncFailed('local only / shared storage unavailable');
+    render();
+    return;
+  }
+
+  window.storage.get(g_storage_key).then(function(result)
+  {
+    let payload = result && result.value ? storagePayloadFromValue(result.value) : makeSavePayload();
+    let json_text;
+
+    if (!payload || typeof payload != 'object') payload = makeSavePayload();
+    if (!payload.bodyweight_by_date || typeof payload.bodyweight_by_date != 'object') payload.bodyweight_by_date = {};
+
+    payload.bodyweight_by_date[date] = bodyweight_kg;
+    if (date == todayISO()) payload.bodyweight_kg = bodyweight_kg;
+
+    g_bodyweight_by_date[date] = bodyweight_kg;
+    delete g_bodyweight_raw_by_date[date];
+    delete g_bodyweight_dirty_dates[date];
+    if (date == todayISO()) g_bodyweight_kg = bodyweight_kg;
+
+    json_text = JSON.stringify(payload);
+
+    if (result && result.revision) return window.storage.set(g_storage_key, json_text, result.revision);
+    return window.storage.set(g_storage_key, json_text);
+  }).then(function()
+  {
+    saveLocalJson(JSON.stringify(makeSavePayload()));
+    g_bodyweight_refresh_status = 'pushed ' + fmt1(bodyweight_kg) + ' kg';
+    render();
+  }).catch(function()
+  {
+    g_bodyweight_refresh_status = 'push failed';
     setSyncFailed('local only / sync failed');
     render();
   });
@@ -3035,7 +3084,8 @@ function renderProteinKgScale(logged_protein)
       <span class="protein-kg-controls">
         <label>kg</label>
         <input type="text" inputmode="decimal" id="bodyweight-input" value="${bodyweight_raw}">
-        <button class="smallbtn bodyweight-refresh" data-a="bodyweight-refresh" title="refresh bodyweight from shared storage" aria-label="refresh bodyweight from shared storage">↻</button>
+        <button class="smallbtn bodyweight-refresh" data-a="bodyweight-pull" title="pull bodyweight from shared storage" aria-label="pull bodyweight from shared storage">↓</button>
+        <button class="smallbtn bodyweight-refresh" data-a="bodyweight-push" title="push bodyweight to shared storage" aria-label="push bodyweight to shared storage">↑</button>
         <strong>${ratio_text} g/kg</strong>
         ${refresh_status}
       </span>
@@ -4423,7 +4473,12 @@ document.addEventListener('click', function(ev)
       return;
 
     case 'bodyweight-refresh':
+    case 'bodyweight-pull':
       refreshBodyweightFromShared();
+      return;
+
+    case 'bodyweight-push':
+      pushBodyweightToShared();
       return;
 
     case 'import-toggle':
