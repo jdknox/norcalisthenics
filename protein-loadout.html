@@ -994,8 +994,8 @@ function massEventLabel(event_type)
   switch (event_type)
   {
     case 'water': return 'Water';
-    case 'pre_meal_weight': return 'Pre meal';
-    case 'post_meal_weight': return 'Post meal';
+    case 'pre_meal_weight': return 'Pre mass';
+    case 'post_meal_weight': return 'Post mass';
     case 'post_restroom_weight': return 'Post restroom';
   }
 
@@ -1059,7 +1059,8 @@ function openMassEntryDraft(event_type)
     event_type:event_type,
     timestamp:currentTimeText(),
     body_mass_raw:defaultMassEntryRaw(),
-    water_loss:event_type == 'post_restroom_weight'
+    water_loss:event_type == 'post_restroom_weight',
+    anchor_reset:false
   };
 
   render();
@@ -1104,6 +1105,7 @@ function saveMassEntryDraft()
   };
 
   if (d.event_type == 'post_restroom_weight') event.water_loss = !!d.water_loss;
+  if (d.event_type == 'post_meal_weight') event.anchor_reset = !!d.anchor_reset;
 
   day.push(event);
 
@@ -1136,7 +1138,8 @@ function openMassEventEdit(event_id)
     event_type:event.event_type,
     body_mass_raw:event.body_mass_kg != null ? fmt2(Number(event.body_mass_kg)) : '',
     water_volume_raw:event.water_volume_ml != null ? String(Math.round(Number(event.water_volume_ml))) : '',
-    water_loss:massEventCountsAsWaterLoss(event)
+    water_loss:massEventCountsAsWaterLoss(event),
+    anchor_reset:!!event.anchor_reset
   };
 
   render();
@@ -1174,6 +1177,7 @@ function saveMassEventEdit()
 
     event.body_mass_kg = Math.round(num*100)/100;
     if (event.event_type == 'post_restroom_weight') event.water_loss = !!d.water_loss;
+    if (event.event_type == 'post_meal_weight') event.anchor_reset = !!d.anchor_reset;
   }
 
   g_mass_edit_id = null;
@@ -1224,7 +1228,7 @@ function computeMassLedger(date)
   for (let i = 0; i < events.length; ++i)
   {
     let event = events[i];
-    let info = { mass_in_kg:0, food_mass_kg:null, mass_out_kg:null, pair_id:null, unpaired:false, unresolved:false };
+    let info = { mass_in_kg:0, food_mass_kg:null, mass_out_kg:null, pair_id:null, unpaired:false, unresolved:false, anchor_reset:false };
     let body_mass = massEventBodyMass(event);
 
     if (event.event_type == 'water')
@@ -1241,35 +1245,43 @@ function computeMassLedger(date)
     {
       let best_index = -1;
 
-      for (let j = unmatched_pres.length - 1; j >= 0; --j)
+      if (event.anchor_reset)
       {
-        let pre = unmatched_pres[j];
-        let pre_mass = massEventBodyMass(pre);
-        let gap_minutes = (massEventMillis(event) - massEventMillis(pre))/60000;
-        let diff = body_mass - pre_mass;
-
-        if (gap_minutes < 0) continue;
-        if (gap_minutes > g_meal_pair_max_minutes) continue;
-        if (diff < -0.005) continue;
-
-        best_index = j;
-        break;
-      }
-
-      if (best_index >= 0)
-      {
-        let pre = unmatched_pres[best_index];
-        let food_mass = body_mass - massEventBodyMass(pre);
-
-        unmatched_pres.splice(best_index, 1);
-        info.pair_id = pre.id;
-        info.food_mass_kg = food_mass;
-        info.mass_in_kg = food_mass;
-        totals.food_mass_in_kg += food_mass;
+        info.anchor_reset = true;
+        if (unmatched_pres.length) unmatched_pres.splice(0, unmatched_pres.length);
       }
       else
       {
-        info.unpaired = true;
+        for (let j = unmatched_pres.length - 1; j >= 0; --j)
+        {
+          let pre = unmatched_pres[j];
+          let pre_mass = massEventBodyMass(pre);
+          let gap_minutes = (massEventMillis(event) - massEventMillis(pre))/60000;
+          let diff = body_mass - pre_mass;
+
+          if (gap_minutes < 0) continue;
+          if (gap_minutes > g_meal_pair_max_minutes) continue;
+          if (diff < -0.005) continue;
+
+          best_index = j;
+          break;
+        }
+
+        if (best_index >= 0)
+        {
+          let pre = unmatched_pres[best_index];
+          let food_mass = body_mass - massEventBodyMass(pre);
+
+          unmatched_pres.splice(best_index, 1);
+          info.pair_id = pre.id;
+          info.food_mass_kg = food_mass;
+          info.mass_in_kg = food_mass;
+          totals.food_mass_in_kg += food_mass;
+        }
+        else
+        {
+          info.unpaired = true;
+        }
       }
     }
 
@@ -1293,7 +1305,7 @@ function computeMassLedger(date)
     let cur_time = massEventTimestampValue(cur.event);
     let cur_info = event_info[cur.event.id];
 
-    if (cur_info && cur_info.unpaired && cur.event.event_type == 'post_meal_weight')
+    if (cur_info && cur.event.event_type == 'post_meal_weight' && (cur_info.unpaired || cur_info.anchor_reset))
     {
       cur_info.unresolved = true;
       continue;
@@ -3869,8 +3881,8 @@ function renderMassQuickActions()
 
   h += `<div class="mass-actions">
     <button class="mass-primary-action" data-a="mass-water-add" data-ml="${g_default_water_ml}"${disabled}>+${g_default_water_ml} mL</button>
-    <button class="mass-action" data-a="mass-entry-open" data-type="pre_meal_weight"${disabled}>Pre Meal</button>
-    <button class="mass-action" data-a="mass-entry-open" data-type="post_meal_weight"${disabled}>Post Meal</button>
+    <button class="mass-action" data-a="mass-entry-open" data-type="pre_meal_weight"${disabled}>Pre Mass</button>
+    <button class="mass-action" data-a="mass-entry-open" data-type="post_meal_weight"${disabled}>Post Mass</button>
     <button class="mass-action" data-a="mass-entry-open" data-type="post_restroom_weight"${disabled}>Post Restroom</button>
   </div>`;
 
@@ -3904,9 +3916,17 @@ function renderMassEntryDraft()
 
   if (d.event_type == 'post_restroom_weight')
   {
-    h += `<label class="mass-water-toggle">
+    h += `<label class="mass-flag-toggle">
       <input type="checkbox" data-massdraft="water_loss"${d.water_loss ? ' checked' : ''}>
       <span>water</span>
+    </label>`;
+  }
+
+  if (d.event_type == 'post_meal_weight')
+  {
+    h += `<label class="mass-flag-toggle">
+      <input type="checkbox" data-massdraft="anchor_reset"${d.anchor_reset ? ' checked' : ''}>
+      <span>attire change</span>
     </label>`;
   }
 
@@ -3965,9 +3985,17 @@ function renderMassEventEditRow(event)
 
     if (event.event_type == 'post_restroom_weight')
     {
-      h += `<label class="mass-water-toggle">
+      h += `<label class="mass-flag-toggle">
         <input type="checkbox" data-massedit="water_loss"${d.water_loss ? ' checked' : ''}>
         <span>water</span>
+      </label>`;
+    }
+
+    if (event.event_type == 'post_meal_weight')
+    {
+      h += `<label class="mass-flag-toggle">
+        <input type="checkbox" data-massedit="anchor_reset"${d.anchor_reset ? ' checked' : ''}>
+        <span>attire change</span>
       </label>`;
     }
   }
@@ -4014,6 +4042,7 @@ function renderMassEventLog()
       if (event.event_type == 'post_meal_weight')
       {
         if (info.food_mass_kg != null) detail = 'Food +' + formatMassKg(info.food_mass_kg, false);
+        else if (info.anchor_reset) detail = 'attire change · new anchor';
         else if (info.unpaired) detail = 'unpaired meal · new anchor';
       }
     }
@@ -4087,6 +4116,25 @@ function renderMassDailySummaries()
   return h;
 }
 
+function renderMassExportPanel()
+{
+  let export_text = esc(buildBodyweightKcalCSV());
+  let copy_status = g_copy_status ? `<span class="fetchstatus" style="padding:6px 0 0">${esc(g_copy_status)}</span>` : '';
+  let h = '';
+
+  h += `<div class="exportbox mass-exportbox">
+    <div class="mass-section-head">bodymass/kcal export</div>
+    <textarea class="exp-out mass-exp-out" readonly spellcheck="false">${export_text}</textarea>
+    <div class="btnrow2">
+      <button class="smallbtn" data-a="mass-export-copy">copy</button>
+      <button class="smallbtn" data-a="mass-export-download">download</button>
+      ${copy_status}
+    </div>
+  </div>`;
+
+  return h;
+}
+
 function renderMassSection()
 {
   let h = '';
@@ -4106,6 +4154,7 @@ function renderMassSection()
     \`water_in - mass_out\` is not literal body-water change.</div>`;
   h += renderMassEventLog();
   h += renderMassDailySummaries();
+  h += renderMassExportPanel();
 
   return h;
 }
@@ -4998,6 +5047,7 @@ document.addEventListener('input', function(ev)
     if (target.dataset.massdraft == 'timestamp') g_mass_entry_draft.timestamp = target.value;
     if (target.dataset.massdraft == 'body_mass') g_mass_entry_draft.body_mass_raw = target.value;
     if (target.dataset.massdraft == 'water_loss') g_mass_entry_draft.water_loss = !!target.checked;
+    if (target.dataset.massdraft == 'anchor_reset') g_mass_entry_draft.anchor_reset = !!target.checked;
     return;
   }
 
@@ -5007,6 +5057,7 @@ document.addEventListener('input', function(ev)
     if (target.dataset.massedit == 'body_mass') g_mass_edit_draft.body_mass_raw = target.value;
     if (target.dataset.massedit == 'water_volume') g_mass_edit_draft.water_volume_raw = target.value;
     if (target.dataset.massedit == 'water_loss') g_mass_edit_draft.water_loss = !!target.checked;
+    if (target.dataset.massedit == 'anchor_reset') g_mass_edit_draft.anchor_reset = !!target.checked;
     return;
   }
 
@@ -5167,9 +5218,21 @@ document.addEventListener('change', function(ev)
     return;
   }
 
+  if (target.dataset && target.dataset.massdraft == 'anchor_reset' && g_mass_entry_draft)
+  {
+    g_mass_entry_draft.anchor_reset = !!target.checked;
+    return;
+  }
+
   if (target.dataset && target.dataset.massedit == 'water_loss' && g_mass_edit_draft)
   {
     g_mass_edit_draft.water_loss = !!target.checked;
+    return;
+  }
+
+  if (target.dataset && target.dataset.massedit == 'anchor_reset' && g_mass_edit_draft)
+  {
+    g_mass_edit_draft.anchor_reset = !!target.checked;
     return;
   }
 
@@ -5481,6 +5544,14 @@ document.addEventListener('click', function(ev)
       if (g_export_fmt == 'json') downloadText('protein-loadout-export-' + todayISO() + '.json', 'application/json', buildExportJSON());
       else if (g_export_fmt == 'bodyweight_kcal_csv') downloadText('protein-bodyweight-kcal-' + todayISO() + '.csv', 'text/csv', buildBodyweightKcalCSV());
       else downloadText('protein-loadout-export-' + todayISO() + '.txt', 'text/plain', buildDiaryText());
+      return;
+
+    case 'mass-export-copy':
+      copyText(buildBodyweightKcalCSV());
+      return;
+
+    case 'mass-export-download':
+      downloadText('protein-bodyweight-kcal-' + todayISO() + '.csv', 'text/csv', buildBodyweightKcalCSV());
       return;
 
     case 'bodyweight-refresh':

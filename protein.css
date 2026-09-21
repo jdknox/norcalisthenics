@@ -333,12 +333,14 @@ tfoot td{border-top:2px solid var(--line2);font-family:var(--mono);font-weight:6
 .mass-event-actions .logged-food-remove{width:25px;height:25px}
 .mass-event-edit{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin-top:8px}
 .mass-event-edit input[type=time],.mass-entry-panel input[type=time]{width:105px}
-.mass-water-toggle{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);border:1px solid var(--line2);border-radius:4px;background:var(--panel2);padding:6px 8px;cursor:pointer}
-.mass-water-toggle input{width:auto;margin:0;accent-color:var(--green)}
-.mass-water-toggle:has(input:checked){color:var(--green-hi);border-color:var(--green)}
+.mass-flag-toggle{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);border:1px solid var(--line2);border-radius:4px;background:var(--panel2);padding:6px 8px;cursor:pointer}
+.mass-flag-toggle input{width:auto;margin:0;accent-color:var(--green)}
+.mass-flag-toggle:has(input:checked){color:var(--green-hi);border-color:var(--green)}
 .mass-daily{margin-top:16px;overflow-x:auto}
 .mass-daily-table{min-width:680px}
 .mass-daily-table td{font-family:var(--mono);font-size:11.5px}
+.mass-exportbox{margin-top:16px}
+.mass-exp-out{min-height:130px}
 #printlist{display:none}
 @media (max-width:520px){
   :root{--mobile-text-scale:1.25}
