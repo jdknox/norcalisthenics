@@ -2447,9 +2447,24 @@ function csvCell(value)
   return '"' + text.replace(/"/g, '""') + '"';
 }
 
+function sortedBodyweightKcalExportDates()
+{
+  let seen = {};
+  let dates = [];
+
+  for (let date in g_bodyweight_by_date) seen[date] = true;
+  for (let date in g_log) seen[date] = true;
+  for (let date in g_mass_events) seen[date] = true;
+
+  for (let date in seen) dates.push(date);
+  dates.sort();
+
+  return dates;
+}
+
 function buildBodyweightKcalCSV()
 {
-  let dates = Object.keys(g_bodyweight_by_date).sort();
+  let dates = sortedBodyweightKcalExportDates();
   let lines = ['date,body_mass_kg,daily_kcal,water_in_kg,assumed_water_loss_kg'];
 
   for (let i = 0; i < dates.length; ++i)
@@ -2458,13 +2473,13 @@ function buildBodyweightKcalCSV()
     let bodyweight_kg = g_bodyweight_by_date[date];
     let totals = dayTotals(date);
     let mass_summary = massSummaryForDate(date);
+    let has_mass_data = mass_summary.checkpoint_count || mass_summary.water_in_ml || mass_summary.total_mass_in_g;
 
-    if (bodyweight_kg == null) continue;
-    if (!g_log[date]) continue;
-    if (totals.kcal <= 0) continue;
+    if (bodyweight_kg == null) bodyweight_kg = mass_summary.last_mass_kg;
+    if (bodyweight_kg == null && totals.kcal <= 0 && !has_mass_data) continue;
 
     lines.push(csvCell(date)
-      + ',' + csvCell(fmt1(bodyweight_kg))
+      + ',' + csvCell(bodyweight_kg != null ? fmt1(bodyweight_kg) : '')
       + ',' + csvCell(fmt0(totals.kcal))
       + ',' + csvCell(fmt3(mass_summary.water_in_kg))
       + ',' + csvCell(fmt3(mass_summary.assumed_water_loss_kg)));
