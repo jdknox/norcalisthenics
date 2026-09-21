@@ -957,6 +957,11 @@ function massEventBodyMass(event)
   return isNaN(n) ? null : n;
 }
 
+function massEventCountsAsWaterLoss(event)
+{
+  return event && event.event_type == 'post_restroom_weight' && event.water_loss !== false;
+}
+
 function waterEventMassKg(event)
 {
   if (!event || event.event_type != 'water') return 0;
@@ -1053,7 +1058,8 @@ function openMassEntryDraft(event_type)
   g_mass_entry_draft = {
     event_type:event_type,
     timestamp:currentTimeText(),
-    body_mass_raw:defaultMassEntryRaw()
+    body_mass_raw:defaultMassEntryRaw(),
+    water_loss:event_type == 'post_restroom_weight'
   };
 
   render();
@@ -1090,12 +1096,16 @@ function saveMassEntryDraft()
     g_mass_events[g_view_date] = day;
   }
 
-  day.push({
+  let event = {
     id:uid(),
     timestamp:massTimestampForView(d.timestamp),
     event_type:d.event_type,
     body_mass_kg:Math.round(mass*100)/100
-  });
+  };
+
+  if (d.event_type == 'post_restroom_weight') event.water_loss = !!d.water_loss;
+
+  day.push(event);
 
   g_mass_entry_draft = null;
   render();
@@ -1125,7 +1135,8 @@ function openMassEventEdit(event_id)
     timestamp:massEventTimeText(event),
     event_type:event.event_type,
     body_mass_raw:event.body_mass_kg != null ? fmt2(Number(event.body_mass_kg)) : '',
-    water_volume_raw:event.water_volume_ml != null ? String(Math.round(Number(event.water_volume_ml))) : ''
+    water_volume_raw:event.water_volume_ml != null ? String(Math.round(Number(event.water_volume_ml))) : '',
+    water_loss:massEventCountsAsWaterLoss(event)
   };
 
   render();
@@ -1162,6 +1173,7 @@ function saveMassEventEdit()
     if (isNaN(num) || num <= 0) return;
 
     event.body_mass_kg = Math.round(num*100)/100;
+    if (event.event_type == 'post_restroom_weight') event.water_loss = !!d.water_loss;
   }
 
   g_mass_edit_id = null;
@@ -1202,6 +1214,7 @@ function computeMassLedger(date)
     food_mass_in_kg:0,
     total_mass_in_kg:0,
     inferred_mass_out_kg:0,
+    assumed_water_loss_kg:0,
     first_mass_kg:null,
     latest_mass_kg:null,
     mass_change_kg:null,
@@ -1297,6 +1310,7 @@ function computeMassLedger(date)
 
     cur_info.mass_out_kg = prev.mass_kg + mass_in - cur.mass_kg;
     totals.inferred_mass_out_kg += cur_info.mass_out_kg;
+    if (massEventCountsAsWaterLoss(cur.event)) totals.assumed_water_loss_kg += cur_info.mass_out_kg;
   }
 
   totals.total_mass_in_kg = totals.water_mass_in_kg + totals.food_mass_in_kg;
@@ -1333,9 +1347,11 @@ function massSummaryForDate(date)
   return {
     date:date,
     water_in_ml:t.water_in_ml,
+    water_in_kg:t.water_mass_in_kg,
     food_mass_in_g:Math.round(t.food_mass_in_kg*1000),
     total_mass_in_g:Math.round(t.total_mass_in_kg*1000),
     inferred_mass_out_g:Math.round(t.inferred_mass_out_kg*1000),
+    assumed_water_loss_kg:t.assumed_water_loss_kg,
     first_mass_kg:t.first_mass_kg,
     last_mass_kg:t.latest_mass_kg,
     mass_change_kg:t.mass_change_kg,
@@ -2422,19 +2438,24 @@ function csvCell(value)
 function buildBodyweightKcalCSV()
 {
   let dates = Object.keys(g_bodyweight_by_date).sort();
-  let lines = ['date,body_mass_kg,daily_kcal'];
+  let lines = ['date,body_mass_kg,daily_kcal,water_in_kg,assumed_water_loss_kg'];
 
   for (let i = 0; i < dates.length; ++i)
   {
     let date = dates[i];
     let bodyweight_kg = g_bodyweight_by_date[date];
     let totals = dayTotals(date);
+    let mass_summary = massSummaryForDate(date);
 
     if (bodyweight_kg == null) continue;
     if (!g_log[date]) continue;
     if (totals.kcal <= 0) continue;
 
-    lines.push(csvCell(date) + ',' + csvCell(fmt1(bodyweight_kg)) + ',' + csvCell(fmt0(totals.kcal)));
+    lines.push(csvCell(date)
+      + ',' + csvCell(fmt1(bodyweight_kg))
+      + ',' + csvCell(fmt0(totals.kcal))
+      + ',' + csvCell(fmt3(mass_summary.water_in_kg))
+      + ',' + csvCell(fmt3(mass_summary.assumed_water_loss_kg)));
   }
 
   return lines.join('\n') + '\n';
@@ -2964,6 +2985,11 @@ function fmt1(n)
 function fmt2(n)
 {
   return n.toFixed(2);
+}
+
+function fmt3(n)
+{
+  return n.toFixed(3);
 }
 
 function fmt_1(n)
@@ -3874,8 +3900,17 @@ function renderMassEntryDraft()
     <span class="unitinput mass-kg-input">
       <input type="text" inputmode="decimal" data-massdraft="body_mass" placeholder="81.35" value="${esc(d.body_mass_raw)}">
       <span class="unitghost">kg</span>
-    </span>
-    <button class="smallbtn" data-a="mass-entry-save">save</button>
+    </span>`;
+
+  if (d.event_type == 'post_restroom_weight')
+  {
+    h += `<label class="mass-water-toggle">
+      <input type="checkbox" data-massdraft="water_loss"${d.water_loss ? ' checked' : ''}>
+      <span>water</span>
+    </label>`;
+  }
+
+  h += `<button class="smallbtn" data-a="mass-entry-save">save</button>
     <button class="smallbtn" data-a="mass-entry-cancel">cancel</button>
   </div>`;
 
@@ -3927,6 +3962,14 @@ function renderMassEventEditRow(event)
       <input type="text" inputmode="decimal" data-massedit="body_mass" value="${esc(d.body_mass_raw)}">
       <span class="unitghost">kg</span>
     </span>`;
+
+    if (event.event_type == 'post_restroom_weight')
+    {
+      h += `<label class="mass-water-toggle">
+        <input type="checkbox" data-massedit="water_loss"${d.water_loss ? ' checked' : ''}>
+        <span>water</span>
+      </label>`;
+    }
   }
 
   h += `<button class="smallbtn" data-a="mass-event-save">save</button>
@@ -4954,6 +4997,7 @@ document.addEventListener('input', function(ev)
   {
     if (target.dataset.massdraft == 'timestamp') g_mass_entry_draft.timestamp = target.value;
     if (target.dataset.massdraft == 'body_mass') g_mass_entry_draft.body_mass_raw = target.value;
+    if (target.dataset.massdraft == 'water_loss') g_mass_entry_draft.water_loss = !!target.checked;
     return;
   }
 
@@ -4962,6 +5006,7 @@ document.addEventListener('input', function(ev)
     if (target.dataset.massedit == 'timestamp') g_mass_edit_draft.timestamp = target.value;
     if (target.dataset.massedit == 'body_mass') g_mass_edit_draft.body_mass_raw = target.value;
     if (target.dataset.massedit == 'water_volume') g_mass_edit_draft.water_volume_raw = target.value;
+    if (target.dataset.massedit == 'water_loss') g_mass_edit_draft.water_loss = !!target.checked;
     return;
   }
 
@@ -5115,6 +5160,18 @@ document.addEventListener('focusout', function(ev)
 document.addEventListener('change', function(ev)
 {
   let target = ev.target;
+
+  if (target.dataset && target.dataset.massdraft == 'water_loss' && g_mass_entry_draft)
+  {
+    g_mass_entry_draft.water_loss = !!target.checked;
+    return;
+  }
+
+  if (target.dataset && target.dataset.massedit == 'water_loss' && g_mass_edit_draft)
+  {
+    g_mass_edit_draft.water_loss = !!target.checked;
+    return;
+  }
 
   if (target.dataset && target.dataset.a == 'import-file')
   {
