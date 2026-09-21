@@ -610,6 +610,8 @@ function migrateLogFormat()
 
 let g_log = {};                 /* isoDate -> [entry, ...] */
 let g_deleted_log_entry_ids = {}; /* entry_id -> true */
+let g_mass_events = {};         /* isoDate -> [whole-body mass accounting events, ...] */
+let g_deleted_mass_event_ids = {}; /* event_id -> true */
 let g_view_date = todayISO();   /* editing allowed for today, or viewed date in admin mode */
 let g_admin_mode = false;       /* session-only: lets the viewed day behave as editable */
 let g_fetch_status = {};        /* item_key -> transient status text, not persisted */
@@ -646,6 +648,9 @@ let g_active_tab = 'pantry';
 let g_adjusted_log_open = false;
 let g_logged_foods_open = true;
 let g_logged_food_details_open = false;
+let g_mass_entry_draft = null;  /* { event_type, timestamp, body_mass_raw } while adding a checkpoint */
+let g_mass_edit_id = null;
+let g_mass_edit_draft = null;   /* { timestamp, event_type, body_mass_raw, water_volume_raw } while editing */
 let g_sync_failed = false;
 let g_sync_status = '';
 let g_unsynced_changes = false;
@@ -654,6 +659,13 @@ let g_local_revision = 0;
 let g_sync_retry_timer = null;
 let custom_kcal_ratio_fallback = 23;
 let custom_kcal_ratio_rho = 0.85;
+let g_default_water_ml = 740;
+let g_water_slider_ml = g_default_water_ml;
+let g_water_slider_raw = String(g_default_water_ml);
+let g_water_slider_min_ml = 100;
+let g_water_slider_max_ml = 1500;
+let g_water_slider_step_ml = 10;
+let g_meal_pair_max_minutes = 240;
 
 function proteinPerGram(food)
 {
@@ -858,6 +870,477 @@ function dayTotals(date)
   }
 
   return { protein:protein, kcal:kcal };
+}
+
+function pad2(n)
+{
+  return String(n).padStart(2, '0');
+}
+
+function currentTimeText()
+{
+  let d = new Date();
+  return pad2(d.getHours()) + ':' + pad2(d.getMinutes());
+}
+
+function massTimestampForView(time_text)
+{
+  let t = String(time_text || '').trim();
+  if (!/^[0-9][0-9]:[0-9][0-9]$/.test(t)) t = currentTimeText();
+  return g_view_date + 'T' + t;
+}
+
+function massEventTimeText(event)
+{
+  if (!event || !event.timestamp) return '';
+  if (event.timestamp.length >= 16 && event.timestamp.charAt(10) == 'T') return event.timestamp.slice(11, 16);
+  return String(event.timestamp).slice(0, 5);
+}
+
+function massEventTimestampValue(event)
+{
+  if (!event || !event.timestamp) return g_view_date + 'T00:00';
+  if (event.timestamp.indexOf('T') >= 0) return event.timestamp.slice(0, 16);
+  return g_view_date + 'T' + massEventTimeText(event);
+}
+
+function massEventMillis(event)
+{
+  let d = new Date(massEventTimestampValue(event));
+  let t = d.getTime();
+  return isNaN(t) ? 0 : t;
+}
+
+function massEventsForDate(date)
+{
+  let day = g_mass_events[date];
+  return Array.isArray(day) ? day : [];
+}
+
+function sortedMassEvents(date)
+{
+  let source = massEventsForDate(date);
+  let day = [];
+
+  for (let i = 0; i < source.length; ++i)
+  {
+    day.push({ event:source[i], index:i });
+  }
+
+  day.sort(function(a, b)
+  {
+    let at = massEventTimestampValue(a.event);
+    let bt = massEventTimestampValue(b.event);
+    if (at < bt) return -1;
+    if (at > bt) return 1;
+    return a.index - b.index;
+  });
+
+  for (let i = 0; i < day.length; ++i)
+  {
+    day[i] = day[i].event;
+  }
+
+  return day;
+}
+
+function isMassCheckpoint(event)
+{
+  return event && (event.event_type == 'pre_meal_weight' || event.event_type == 'post_meal_weight' || event.event_type == 'post_restroom_weight');
+}
+
+function massEventBodyMass(event)
+{
+  if (!isMassCheckpoint(event)) return null;
+  if (event.body_mass_kg == null) return null;
+  let n = Number(event.body_mass_kg);
+  return isNaN(n) ? null : n;
+}
+
+function waterEventMassKg(event)
+{
+  if (!event || event.event_type != 'water') return 0;
+  if (event.mass_in_kg != null) return Number(event.mass_in_kg) || 0;
+  return (Number(event.water_volume_ml) || 0)/1000;
+}
+
+function latestMassCheckpoint(date)
+{
+  let events = sortedMassEvents(date);
+  let latest = null;
+
+  for (let i = 0; i < events.length; ++i)
+  {
+    if (massEventBodyMass(events[i]) != null) latest = events[i];
+  }
+
+  return latest;
+}
+
+function defaultMassEntryRaw()
+{
+  let checkpoint = latestMassCheckpoint(g_view_date);
+  let mass = checkpoint ? massEventBodyMass(checkpoint) : bodyweightForDate(g_view_date);
+  return mass != null ? fmt2(mass) : '';
+}
+
+function massEventLabel(event_type)
+{
+  switch (event_type)
+  {
+    case 'water': return 'Water';
+    case 'pre_meal_weight': return 'Pre meal';
+    case 'post_meal_weight': return 'Post meal';
+    case 'post_restroom_weight': return 'Post restroom';
+  }
+
+  return event_type || 'Event';
+}
+
+function markDeletedMassEvent(event)
+{
+  if (event && event.id) g_deleted_mass_event_ids[event.id] = true;
+}
+
+function addMassWater(volume_ml)
+{
+  let day;
+  let ml = Math.round(Number(volume_ml) || 0);
+
+  if (!viewDateIsEditable() || ml <= 0) return;
+
+  day = g_mass_events[g_view_date];
+  if (!day)
+  {
+    day = [];
+    g_mass_events[g_view_date] = day;
+  }
+
+  day.push({
+    id:uid(),
+    timestamp:massTimestampForView(currentTimeText()),
+    event_type:'water',
+    water_volume_ml:ml,
+    mass_in_kg:ml/1000
+  });
+
+  render();
+  save();
+}
+
+function parseWaterSliderText()
+{
+  let ml = Math.round(parseFloat(g_water_slider_raw));
+
+  if (isNaN(ml) || ml <= 0) return null;
+  return ml;
+}
+
+function syncWaterSliderToValue(ml)
+{
+  let slider = document.getElementById('mass-water-slider');
+
+  if (ml == null) return;
+  if (ml < g_water_slider_min_ml || ml > g_water_slider_max_ml) return;
+  if (slider) slider.value = ml;
+  g_water_slider_ml = ml;
+}
+
+function openMassEntryDraft(event_type)
+{
+  if (!viewDateIsEditable()) return;
+
+  g_mass_entry_draft = {
+    event_type:event_type,
+    timestamp:currentTimeText(),
+    body_mass_raw:defaultMassEntryRaw()
+  };
+
+  render();
+  setTimeout(function()
+  {
+    let input = document.querySelector('[data-massdraft="body_mass"]');
+    if (!input) return;
+    input.focus();
+    input.select();
+  }, 0);
+}
+
+function cancelMassEntryDraft()
+{
+  g_mass_entry_draft = null;
+  render();
+}
+
+function saveMassEntryDraft()
+{
+  let d = g_mass_entry_draft;
+  let day;
+  let mass;
+
+  if (!d || !viewDateIsEditable()) return;
+
+  mass = parseFloat(d.body_mass_raw);
+  if (isNaN(mass) || mass <= 0) return;
+
+  day = g_mass_events[g_view_date];
+  if (!day)
+  {
+    day = [];
+    g_mass_events[g_view_date] = day;
+  }
+
+  day.push({
+    id:uid(),
+    timestamp:massTimestampForView(d.timestamp),
+    event_type:d.event_type,
+    body_mass_kg:Math.round(mass*100)/100
+  });
+
+  g_mass_entry_draft = null;
+  render();
+  save();
+}
+
+function findMassEvent(date, event_id)
+{
+  let day = massEventsForDate(date);
+
+  for (let i = 0; i < day.length; ++i)
+  {
+    if (day[i].id == event_id) return day[i];
+  }
+
+  return null;
+}
+
+function openMassEventEdit(event_id)
+{
+  let event = findMassEvent(g_view_date, event_id);
+
+  if (!event || !viewDateIsEditable()) return;
+
+  g_mass_edit_id = event_id;
+  g_mass_edit_draft = {
+    timestamp:massEventTimeText(event),
+    event_type:event.event_type,
+    body_mass_raw:event.body_mass_kg != null ? fmt2(Number(event.body_mass_kg)) : '',
+    water_volume_raw:event.water_volume_ml != null ? String(Math.round(Number(event.water_volume_ml))) : ''
+  };
+
+  render();
+}
+
+function cancelMassEventEdit()
+{
+  g_mass_edit_id = null;
+  g_mass_edit_draft = null;
+  render();
+}
+
+function saveMassEventEdit()
+{
+  let event = findMassEvent(g_view_date, g_mass_edit_id);
+  let d = g_mass_edit_draft;
+  let num;
+
+  if (!event || !d || !viewDateIsEditable()) return;
+
+  event.timestamp = massTimestampForView(d.timestamp);
+
+  if (event.event_type == 'water')
+  {
+    num = Math.round(parseFloat(d.water_volume_raw));
+    if (isNaN(num) || num <= 0) return;
+
+    event.water_volume_ml = num;
+    event.mass_in_kg = num/1000;
+  }
+  else
+  {
+    num = parseFloat(d.body_mass_raw);
+    if (isNaN(num) || num <= 0) return;
+
+    event.body_mass_kg = Math.round(num*100)/100;
+  }
+
+  g_mass_edit_id = null;
+  g_mass_edit_draft = null;
+  render();
+  save();
+}
+
+function deleteMassEvent(event_id)
+{
+  let day = massEventsForDate(g_view_date);
+
+  if (!viewDateIsEditable()) return;
+
+  for (let i = 0; i < day.length; ++i)
+  {
+    if (day[i].id == event_id)
+    {
+      markDeletedMassEvent(day[i]);
+      day.splice(i, 1);
+      if (g_mass_edit_id == event_id) cancelMassEventEdit();
+      render();
+      save();
+      return;
+    }
+  }
+}
+
+function computeMassLedger(date)
+{
+  let events = sortedMassEvents(date);
+  let event_info = {};
+  let unmatched_pres = [];
+  let checkpoints = [];
+  let totals = {
+    water_mass_in_kg:0,
+    water_in_ml:0,
+    food_mass_in_kg:0,
+    total_mass_in_kg:0,
+    inferred_mass_out_kg:0,
+    first_mass_kg:null,
+    latest_mass_kg:null,
+    mass_change_kg:null,
+    checkpoint_count:0
+  };
+
+  for (let i = 0; i < events.length; ++i)
+  {
+    let event = events[i];
+    let info = { mass_in_kg:0, food_mass_kg:null, mass_out_kg:null, pair_id:null, unpaired:false, unresolved:false };
+    let body_mass = massEventBodyMass(event);
+
+    if (event.event_type == 'water')
+    {
+      info.mass_in_kg = waterEventMassKg(event);
+      totals.water_mass_in_kg += info.mass_in_kg;
+      totals.water_in_ml += Number(event.water_volume_ml) || Math.round(info.mass_in_kg*1000);
+    }
+    else if (event.event_type == 'pre_meal_weight' && body_mass != null)
+    {
+      unmatched_pres.push(event);
+    }
+    else if (event.event_type == 'post_meal_weight' && body_mass != null)
+    {
+      let best_index = -1;
+
+      for (let j = unmatched_pres.length - 1; j >= 0; --j)
+      {
+        let pre = unmatched_pres[j];
+        let pre_mass = massEventBodyMass(pre);
+        let gap_minutes = (massEventMillis(event) - massEventMillis(pre))/60000;
+        let diff = body_mass - pre_mass;
+
+        if (gap_minutes < 0) continue;
+        if (gap_minutes > g_meal_pair_max_minutes) continue;
+        if (diff < -0.005) continue;
+
+        best_index = j;
+        break;
+      }
+
+      if (best_index >= 0)
+      {
+        let pre = unmatched_pres[best_index];
+        let food_mass = body_mass - massEventBodyMass(pre);
+
+        unmatched_pres.splice(best_index, 1);
+        info.pair_id = pre.id;
+        info.food_mass_kg = food_mass;
+        info.mass_in_kg = food_mass;
+        totals.food_mass_in_kg += food_mass;
+      }
+      else
+      {
+        info.unpaired = true;
+      }
+    }
+
+    if (body_mass != null)
+    {
+      checkpoints.push({ event:event, mass_kg:body_mass });
+      ++totals.checkpoint_count;
+      if (totals.first_mass_kg == null) totals.first_mass_kg = body_mass;
+      totals.latest_mass_kg = body_mass;
+    }
+
+    event_info[event.id] = info;
+  }
+
+  for (let i = 1; i < checkpoints.length; ++i)
+  {
+    let prev = checkpoints[i - 1];
+    let cur = checkpoints[i];
+    let mass_in = 0;
+    let prev_time = massEventTimestampValue(prev.event);
+    let cur_time = massEventTimestampValue(cur.event);
+    let cur_info = event_info[cur.event.id];
+
+    if (cur_info && cur_info.unpaired && cur.event.event_type == 'post_meal_weight')
+    {
+      cur_info.unresolved = true;
+      continue;
+    }
+
+    for (let j = 0; j < events.length; ++j)
+    {
+      let event = events[j];
+      let t = massEventTimestampValue(event);
+
+      if (t <= prev_time || t > cur_time) continue;
+      if (event_info[event.id]) mass_in += event_info[event.id].mass_in_kg;
+    }
+
+    cur_info.mass_out_kg = prev.mass_kg + mass_in - cur.mass_kg;
+    totals.inferred_mass_out_kg += cur_info.mass_out_kg;
+  }
+
+  totals.total_mass_in_kg = totals.water_mass_in_kg + totals.food_mass_in_kg;
+  if (totals.first_mass_kg != null && totals.latest_mass_kg != null) totals.mass_change_kg = totals.latest_mass_kg - totals.first_mass_kg;
+
+  return { events:events, event_info:event_info, totals:totals };
+}
+
+function formatMassKg(kg, signed)
+{
+  let sign = '';
+  let abs;
+
+  if (kg == null) return '—';
+  if (signed && kg > 0.0005) sign = '+';
+  if (kg < -0.0005) sign = '-';
+
+  abs = Math.abs(kg);
+  if (abs < 1) return sign + Math.round(abs*1000) + ' g';
+  return sign + fmt2(abs) + ' kg';
+}
+
+function formatMassKgPlain(kg)
+{
+  if (kg == null) return '—';
+  return fmt2(kg) + ' kg';
+}
+
+function massSummaryForDate(date)
+{
+  let ledger = computeMassLedger(date);
+  let t = ledger.totals;
+
+  return {
+    date:date,
+    water_in_ml:t.water_in_ml,
+    food_mass_in_g:Math.round(t.food_mass_in_kg*1000),
+    total_mass_in_g:Math.round(t.total_mass_in_kg*1000),
+    inferred_mass_out_g:Math.round(t.inferred_mass_out_kg*1000),
+    first_mass_kg:t.first_mass_kg,
+    last_mass_kg:t.latest_mass_kg,
+    mass_change_kg:t.mass_change_kg,
+    checkpoint_count:t.checkpoint_count
+  };
 }
 
 function sortedLogDatesBeforeToday()
@@ -2009,6 +2492,27 @@ function logEntryIds(log)
   return result;
 }
 
+function massEventIds(events_by_date)
+{
+  let result = {};
+
+  if (!events_by_date || typeof events_by_date != 'object') return result;
+
+  for (let date in events_by_date)
+  {
+    let day = events_by_date[date];
+    if (!Array.isArray(day)) continue;
+
+    for (let i = 0; i < day.length; ++i)
+    {
+      let event = day[i];
+      if (event && event.id) result[event.id] = true;
+    }
+  }
+
+  return result;
+}
+
 function importArrayChangeStats(current_items, import_items, replace)
 {
   let current_keys = keyedArraySet(current_items);
@@ -2100,6 +2604,36 @@ function importLogEntryChangeStats(import_log, replace)
   return result;
 }
 
+function importMassEventChangeStats(import_events, replace)
+{
+  let current_ids = massEventIds(g_mass_events);
+  let import_ids = massEventIds(import_events);
+  let result = {
+    total: replace ? countObjectKeys(import_ids) : countObjectKeys(current_ids),
+    added: 0,
+    removed: 0
+  };
+
+  for (let id in import_ids)
+  {
+    if (!current_ids[id] && !g_deleted_mass_event_ids[id])
+    {
+      ++result.added;
+      if (!replace) ++result.total;
+    }
+  }
+
+  if (replace)
+  {
+    for (let id in current_ids)
+    {
+      if (!import_ids[id]) ++result.removed;
+    }
+  }
+
+  return result;
+}
+
 function importChangeHtml(label, stats)
 {
   let h = '';
@@ -2130,6 +2664,7 @@ function renderImportPreview(mode)
   let pantry_stats;
   let day_stats;
   let entry_stats;
+  let mass_stats;
   let h = '';
 
   if (!parsed) return '';
@@ -2138,6 +2673,7 @@ function renderImportPreview(mode)
   pantry_stats = importArrayChangeStats(g_scoop_items, parsed.scoop_items, replace);
   day_stats = importLogDayChangeStats(parsed.log || {}, replace);
   entry_stats = importLogEntryChangeStats(parsed.log || {}, replace);
+  mass_stats = importMassEventChangeStats(parsed.mass_events || {}, replace);
 
   h += `<div class="import-preview">
     <div class="import-preview-title">${replace ? 'replace everything' : 'merge missing data'}</div>
@@ -2145,6 +2681,7 @@ function renderImportPreview(mode)
     ${importChangeHtml('pantry items', pantry_stats)}
     ${importChangeHtml('logged days', day_stats)}
     ${importChangeHtml('logged food items', entry_stats)}
+    ${importChangeHtml('mass events', mass_stats)}
   </div>`;
 
   return h;
@@ -2243,12 +2780,18 @@ function applyReplaceImport()
   if (parsed.log && typeof parsed.log == 'object') g_log = parsed.log;
   g_deleted_log_entry_ids = {};
   if (parsed.deleted_log_entry_ids && typeof parsed.deleted_log_entry_ids == 'object') g_deleted_log_entry_ids = parsed.deleted_log_entry_ids;
+  g_mass_events = {};
+  if (parsed.mass_events && typeof parsed.mass_events == 'object') g_mass_events = parsed.mass_events;
+  g_deleted_mass_event_ids = {};
+  if (parsed.deleted_mass_event_ids && typeof parsed.deleted_mass_event_ids == 'object') g_deleted_mass_event_ids = parsed.deleted_mass_event_ids;
   if (parsed.collapsed_groups && typeof parsed.collapsed_groups == 'object') g_collapsed_groups = parsed.collapsed_groups;
 
   mergeKnownItems(); /* pick up any known items added to this tool since the backup was made */
   migrateLogFormat();
   migrateTagsFormat();
+  migrateMassEvents();
   pruneDeletedLogEntries();
+  pruneDeletedMassEvents();
 
   g_import_pending = null;
   g_import_text = '';
@@ -2301,6 +2844,8 @@ function applyMergeImport()
   }
 
   mergeLogEntries(parsed.log);
+  mergeDeletedMassEventIds(parsed.deleted_mass_event_ids);
+  mergeMassEvents(parsed.mass_events);
 
   if (parsed.collapsed_groups && typeof parsed.collapsed_groups == 'object')
   {
@@ -2313,7 +2858,9 @@ function applyMergeImport()
   mergeKnownItems();
   migrateLogFormat();
   migrateTagsFormat();
+  migrateMassEvents();
   pruneDeletedLogEntries();
+  pruneDeletedMassEvents();
 
   g_import_pending = null;
   g_import_text = '';
@@ -2434,6 +2981,8 @@ function makeSavePayload()
     scoop_items:g_scoop_items,
     log:g_log,
     deleted_log_entry_ids:g_deleted_log_entry_ids,
+    mass_events:g_mass_events,
+    deleted_mass_event_ids:g_deleted_mass_event_ids,
     collapsed_groups:g_collapsed_groups
   };
 }
@@ -2731,6 +3280,93 @@ function mergeLogEntries(remote_log)
   }
 }
 
+function mergeDeletedMassEventIds(ids)
+{
+  if (!ids || typeof ids != 'object') return;
+
+  for (let id in ids)
+  {
+    if (ids[id]) g_deleted_mass_event_ids[id] = true;
+  }
+}
+
+function pruneDeletedMassEvents()
+{
+  for (let date in g_mass_events)
+  {
+    let day = g_mass_events[date];
+    if (!Array.isArray(day)) continue;
+
+    for (let i = day.length - 1; i >= 0; --i)
+    {
+      if (day[i].id && g_deleted_mass_event_ids[day[i].id]) day.splice(i, 1);
+    }
+  }
+}
+
+function mergeMassEvents(remote_events)
+{
+  if (!remote_events || typeof remote_events != 'object') return;
+
+  pruneDeletedMassEvents();
+
+  for (let date in remote_events)
+  {
+    let remote_day = remote_events[date];
+    let local_day = g_mass_events[date];
+    let local_ids = {};
+
+    if (!Array.isArray(remote_day)) continue;
+
+    if (!Array.isArray(local_day))
+    {
+      local_day = [];
+      g_mass_events[date] = local_day;
+    }
+
+    for (let i = 0; i < local_day.length; ++i)
+    {
+      if (local_day[i].id) local_ids[local_day[i].id] = true;
+    }
+
+    for (let i = 0; i < remote_day.length; ++i)
+    {
+      let event = remote_day[i];
+      if (!event.id) continue;
+      if (g_deleted_mass_event_ids[event.id]) continue;
+      if (local_ids[event.id]) continue;
+
+      local_day.push(event);
+      local_ids[event.id] = true;
+    }
+  }
+}
+
+function migrateMassEvents()
+{
+  for (let date in g_mass_events)
+  {
+    let day = g_mass_events[date];
+    if (!Array.isArray(day)) continue;
+
+    for (let i = 0; i < day.length; ++i)
+    {
+      let event = day[i];
+      if (!event.id) event.id = uid();
+      if (!event.timestamp) event.timestamp = date + 'T00:00';
+      if (event.event_type == 'water')
+      {
+        if (event.water_volume_ml != null) event.water_volume_ml = Math.round(Number(event.water_volume_ml) || 0);
+        if (event.mass_in_kg == null && event.water_volume_ml != null) event.mass_in_kg = event.water_volume_ml/1000;
+      }
+      if (isMassCheckpoint(event) && event.body_mass_kg != null)
+      {
+        event.body_mass_kg = Math.round((Number(event.body_mass_kg) || 0)*100)/100;
+      }
+    }
+  }
+}
+
 function mergeLoadedPayload(payload)
 {
   if (!payload || typeof payload != 'object') return;
@@ -2745,7 +3381,10 @@ function mergeLoadedPayload(payload)
   mergeScoopItems(payload.scoop_items);
   mergeDeletedLogEntryIds(payload.deleted_log_entry_ids);
   mergeLogEntries(payload.log);
+  mergeDeletedMassEventIds(payload.deleted_mass_event_ids);
+  mergeMassEvents(payload.mass_events);
   pruneDeletedLogEntries();
+  pruneDeletedMassEvents();
 }
 
 function saveLocalJson(json_text)
@@ -2917,6 +3556,8 @@ function load()
 
     if (payload.log) g_log = payload.log;
     if (payload.deleted_log_entry_ids && typeof payload.deleted_log_entry_ids == 'object') g_deleted_log_entry_ids = payload.deleted_log_entry_ids;
+    if (payload.mass_events && typeof payload.mass_events == 'object') g_mass_events = payload.mass_events;
+    if (payload.deleted_mass_event_ids && typeof payload.deleted_mass_event_ids == 'object') g_deleted_mass_event_ids = payload.deleted_mass_event_ids;
     if (payload.collapsed_groups) g_collapsed_groups = payload.collapsed_groups;
   }
 
@@ -2945,7 +3586,9 @@ function load()
     mergeKnownItems();
     migrateLogFormat();
     migrateTagsFormat();
+    migrateMassEvents();
     pruneDeletedLogEntries();
+    pruneDeletedMassEvents();
     render();
   }
 
@@ -3031,9 +3674,11 @@ function renderTabBar()
   let h = '';
   let pantry_on = g_active_tab == 'pantry' ? ' on' : '';
   let loadout_on = g_active_tab == 'loadout' ? ' on' : '';
+  let mass_on = g_active_tab == 'mass' ? ' on' : '';
 
   h += `<div class="apptabs">
     <button class="tabbtn${pantry_on}" data-a="tab-open" data-tab="pantry">pantry log</button>
+    <button class="tabbtn${mass_on}" data-a="tab-open" data-tab="mass">hydration &amp; mass balance</button>
     <button class="tabbtn${loadout_on}" data-a="tab-open" data-tab="loadout">weekly loadout</button>
   </div>`;
 
@@ -3191,6 +3836,237 @@ function renderLoadoutSection()
   return h;
 }
 
+function renderMassQuickActions()
+{
+  let h = '';
+  let disabled = !viewDateIsEditable() ? ' disabled' : '';
+
+  h += `<div class="mass-actions">
+    <button class="mass-primary-action" data-a="mass-water-add" data-ml="${g_default_water_ml}"${disabled}>+${g_default_water_ml} mL</button>
+    <button class="mass-action" data-a="mass-entry-open" data-type="pre_meal_weight"${disabled}>Pre Meal</button>
+    <button class="mass-action" data-a="mass-entry-open" data-type="post_meal_weight"${disabled}>Post Meal</button>
+    <button class="mass-action" data-a="mass-entry-open" data-type="post_restroom_weight"${disabled}>Post Restroom</button>
+  </div>`;
+
+  h += `<div class="mass-water-slider">
+    <label class="mass-slider-label" for="mass-water-slider">water</label>
+    <input id="mass-water-slider" type="range" min="${g_water_slider_min_ml}" max="${g_water_slider_max_ml}" step="${g_water_slider_step_ml}" value="${g_water_slider_ml}" data-masswater="slider"${disabled}>
+    <span class="unitinput mass-water-input">
+      <input id="mass-water-input" type="text" inputmode="numeric" data-masswater="text" value="${esc(g_water_slider_raw)}"${disabled}>
+      <span class="unitghost">mL</span>
+    </span>
+    <button class="smallbtn mass-slider-log" data-a="mass-water-slider-log"${disabled}>log</button>
+  </div>`;
+
+  return h;
+}
+
+function renderMassEntryDraft()
+{
+  let d = g_mass_entry_draft;
+  let h = '';
+
+  if (!d) return '';
+
+  h += `<div class="mass-entry-panel">
+    <div class="mass-entry-title">${esc(massEventLabel(d.event_type))}</div>
+    <input type="time" data-massdraft="timestamp" value="${esc(d.timestamp)}">
+    <span class="unitinput mass-kg-input">
+      <input type="text" inputmode="decimal" data-massdraft="body_mass" placeholder="81.35" value="${esc(d.body_mass_raw)}">
+      <span class="unitghost">kg</span>
+    </span>
+    <button class="smallbtn" data-a="mass-entry-save">save</button>
+    <button class="smallbtn" data-a="mass-entry-cancel">cancel</button>
+  </div>`;
+
+  return h;
+}
+
+function renderMassSummary()
+{
+  let ledger = computeMassLedger(g_view_date);
+  let t = ledger.totals;
+  let net = t.total_mass_in_kg - t.inferred_mass_out_kg;
+  let latest = t.latest_mass_kg != null ? formatMassKgPlain(t.latest_mass_kg) : '—';
+  let h = '';
+
+  h += `<div class="summary mass-summary">
+    <div class="cell"><div class="lab">water in</div><div class="val">${Math.round(t.water_in_ml)} mL</div></div>
+    <div class="cell"><div class="lab">food mass in</div><div class="val">${formatMassKg(t.food_mass_in_kg, false)}</div></div>
+    <div class="cell"><div class="lab">total mass in</div><div class="val">${formatMassKg(t.total_mass_in_kg, false)}</div></div>
+  </div>
+  <div class="summary mass-summary">
+    <div class="cell"><div class="lab">inferred mass out</div><div class="val under">${formatMassKg(t.inferred_mass_out_kg, false)}</div></div>
+    <div class="cell"><div class="lab">latest body mass</div><div class="val kval">${latest}</div></div>
+    <div class="cell"><div class="lab">net mass balance</div><div class="val">${formatMassKg(net, true)}</div></div>
+  </div>`;
+
+  return h;
+}
+
+function renderMassEventEditRow(event)
+{
+  let d = g_mass_edit_draft;
+  let h = '';
+
+  if (!d) return '';
+
+  h += `<div class="mass-event-edit">
+    <input type="time" data-massedit="timestamp" value="${esc(d.timestamp)}">`;
+
+  if (event.event_type == 'water')
+  {
+    h += `<span class="unitinput">
+      <input type="text" inputmode="numeric" data-massedit="water_volume" value="${esc(d.water_volume_raw)}">
+      <span class="unitghost">mL</span>
+    </span>`;
+  }
+  else
+  {
+    h += `<span class="unitinput mass-kg-input">
+      <input type="text" inputmode="decimal" data-massedit="body_mass" value="${esc(d.body_mass_raw)}">
+      <span class="unitghost">kg</span>
+    </span>`;
+  }
+
+  h += `<button class="smallbtn" data-a="mass-event-save">save</button>
+    <button class="smallbtn" data-a="mass-event-cancel">cancel</button>
+  </div>`;
+
+  return h;
+}
+
+function renderMassEventLog()
+{
+  let ledger = computeMassLedger(g_view_date);
+  let events = ledger.events;
+  let h = '';
+
+  h += `<div class="mass-log">
+    <div class="mass-section-head">event log</div>`;
+
+  if (!events.length)
+  {
+    h += `<div class="logged-foods-empty">no mass events logged</div>`;
+  }
+
+  for (let i = 0; i < events.length; ++i)
+  {
+    let event = events[i];
+    let info = ledger.event_info[event.id] || {};
+    let primary = '';
+    let detail = '';
+    let extra = '';
+    let edit = g_mass_edit_id == event.id ? renderMassEventEditRow(event) : '';
+    let disabled = !viewDateIsEditable() ? ' disabled' : '';
+
+    if (event.event_type == 'water')
+    {
+      primary = '+' + Math.round(Number(event.water_volume_ml) || 0) + ' mL';
+      detail = '+' + formatMassKg(waterEventMassKg(event), false);
+    }
+    else
+    {
+      primary = formatMassKgPlain(massEventBodyMass(event));
+      if (event.event_type == 'post_meal_weight')
+      {
+        if (info.food_mass_kg != null) detail = 'Food +' + formatMassKg(info.food_mass_kg, false);
+        else if (info.unpaired) detail = 'unpaired meal · new anchor';
+      }
+    }
+
+    if (info.mass_out_kg != null && Math.abs(info.mass_out_kg) >= 0.005)
+    {
+      extra = 'Mass out ' + formatMassKg(info.mass_out_kg, false);
+    }
+
+    h += `<div class="mass-event">
+      <div class="mass-event-time">${esc(massEventTimeText(event))}</div>
+      <div class="mass-event-main">
+        <div class="mass-event-title">${esc(massEventLabel(event.event_type))}</div>
+        <div class="mass-event-detail">${esc(primary)}${detail ? ' · ' + esc(detail) : ''}${extra ? ' · ' + esc(extra) : ''}</div>
+        ${edit}
+      </div>
+      <div class="mass-event-actions">
+        <button class="editbtn" data-a="mass-event-edit" data-event="${esc(event.id)}" title="edit mass event"${disabled}>✎</button>
+        <button class="logged-food-remove" data-a="mass-event-delete" data-event="${esc(event.id)}" title="delete mass event"${disabled}>−</button>
+      </div>
+    </div>`;
+  }
+
+  h += `</div>`;
+
+  return h;
+}
+
+function renderMassDailySummaries()
+{
+  let dates = {};
+  let list = [];
+  let h = '';
+
+  for (let date in g_mass_events)
+  {
+    if (Array.isArray(g_mass_events[date]) && g_mass_events[date].length) dates[date] = true;
+  }
+  dates[g_view_date] = true;
+
+  for (let date in dates) list.push(date);
+  list.sort();
+  list.reverse();
+  if (list.length > 7) list = list.slice(0, 7);
+
+  h += `<div class="mass-daily">
+    <div class="mass-section-head">daily summaries</div>
+    <table class="mass-daily-table"><thead><tr>
+      <th>date</th><th class="num">water</th><th class="num">food</th><th class="num">in</th><th class="num">out</th><th class="num">first</th><th class="num">last</th><th class="num">change</th>
+    </tr></thead><tbody>`;
+
+  for (let i = 0; i < list.length; ++i)
+  {
+    let s = massSummaryForDate(list[i]);
+    if (!s.checkpoint_count && !s.water_in_ml && !s.total_mass_in_g) continue;
+
+    h += `<tr>
+      <td>${esc(s.date)}</td>
+      <td class="num">${esc(Math.round(s.water_in_ml))} mL</td>
+      <td class="num">${esc(s.food_mass_in_g)} g</td>
+      <td class="num">${esc(s.total_mass_in_g)} g</td>
+      <td class="num">${esc(s.inferred_mass_out_g)} g</td>
+      <td class="num">${esc(s.first_mass_kg != null ? fmt2(s.first_mass_kg) : '—')}</td>
+      <td class="num">${esc(s.last_mass_kg != null ? fmt2(s.last_mass_kg) : '—')}</td>
+      <td class="num">${esc(s.mass_change_kg != null ? formatMassKg(s.mass_change_kg, true) : '—')}</td>
+    </tr>`;
+  }
+
+  h += `</tbody></table></div>`;
+
+  return h;
+}
+
+function renderMassSection()
+{
+  let h = '';
+
+  h += `<div class="datenav">
+    <button class="smallbtn" data-a="date-prev">←</button>
+    <span class="datelabel">${esc(g_view_date)}</span>
+    <button class="smallbtn" data-a="date-next"${g_view_date >= todayISO() ? ' disabled' : ''}>→</button>
+    <button class="smallbtn" data-a="date-today">today</button>
+  </div>`;
+
+  h += renderMassQuickActions();
+  h += renderMassEntryDraft();
+  h += renderMassSummary();
+  h += `<div class="note">Whole-body mass accounting: inferred mass out includes sweat,
+    respiratory water, CO2, and other losses.
+    \`water_in - mass_out\` is not literal body-water change.</div>`;
+  h += renderMassEventLog();
+  h += renderMassDailySummaries();
+
+  return h;
+}
+
 function render()
 {
   let app = document.getElementById('app');
@@ -3207,10 +4083,11 @@ function render()
   </div>
   <h1>protein_loadout</h1>`;
 
-  h += renderTargetRow();
+  if (g_active_tab != 'mass') h += renderTargetRow();
   h += renderTabBar();
 
   if (g_active_tab == 'loadout') h += renderLoadoutSection();
+  else if (g_active_tab == 'mass') h += renderMassSection();
   else h += renderScoopSection();
 
   app.innerHTML = h;
@@ -3937,6 +4814,8 @@ function renderPreservingFocus()
   let adddraft_field = active && active.dataset ? active.dataset.adddraft : null;
   let editdraft_field = active && active.dataset ? active.dataset.editdraft : null;
   let lognote_id = active && active.dataset ? active.dataset.lognote : null;
+  let massdraft_field = active && active.dataset ? active.dataset.massdraft : null;
+  let massedit_field = active && active.dataset ? active.dataset.massedit : null;
   let id = active ? active.id : null;
   let sel_start = active && active.selectionStart != null ? active.selectionStart : null;
   let sel_end = active && active.selectionEnd != null ? active.selectionEnd : null;
@@ -3954,6 +4833,8 @@ function renderPreservingFocus()
   else if (adddraft_field) restored = document.querySelector('[data-adddraft="'+adddraft_field+'"]');
   else if (editdraft_field) restored = document.querySelector('[data-editdraft="'+editdraft_field+'"]');
   else if (lognote_id) restored = document.querySelector('[data-lognote="'+lognote_id+'"]');
+  else if (massdraft_field) restored = document.querySelector('[data-massdraft="'+massdraft_field+'"]');
+  else if (massedit_field) restored = document.querySelector('[data-massedit="'+massedit_field+'"]');
   else restored = null;
 
   if (!restored) return;
@@ -4044,6 +4925,43 @@ document.addEventListener('input', function(ev)
     setBodyweightForDate(g_view_date, isNaN(num) ? 0 : num, target.value);
     renderPreservingFocus();
     save();
+    return;
+  }
+
+  if (target.dataset && target.dataset.masswater == 'slider')
+  {
+    let value = Math.round(parseFloat(target.value));
+    let input = document.getElementById('mass-water-input');
+
+    if (isNaN(value)) value = g_default_water_ml;
+    g_water_slider_ml = value;
+    g_water_slider_raw = String(value);
+    if (input) input.value = g_water_slider_raw;
+    return;
+  }
+
+  if (target.dataset && target.dataset.masswater == 'text')
+  {
+    let value;
+
+    g_water_slider_raw = target.value;
+    value = parseWaterSliderText();
+    syncWaterSliderToValue(value);
+    return;
+  }
+
+  if (target.dataset && target.dataset.massdraft && g_mass_entry_draft)
+  {
+    if (target.dataset.massdraft == 'timestamp') g_mass_entry_draft.timestamp = target.value;
+    if (target.dataset.massdraft == 'body_mass') g_mass_entry_draft.body_mass_raw = target.value;
+    return;
+  }
+
+  if (target.dataset && target.dataset.massedit && g_mass_edit_draft)
+  {
+    if (target.dataset.massedit == 'timestamp') g_mass_edit_draft.timestamp = target.value;
+    if (target.dataset.massedit == 'body_mass') g_mass_edit_draft.body_mass_raw = target.value;
+    if (target.dataset.massedit == 'water_volume') g_mass_edit_draft.water_volume_raw = target.value;
     return;
   }
 
@@ -4225,7 +5143,7 @@ document.addEventListener('click', function(ev)
   switch (action)
   {
     case 'tab-open':
-      g_active_tab = target.dataset.tab == 'loadout' ? 'loadout' : 'pantry';
+      g_active_tab = target.dataset.tab == 'loadout' || target.dataset.tab == 'mass' ? target.dataset.tab : 'pantry';
       render();
       load();
       return;
@@ -4401,6 +5319,42 @@ document.addEventListener('click', function(ev)
       removeScoop('custom');
       render();
       save();
+      return;
+
+    case 'mass-water-add':
+      addMassWater(target.dataset.ml);
+      return;
+
+    case 'mass-water-slider-log':
+      addMassWater(parseWaterSliderText() || g_water_slider_ml);
+      return;
+
+    case 'mass-entry-open':
+      openMassEntryDraft(target.dataset.type);
+      return;
+
+    case 'mass-entry-save':
+      saveMassEntryDraft();
+      return;
+
+    case 'mass-entry-cancel':
+      cancelMassEntryDraft();
+      return;
+
+    case 'mass-event-edit':
+      openMassEventEdit(target.dataset.event);
+      return;
+
+    case 'mass-event-save':
+      saveMassEventEdit();
+      return;
+
+    case 'mass-event-cancel':
+      cancelMassEventEdit();
+      return;
+
+    case 'mass-event-delete':
+      deleteMassEvent(target.dataset.event);
       return;
 
     case 'group-toggle':
