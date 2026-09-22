@@ -1239,6 +1239,7 @@ function computeMassLedger(date)
     assumed_water_loss_kg:0,
     first_mass_kg:null,
     latest_mass_kg:null,
+    min_mass_kg:1000,
     mass_change_kg:null,
     checkpoint_count:0
   };
@@ -1306,8 +1307,9 @@ function computeMassLedger(date)
     {
       checkpoints.push({ event:event, mass_kg:body_mass });
       ++totals.checkpoint_count;
-      if (totals.first_mass_kg == null) totals.first_mass_kg = body_mass;
+      if (totals.first_mass_kg == null) { totals.first_mass_kg = body_mass; }
       totals.latest_mass_kg = body_mass;
+      if (body_mass < totals.min_mass_kg) { totals.min_mass_kg = body_mass; }
     }
 
     event_info[event.id] = info;
@@ -1383,6 +1385,7 @@ function massSummaryForDate(date)
     assumed_water_loss_kg:t.assumed_water_loss_kg,
     first_mass_kg:t.first_mass_kg,
     last_mass_kg:t.latest_mass_kg,
+    min_mass_kg:t.min_mass_kg,
     mass_change_kg:t.mass_change_kg,
     checkpoint_count:t.checkpoint_count
   };
@@ -4123,7 +4126,16 @@ function renderMassDailySummaries()
   h += `<div class="mass-daily">
     <div class="mass-section-head">daily summaries</div>
     <table class="mass-daily-table"><thead><tr>
-      <th>date</th><th class="num">water</th><th class="num">bracket</th><th class="num">in</th><th class="num">out</th><th class="num">first</th><th class="num">last</th><th class="num">change</th>
+      <th>date</th>
+      <th class="num">water</th>
+      <th class="num">food</th>
+      <th class="num">in</th>
+      <th class="num">out</th>
+      <th class="num">delta</th>
+      <th class="num">first</th>
+      <th class="num">last</th>
+      <th class="num">change</th>
+      <th class="num">min</th>
     </tr></thead><tbody>`;
 
   for (let i = 0; i < list.length; ++i)
@@ -4131,15 +4143,18 @@ function renderMassDailySummaries()
     let s = massSummaryForDate(list[i]);
     if (!s.checkpoint_count && !s.water_in_ml && !s.total_mass_in_g) continue;
 
+    let delta_kg = (s.total_mass_in_g - s.inferred_mass_out_g)/1000.0;
     h += `<tr>
       <td>${esc(s.date)}</td>
       <td class="num">${esc(Math.round(s.water_in_ml))} mL</td>
       <td class="num">${esc(s.net_bracket_mass_in_g)} g</td>
-      <td class="num">${esc(s.total_mass_in_g)} g</td>
-      <td class="num">${esc(s.inferred_mass_out_g)} g</td>
+      <td class="num">${formatMassKg(s.total_mass_in_g/1000)}</td>
+      <td class="num">${formatMassKg(s.inferred_mass_out_g/1000)}</td>
+      <td class="num">${formatMassKg(delta_kg)}</td>
       <td class="num">${esc(s.first_mass_kg != null ? fmt2(s.first_mass_kg) : '—')}</td>
       <td class="num">${esc(s.last_mass_kg != null ? fmt2(s.last_mass_kg) : '—')}</td>
       <td class="num">${esc(s.mass_change_kg != null ? formatMassKg(s.mass_change_kg, true) : '—')}</td>
+      <td class="num">${s.min_mass_kg != null ? fmt2(s.min_mass_kg) : '—'}</td>
     </tr>`;
   }
 
