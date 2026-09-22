@@ -996,7 +996,7 @@ function massEventLabel(event_type)
     case 'water': return 'Water';
     case 'pre_meal_weight': return 'Pre mass';
     case 'post_meal_weight': return 'Post mass';
-    case 'post_restroom_weight': return 'Post restroom';
+    case 'post_restroom_weight': return 'Post latrine';
   }
 
   return event_type || 'Event';
@@ -1206,6 +1206,24 @@ function deleteMassEvent(event_id)
   }
 }
 
+function loggedWaterMassBetween(events, start_event, end_event)
+{
+  let start_time = massEventTimestampValue(start_event);
+  let end_time = massEventTimestampValue(end_event);
+  let total = 0;
+
+  for (let i = 0; i < events.length; ++i)
+  {
+    let event = events[i];
+    let t = massEventTimestampValue(event);
+
+    if (t <= start_time || t > end_time) continue;
+    if (event.event_type == 'water') total += waterEventMassKg(event);
+  }
+
+  return total;
+}
+
 function computeMassLedger(date)
 {
   let events = sortedMassEvents(date);
@@ -1215,7 +1233,7 @@ function computeMassLedger(date)
   let totals = {
     water_mass_in_kg:0,
     water_in_ml:0,
-    food_mass_in_kg:0,
+    net_bracket_mass_in_kg:0,
     total_mass_in_kg:0,
     inferred_mass_out_kg:0,
     assumed_water_loss_kg:0,
@@ -1228,7 +1246,7 @@ function computeMassLedger(date)
   for (let i = 0; i < events.length; ++i)
   {
     let event = events[i];
-    let info = { mass_in_kg:0, food_mass_kg:null, mass_out_kg:null, pair_id:null, unpaired:false, unresolved:false, anchor_reset:false };
+    let info = { mass_in_kg:0, net_bracket_mass_kg:null, mass_out_kg:null, pair_id:null, unpaired:false, unresolved:false, anchor_reset:false };
     let body_mass = massEventBodyMass(event);
 
     if (event.event_type == 'water')
@@ -1257,11 +1275,9 @@ function computeMassLedger(date)
           let pre = unmatched_pres[j];
           let pre_mass = massEventBodyMass(pre);
           let gap_minutes = (massEventMillis(event) - massEventMillis(pre))/60000;
-          let diff = body_mass - pre_mass;
 
           if (gap_minutes < 0) continue;
           if (gap_minutes > g_meal_pair_max_minutes) continue;
-          if (diff < -0.005) continue;
 
           best_index = j;
           break;
@@ -1270,13 +1286,14 @@ function computeMassLedger(date)
         if (best_index >= 0)
         {
           let pre = unmatched_pres[best_index];
-          let food_mass = body_mass - massEventBodyMass(pre);
+          let logged_water_mass = loggedWaterMassBetween(events, pre, event);
+          let net_bracket_mass = body_mass - massEventBodyMass(pre) - logged_water_mass;
 
           unmatched_pres.splice(best_index, 1);
           info.pair_id = pre.id;
-          info.food_mass_kg = food_mass;
-          info.mass_in_kg = food_mass;
-          totals.food_mass_in_kg += food_mass;
+          info.net_bracket_mass_kg = net_bracket_mass;
+          info.mass_in_kg = net_bracket_mass;
+          totals.net_bracket_mass_in_kg += net_bracket_mass;
         }
         else
         {
@@ -1325,7 +1342,7 @@ function computeMassLedger(date)
     if (massEventCountsAsWaterLoss(cur.event)) totals.assumed_water_loss_kg += cur_info.mass_out_kg;
   }
 
-  totals.total_mass_in_kg = totals.water_mass_in_kg + totals.food_mass_in_kg;
+  totals.total_mass_in_kg = totals.water_mass_in_kg + totals.net_bracket_mass_in_kg;
   if (totals.first_mass_kg != null && totals.latest_mass_kg != null) totals.mass_change_kg = totals.latest_mass_kg - totals.first_mass_kg;
 
   return { events:events, event_info:event_info, totals:totals };
@@ -1360,7 +1377,7 @@ function massSummaryForDate(date)
     date:date,
     water_in_ml:t.water_in_ml,
     water_in_kg:t.water_mass_in_kg,
-    food_mass_in_g:Math.round(t.food_mass_in_kg*1000),
+    net_bracket_mass_in_g:Math.round(t.net_bracket_mass_in_kg*1000),
     total_mass_in_g:Math.round(t.total_mass_in_kg*1000),
     inferred_mass_out_g:Math.round(t.inferred_mass_out_kg*1000),
     assumed_water_loss_kg:t.assumed_water_loss_kg,
@@ -3898,7 +3915,7 @@ function renderMassQuickActions()
     <button class="mass-primary-action" data-a="mass-water-add" data-ml="${g_default_water_ml}"${disabled}>+${g_default_water_ml} mL</button>
     <button class="mass-action" data-a="mass-entry-open" data-type="pre_meal_weight"${disabled}>Pre Mass</button>
     <button class="mass-action" data-a="mass-entry-open" data-type="post_meal_weight"${disabled}>Post Mass</button>
-    <button class="mass-action" data-a="mass-entry-open" data-type="post_restroom_weight"${disabled}>Post Restroom</button>
+    <button class="mass-action" data-a="mass-entry-open" data-type="post_restroom_weight"${disabled}>Post Latrine</button>
   </div>`;
 
   h += `<div class="mass-water-slider">
@@ -3962,7 +3979,7 @@ function renderMassSummary()
 
   h += `<div class="summary mass-summary">
     <div class="cell"><div class="lab">water in</div><div class="val">${Math.round(t.water_in_ml)} mL</div></div>
-    <div class="cell"><div class="lab">food mass in</div><div class="val">${formatMassKg(t.food_mass_in_kg, false)}</div></div>
+    <div class="cell"><div class="lab">net bracket in</div><div class="val">${formatMassKg(t.net_bracket_mass_in_kg, false)}</div></div>
     <div class="cell"><div class="lab">total mass in</div><div class="val">${formatMassKg(t.total_mass_in_kg, false)}</div></div>
   </div>
   <div class="summary mass-summary">
@@ -4056,7 +4073,7 @@ function renderMassEventLog()
       primary = formatMassKgPlain(massEventBodyMass(event));
       if (event.event_type == 'post_meal_weight')
       {
-        if (info.food_mass_kg != null) detail = 'Food +' + formatMassKg(info.food_mass_kg, false);
+        if (info.net_bracket_mass_kg != null) detail = 'Net bracket ' + formatMassKg(info.net_bracket_mass_kg, true);
         else if (info.anchor_reset) detail = 'attire change · new anchor';
         else if (info.unpaired) detail = 'unpaired meal · new anchor';
       }
@@ -4106,7 +4123,7 @@ function renderMassDailySummaries()
   h += `<div class="mass-daily">
     <div class="mass-section-head">daily summaries</div>
     <table class="mass-daily-table"><thead><tr>
-      <th>date</th><th class="num">water</th><th class="num">food</th><th class="num">in</th><th class="num">out</th><th class="num">first</th><th class="num">last</th><th class="num">change</th>
+      <th>date</th><th class="num">water</th><th class="num">bracket</th><th class="num">in</th><th class="num">out</th><th class="num">first</th><th class="num">last</th><th class="num">change</th>
     </tr></thead><tbody>`;
 
   for (let i = 0; i < list.length; ++i)
@@ -4117,7 +4134,7 @@ function renderMassDailySummaries()
     h += `<tr>
       <td>${esc(s.date)}</td>
       <td class="num">${esc(Math.round(s.water_in_ml))} mL</td>
-      <td class="num">${esc(s.food_mass_in_g)} g</td>
+      <td class="num">${esc(s.net_bracket_mass_in_g)} g</td>
       <td class="num">${esc(s.total_mass_in_g)} g</td>
       <td class="num">${esc(s.inferred_mass_out_g)} g</td>
       <td class="num">${esc(s.first_mass_kg != null ? fmt2(s.first_mass_kg) : '—')}</td>
