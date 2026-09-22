@@ -2498,11 +2498,15 @@ function buildBodyweightKcalCSV()
     if (bodyweight_kg == null) bodyweight_kg = mass_summary.last_mass_kg;
     if (bodyweight_kg == null && totals.kcal <= 0 && !has_mass_data) continue;
 
-    lines.push(csvCell(date)
+    let line =  csvCell(date)
       + ',' + csvCell(bodyweight_kg != null ? fmt1(bodyweight_kg) : '')
       + ',' + csvCell(fmt0(totals.kcal))
-      + ',' + csvCell(fmt3(mass_summary.water_in_kg))
-      + ',' + csvCell(fmt3(mass_summary.assumed_water_loss_kg)));
+    if (mass_summary.water_in_kg && mass_summary.assumed_water_loss_kg)
+    {
+      line += ',' + csvCell(fmt3(mass_summary.water_in_kg))
+        + ',' + csvCell(fmt3(mass_summary.assumed_water_loss_kg));
+    }
+    lines.push(line);
   }
 
   return lines.join('\n') + '\n';
