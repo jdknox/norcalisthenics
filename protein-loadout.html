@@ -997,9 +997,10 @@ function massEventLabel(event_type)
   switch (event_type)
   {
     case 'water': return 'Water';
+    case 'food_mass': return 'Food mass';
     case 'checkpoint_weight': return 'Checkpoint';
-    case 'pre_meal_weight': return 'Pre mass';
-    case 'post_meal_weight': return 'Post mass';
+    case 'pre_meal_weight': return 'Pre meal';
+    case 'post_meal_weight': return 'Post meal';
     case 'post_restroom_weight': return 'Post latrine';
   }
 
@@ -1063,6 +1064,8 @@ function openMassEntryDraft(event_type)
     event_type:event_type,
     timestamp:currentTimeText(),
     body_mass_raw:defaultMassEntryRaw(),
+    mass_in_raw:'',
+    known_mass_in:false,
     water_loss:event_type == 'post_restroom_weight',
     anchor_reset:false
   };
@@ -1070,7 +1073,7 @@ function openMassEntryDraft(event_type)
   render();
   setTimeout(function()
   {
-    let input = document.querySelector('[data-massdraft="body_mass"]');
+    let input = document.querySelector('[data-massdraft="body_mass"],[data-massdraft="mass_in"]');
     if (!input) return;
     input.focus();
     input.select();
@@ -1088,8 +1091,34 @@ function saveMassEntryDraft()
   let d = g_mass_entry_draft;
   let day;
   let mass;
+  let grams;
 
   if (!d || !viewDateIsEditable()) return;
+
+  if (d.event_type == 'post_meal_weight' && d.known_mass_in)
+  {
+    grams = Math.round(parseFloat(d.mass_in_raw));
+    if (isNaN(grams) || grams <= 0) return;
+
+    day = g_mass_events[g_view_date];
+    if (!day)
+    {
+      day = [];
+      g_mass_events[g_view_date] = day;
+    }
+
+    day.push({
+      id:uid(),
+      timestamp:massTimestampForView(d.timestamp),
+      event_type:'food_mass',
+      mass_in_kg:grams/1000
+    });
+
+    g_mass_entry_draft = null;
+    render();
+    save();
+    return;
+  }
 
   mass = parseFloat(d.body_mass_raw);
   if (isNaN(mass) || mass <= 0) return;
@@ -1141,6 +1170,7 @@ function openMassEventEdit(event_id)
     timestamp:massEventTimeText(event),
     event_type:event.event_type,
     body_mass_raw:event.body_mass_kg != null ? fmt2(Number(event.body_mass_kg)) : '',
+    mass_in_raw:event.mass_in_kg != null && event.event_type == 'food_mass' ? String(Math.round(Number(event.mass_in_kg)*1000)) : '',
     water_volume_raw:event.water_volume_ml != null ? String(Math.round(Number(event.water_volume_ml))) : '',
     water_loss:massEventCountsAsWaterLoss(event),
     anchor_reset:!!event.anchor_reset
@@ -1172,6 +1202,13 @@ function saveMassEventEdit()
     if (isNaN(num) || num <= 0) return;
 
     event.water_volume_ml = num;
+    event.mass_in_kg = num/1000;
+  }
+  else if (event.event_type == 'food_mass')
+  {
+    num = Math.round(parseFloat(d.mass_in_raw));
+    if (isNaN(num) || num <= 0) return;
+
     event.mass_in_kg = num/1000;
   }
   else
@@ -1259,6 +1296,11 @@ function computeMassLedger(date)
       info.mass_in_kg = waterEventMassKg(event);
       totals.water_mass_in_kg += info.mass_in_kg;
       totals.water_in_ml += Number(event.water_volume_ml) || Math.round(info.mass_in_kg*1000);
+    }
+    else if (event.event_type == 'food_mass')
+    {
+      info.mass_in_kg = Number(event.mass_in_kg) || 0;
+      totals.net_bracket_mass_in_kg += info.mass_in_kg;
     }
     else if (event.event_type == 'pre_meal_weight' && body_mass != null)
     {
@@ -3580,6 +3622,10 @@ function migrateMassEvents()
         if (event.water_volume_ml != null) event.water_volume_ml = Math.round(Number(event.water_volume_ml) || 0);
         if (event.mass_in_kg == null && event.water_volume_ml != null) event.mass_in_kg = event.water_volume_ml/1000;
       }
+      if (event.event_type == 'food_mass')
+      {
+        event.mass_in_kg = Math.round((Number(event.mass_in_kg) || 0)*1000)/1000;
+      }
       if (isMassCheckpoint(event) && event.body_mass_kg != null)
       {
         event.body_mass_kg = Math.round((Number(event.body_mass_kg) || 0)*100)/100;
@@ -4064,8 +4110,8 @@ function renderMassQuickActions()
 
   h += `<div class="mass-actions">
     <button class="mass-primary-action" data-a="mass-water-add" data-ml="${g_default_water_ml}"${disabled}>+${g_default_water_ml} mL</button>
-    <button class="mass-action" data-a="mass-entry-open" data-type="pre_meal_weight"${disabled}>Pre Mass</button>
-    <button class="mass-action" data-a="mass-entry-open" data-type="post_meal_weight"${disabled}>Post Mass</button>
+    <button class="mass-action" data-a="mass-entry-open" data-type="pre_meal_weight"${disabled}>Pre Meal</button>
+    <button class="mass-action" data-a="mass-entry-open" data-type="post_meal_weight"${disabled}>Post Meal</button>
     <button class="mass-action" data-a="mass-entry-open" data-type="checkpoint_weight"${disabled}>Checkpoint</button>
     <button class="mass-action" data-a="mass-entry-open" data-type="post_restroom_weight"${disabled}>Post Latrine</button>
   </div>`;
@@ -4096,11 +4142,24 @@ function renderMassEntryDraft()
 
   h += `<div class="mass-entry-panel">
     <div class="mass-entry-title">${esc(massEventLabel(d.event_type))}</div>
-    <input type="time" data-massdraft="timestamp" value="${esc(d.timestamp)}">
-    <span class="unitinput mass-kg-input">
+    <input type="time" data-massdraft="timestamp" value="${esc(d.timestamp)}">`;
+
+  if (d.event_type == 'post_meal_weight' && d.known_mass_in)
+  {
+    h += `<span class="unitinput mass-kg-input">
+      <input type="text" inputmode="numeric" data-massdraft="mass_in" placeholder="50" value="${esc(d.mass_in_raw)}">
+      <span class="unitghost">g</span>
+    </span>`;
+  }
+  else
+  {
+    h += `<span class="unitinput mass-kg-input">
       <input type="text" inputmode="decimal" data-massdraft="body_mass" placeholder="81.35" value="${esc(d.body_mass_raw)}">
       <span class="unitghost">kg</span>
-    </span>
+    </span>`;
+  }
+
+  h += `
     <span class="mass-entry-break"></span>`;
 
   if (d.event_type == 'post_restroom_weight')
@@ -4116,6 +4175,14 @@ function renderMassEntryDraft()
     h += `<label class="mass-flag-toggle">
       <input type="checkbox" data-massdraft="anchor_reset"${d.anchor_reset ? ' checked' : ''}>
       <span>new anchor</span>
+    </label>`;
+  }
+
+  if (d.event_type == 'post_meal_weight')
+  {
+    h += `<label class="mass-flag-toggle">
+      <input type="checkbox" data-massdraft="known_mass_in"${d.known_mass_in ? ' checked' : ''}>
+      <span>delta g</span>
     </label>`;
   }
 
@@ -4135,9 +4202,9 @@ function renderMassSummary()
   let h = '';
 
   h += `<div class="summary mass-summary">
-    <div class="cell"><div class="lab">water in</div><div class="val">${Math.round(t.water_in_ml)} mL</div></div>
-    <div class="cell"><div class="lab">net bracket in</div><div class="val">${formatMassKg(t.net_bracket_mass_in_kg, false)}</div></div>
+    <div class="cell"><div class="lab">water in</div><div class="val water">${Math.round(t.water_in_ml)} mL</div></div>
     <div class="cell"><div class="lab">total mass in</div><div class="val">${formatMassKg(t.total_mass_in_kg, false)}</div></div>
+    <div class="cell"><div class="lab">food mass in</div><div class="val">${formatMassKg(t.net_bracket_mass_in_kg, false)}</div></div>
 
     <div class="cell"><div class="lab">inferred mass out</div><div class="val under">${formatMassKg(t.inferred_mass_out_kg, false)}</div></div>
     <div class="cell"><div class="lab">latest body mass</div><div class="val kval">${latest}</div></div>
@@ -4162,6 +4229,13 @@ function renderMassEventEditRow(event)
     h += `<span class="unitinput">
       <input type="text" inputmode="numeric" data-massedit="water_volume" value="${esc(d.water_volume_raw)}">
       <span class="unitghost">mL</span>
+    </span>`;
+  }
+  else if (event.event_type == 'food_mass')
+  {
+    h += `<span class="unitinput mass-kg-input">
+      <input type="text" inputmode="numeric" data-massedit="mass_in" value="${esc(d.mass_in_raw)}">
+      <span class="unitghost">g</span>
     </span>`;
   }
   else
@@ -4223,6 +4297,10 @@ function renderMassEventLog()
     {
       primary = '+' + Math.round(Number(event.water_volume_ml) || 0) + ' mL';
       detail = '+' + formatMassKg(waterEventMassKg(event), false);
+    }
+    else if (event.event_type == 'food_mass')
+    {
+      primary = '+' + Math.round((Number(event.mass_in_kg) || 0)*1000) + ' g';
     }
     else
     {
@@ -5290,8 +5368,10 @@ document.addEventListener('input', function(ev)
   {
     if (target.dataset.massdraft == 'timestamp') g_mass_entry_draft.timestamp = target.value;
     if (target.dataset.massdraft == 'body_mass') g_mass_entry_draft.body_mass_raw = target.value;
+    if (target.dataset.massdraft == 'mass_in') g_mass_entry_draft.mass_in_raw = target.value;
     if (target.dataset.massdraft == 'water_loss') g_mass_entry_draft.water_loss = !!target.checked;
     if (target.dataset.massdraft == 'anchor_reset') g_mass_entry_draft.anchor_reset = !!target.checked;
+    if (target.dataset.massdraft == 'known_mass_in') g_mass_entry_draft.known_mass_in = !!target.checked;
     return;
   }
 
@@ -5299,6 +5379,7 @@ document.addEventListener('input', function(ev)
   {
     if (target.dataset.massedit == 'timestamp') g_mass_edit_draft.timestamp = target.value;
     if (target.dataset.massedit == 'body_mass') g_mass_edit_draft.body_mass_raw = target.value;
+    if (target.dataset.massedit == 'mass_in') g_mass_edit_draft.mass_in_raw = target.value;
     if (target.dataset.massedit == 'water_volume') g_mass_edit_draft.water_volume_raw = target.value;
     if (target.dataset.massedit == 'water_loss') g_mass_edit_draft.water_loss = !!target.checked;
     if (target.dataset.massedit == 'anchor_reset') g_mass_edit_draft.anchor_reset = !!target.checked;
@@ -5472,6 +5553,13 @@ document.addEventListener('change', function(ev)
   if (target.dataset && target.dataset.massdraft == 'anchor_reset' && g_mass_entry_draft)
   {
     g_mass_entry_draft.anchor_reset = !!target.checked;
+    return;
+  }
+
+  if (target.dataset && target.dataset.massdraft == 'known_mass_in' && g_mass_entry_draft)
+  {
+    g_mass_entry_draft.known_mass_in = !!target.checked;
+    renderPreservingFocus();
     return;
   }
 
