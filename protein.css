@@ -338,6 +338,23 @@ tfoot td{border-top:2px solid var(--line2);font-family:var(--mono);font-weight:6
 .mass-entry-title{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);flex:1 1 100%}
 .mass-kg-input input{width:112px}
 .mass-summary{margin-bottom:10px}
+.summary.mass-summary{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+}
+
+.summary.mass-summary .cell{
+  border-right:1px solid var(--line);
+  border-bottom:1px solid var(--line);
+}
+
+.summary.mass-summary .cell:nth-child(3n){
+  border-right:none;
+}
+
+.summary.mass-summary .cell:nth-last-child(-n+3){
+  border-bottom:none;
+}
 .mass-section-head{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);margin:16px 0 8px}
 .mass-log{border-top:1px solid var(--line);margin-top:16px}
 .mass-event{display:grid;grid-template-columns:50px minmax(0,1fr) 58px;grid-template-areas:"time main actions" "edit main actions";gap:0 10px;align-items:start;border-bottom:1px solid var(--line);padding:10px 0}
@@ -404,9 +421,21 @@ tfoot td{border-top:2px solid var(--line2);font-family:var(--mono);font-weight:6
   .mass-actions{grid-template-columns:1fr 1fr;gap:7px}
   .mass-primary-action,.mass-action{font-size:calc(12.5px*var(--mobile-text-scale));min-height:52px}
   .mass-water-slider{gap:7px}
-  .mass-summary{display:grid;grid-template-columns:1fr;margin-bottom:10px}
-  .summary.mass-summary .cell{border-right:none;border-bottom:1px solid var(--line)}
-  .summary.mass-summary .cell:last-child{border-bottom:none}
+.summary.mass-summary{
+  grid-template-columns:repeat(2,minmax(0,1fr));
+}
+.summary.mass-summary .cell:nth-child(3n){
+  border-right:1px solid var(--line);
+}
+.summary.mass-summary .cell:nth-child(2n){
+  border-right:none;
+}
+.summary.mass-summary .cell:nth-last-child(-n+3){
+  border-bottom:1px solid var(--line);
+}
+.summary.mass-summary .cell:nth-last-child(-n+2){
+  border-bottom:none;
+}
   .mass-event{grid-template-columns:45px minmax(0,1fr) 55px}
   .mass-event-title{font-size:calc(14px*var(--mobile-text-scale))}
   .mass-event-detail{font-size:calc(12px*var(--mobile-text-scale))}
