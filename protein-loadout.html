@@ -644,6 +644,9 @@ let g_import_open = false;
 let g_import_text = '';
 let g_import_pending = null;    /* parsed object awaiting confirmation, or null */
 let g_import_status = '';
+let g_mass_import_text = '';
+let g_mass_import_pending = null;
+let g_mass_import_status = '';
 let g_active_tab = 'pantry';
 let g_adjusted_log_open = false;
 let g_logged_foods_open = true;
@@ -2459,6 +2462,21 @@ function buildExportJSON()
   return JSON.stringify(makeSavePayload(), null, 2);
 }
 
+function makeMassEventsExportPayload()
+{
+  return {
+    export_type:'protein-loadout-mass-events',
+    exported_at:new Date().toISOString(),
+    mass_events:g_mass_events,
+    deleted_mass_event_ids:g_deleted_mass_event_ids
+  };
+}
+
+function buildMassEventsExportJSON()
+{
+  return JSON.stringify(makeMassEventsExportPayload(), null, 2);
+}
+
 function csvCell(value)
 {
   let text = String(value == null ? '' : value);
@@ -2795,6 +2813,42 @@ function parseImportText()
   render();
 }
 
+function parseMassImportText()
+{
+  let parsed;
+
+  g_mass_import_pending = null;
+
+  if (!g_mass_import_text.trim())
+  {
+    g_mass_import_status = 'paste mass JSON or choose a file first';
+    render();
+    return;
+  }
+
+  try
+  {
+    parsed = JSON.parse(g_mass_import_text);
+  }
+  catch (e)
+  {
+    g_mass_import_status = 'not valid JSON — ' + e.message;
+    render();
+    return;
+  }
+
+  if (!parsed || typeof parsed != 'object' || !parsed.mass_events || typeof parsed.mass_events != 'object')
+  {
+    g_mass_import_status = 'this doesn\'t look like a water/mass export — missing mass_events';
+    render();
+    return;
+  }
+
+  g_mass_import_pending = parsed;
+  g_mass_import_status = '';
+  render();
+}
+
 function copyLoadoutRawFields(food)
 {
   food.daily_raw = food.daily != null ? String(food.daily) : '0';
@@ -2807,6 +2861,72 @@ function copyScoopRawFields(item)
   item.scoop_g_raw = item.scoop_g != null ? String(item.scoop_g) : '';
   item.protein_g_raw = item.protein_g != null ? String(item.protein_g) : '';
   item.kcal_raw = item.kcal != null ? String(item.kcal) : '';
+}
+
+function renderMassImportPreview(mode)
+{
+  let parsed = g_mass_import_pending;
+  let replace = mode == 'replace';
+  let mass_stats;
+  let h = '';
+
+  if (!parsed) return '';
+
+  mass_stats = importMassEventChangeStats(parsed.mass_events || {}, replace);
+
+  h += `<div class="import-preview">
+    <div class="import-preview-title">${replace ? 'replace mass data' : 'merge mass data'}</div>
+    ${importChangeHtml('mass events', mass_stats)}
+  </div>`;
+
+  return h;
+}
+
+function applyReplaceMassImport()
+{
+  let parsed = g_mass_import_pending;
+
+  if (!parsed) return;
+
+  g_mass_events = {};
+  if (parsed.mass_events && typeof parsed.mass_events == 'object') g_mass_events = parsed.mass_events;
+
+  g_deleted_mass_event_ids = {};
+  if (parsed.deleted_mass_event_ids && typeof parsed.deleted_mass_event_ids == 'object') g_deleted_mass_event_ids = parsed.deleted_mass_event_ids;
+
+  migrateMassEvents();
+  pruneDeletedMassEvents();
+
+  g_mass_import_pending = null;
+  g_mass_import_text = '';
+  g_mass_import_status = 'imported mass data ✓';
+  render();
+  save();
+}
+
+function applyMergeMassImport()
+{
+  let parsed = g_mass_import_pending;
+
+  if (!parsed) return;
+
+  mergeDeletedMassEventIds(parsed.deleted_mass_event_ids);
+  mergeMassEvents(parsed.mass_events);
+  migrateMassEvents();
+  pruneDeletedMassEvents();
+
+  g_mass_import_pending = null;
+  g_mass_import_text = '';
+  g_mass_import_status = 'merged mass data ✓';
+  render();
+  save();
+}
+
+function cancelMassImport()
+{
+  g_mass_import_pending = null;
+  g_mass_import_status = '';
+  render();
 }
 
 function applyReplaceImport()
@@ -2961,6 +3081,24 @@ function readImportFile(file)
   reader.onerror = function()
   {
     g_import_status = 'could not read that file';
+    render();
+  };
+
+  reader.readAsText(file);
+}
+
+function readMassImportFile(file)
+{
+  let reader = new FileReader();
+
+  reader.onload = function()
+  {
+    g_mass_import_text = String(reader.result || '');
+    parseMassImportText();
+  };
+  reader.onerror = function()
+  {
+    g_mass_import_status = 'could not read that file';
     render();
   };
 
@@ -4169,18 +4307,52 @@ function renderMassDailySummaries()
 
 function renderMassExportPanel()
 {
-  let export_text = esc(buildBodyweightKcalCSV());
+  let csv_text = esc(buildBodyweightKcalCSV());
+  let mass_json_text = esc(buildMassEventsExportJSON());
   let copy_status = g_copy_status ? `<span class="fetchstatus" style="padding:6px 0 0">${esc(g_copy_status)}</span>` : '';
   let h = '';
 
   h += `<div class="exportbox mass-exportbox">
     <div class="mass-section-head">bodymass/kcal export</div>
-    <textarea class="exp-out mass-exp-out" readonly spellcheck="false">${export_text}</textarea>
+    <textarea class="exp-out mass-exp-out" readonly spellcheck="false">${csv_text}</textarea>
     <div class="btnrow2">
       <button class="smallbtn" data-a="mass-export-copy">copy</button>
       <button class="smallbtn" data-a="mass-export-download">download</button>
       ${copy_status}
     </div>
+    <div class="mass-section-head">water/mass backup</div>
+    <textarea class="exp-out mass-exp-out" readonly spellcheck="false">${mass_json_text}</textarea>
+    <div class="btnrow2">
+      <button class="smallbtn" data-a="mass-json-copy">copy</button>
+      <button class="smallbtn" data-a="mass-json-download">download</button>
+    </div>
+    <div class="hint" style="margin-top:10px">Import only water/mass-balance events. Full backups are accepted here too; pantry, protein, and kcal logs are ignored.</div>
+    <input type="file" accept=".json,application/json" data-a="mass-import-file">
+    <textarea class="exp-out mass-exp-out" placeholder="…or paste water/mass JSON here" data-field="mass-import-text">${esc(g_mass_import_text)}</textarea>
+    <div class="btnrow2">
+      <button class="smallbtn" data-a="mass-import-parse">check</button>`;
+
+  if (g_mass_import_pending)
+  {
+    h += `<button class="smallbtn import-plus" data-a="mass-import-merge">merge mass</button>
+      <button class="smallbtn import-danger" data-a="mass-import-replace">replace mass</button>
+      <button class="smallbtn" data-a="mass-import-cancel">cancel</button>`;
+  }
+
+  h += `</div>`;
+
+  if (g_mass_import_pending)
+  {
+    h += renderMassImportPreview('merge');
+    h += renderMassImportPreview('replace');
+  }
+
+  if (g_mass_import_status)
+  {
+    h += `<div class="fetchstatus">${esc(g_mass_import_status)}</div>`;
+  }
+
+  h += `
   </div>`;
 
   return h;
@@ -5119,6 +5291,13 @@ document.addEventListener('input', function(ev)
     return;
   }
 
+  if (target.dataset.field == 'mass-import-text')
+  {
+    g_mass_import_text = target.value;
+    g_mass_import_pending = null;
+    return;
+  }
+
   let scoop_key = target.dataset.scaledraft;
   if (scoop_key && g_scale_draft)
   {
@@ -5291,6 +5470,13 @@ document.addEventListener('change', function(ev)
   {
     let file = target.files && target.files[0];
     if (file) readImportFile(file);
+    return;
+  }
+
+  if (target.dataset && target.dataset.a == 'mass-import-file')
+  {
+    let file = target.files && target.files[0];
+    if (file) readMassImportFile(file);
     return;
   }
 
@@ -5603,6 +5789,31 @@ document.addEventListener('click', function(ev)
 
     case 'mass-export-download':
       downloadText('protein-bodyweight-kcal-' + todayISO() + '.csv', 'text/csv', buildBodyweightKcalCSV());
+      return;
+
+    case 'mass-json-copy':
+      copyText(buildMassEventsExportJSON());
+      return;
+
+    case 'mass-json-download':
+      downloadText('protein-mass-events-' + todayISO() + '.json', 'application/json', buildMassEventsExportJSON());
+      return;
+
+    case 'mass-import-parse':
+      parseMassImportText();
+      return;
+
+    case 'mass-import-merge':
+      applyMergeMassImport();
+      return;
+
+    case 'mass-import-replace':
+      if (!window.confirm('Replace only water/mass-balance data with this import?')) return;
+      applyReplaceMassImport();
+      return;
+
+    case 'mass-import-cancel':
+      cancelMassImport();
       return;
 
     case 'bodyweight-refresh':
