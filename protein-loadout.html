@@ -666,7 +666,7 @@ let g_default_water_ml = 740;
 let g_water_slider_ml = g_default_water_ml;
 let g_water_slider_raw = String(g_default_water_ml);
 let g_water_slider_min_ml = 100;
-let g_water_slider_max_ml = 1500;
+let g_water_slider_max_ml = 1000;
 let g_water_slider_step_ml = 10;
 let g_meal_pair_max_minutes = 240;
 
@@ -4065,9 +4065,13 @@ function renderMassQuickActions()
 
   h += `<div class="mass-water-slider">
     <label class="mass-slider-label" for="mass-water-slider">water</label>
-    <input id="mass-water-slider" type="range" min="${g_water_slider_min_ml}" max="${g_water_slider_max_ml}" step="${g_water_slider_step_ml}" value="${g_water_slider_ml}" data-masswater="slider"${disabled}>
+    <input id="mass-water-slider" type="range"
+      min="${g_water_slider_min_ml}" max="${g_water_slider_max_ml}"
+      step="${g_water_slider_step_ml}" value="${g_water_slider_ml}"
+      data-masswater="slider"${disabled}>
     <span class="unitinput mass-water-input">
-      <input id="mass-water-input" type="text" inputmode="numeric" data-masswater="text" value="${esc(g_water_slider_raw)}"${disabled}>
+      <input id="mass-water-input" type="text" inputmode="numeric"
+        data-masswater="text" value="${esc(g_water_slider_raw)}"${disabled}>
       <span class="unitghost">mL</span>
     </span>
     <button class="smallbtn mass-slider-log" data-a="mass-water-slider-log"${disabled}>log</button>
@@ -4230,14 +4234,19 @@ function renderMassEventLog()
     }
 
     h += `<div class="mass-event">
-      <div class="mass-event-time">${esc(massEventTimeText(event))}</div>
+      <div class="mass-event-time">${esc(massEventTimeText(event))}
+        <button class="editbtn mass-event-editbtn" data-a="mass-event-edit"
+        data-event="${esc(event.id)}" title="edit mass event"${disabled}>✎
+        </button>
+      </div>
       <div class="mass-event-main">
         <div class="mass-event-title">${esc(massEventLabel(event.event_type))}</div>
-        <div class="mass-event-detail">${esc(primary)}${detail ? ' · ' + esc(detail) : ''}${extra ? ' · ' + esc(extra) : ''}</div>
+        <div class="mass-event-detail">
+          ${esc(primary)}${detail ? ' · ' + esc(detail) : ''}${extra ? ' · ' + esc(extra) : ''}
+        </div>
         ${edit}
       </div>
       <div class="mass-event-actions">
-        <button class="editbtn" data-a="mass-event-edit" data-event="${esc(event.id)}" title="edit mass event"${disabled}>✎</button>
         <button class="logged-food-remove" data-a="mass-event-delete" data-event="${esc(event.id)}" title="delete mass event"${disabled}>−</button>
       </div>
     </div>`;
@@ -4372,12 +4381,13 @@ function renderMassSection()
   h += renderMassQuickActions();
   h += renderMassEntryDraft();
   h += renderMassSummary();
-  h += `<div class="note">Whole-body mass accounting: inferred mass out includes sweat,
-    respiratory water, CO2, and other losses.
-    \`water_in - mass_out\` is not literal body-water change.</div>`;
   h += renderMassEventLog();
   h += renderMassDailySummaries();
   h += renderMassExportPanel();
+
+  h += `<div class="note">Whole-body mass accounting: inferred mass out includes sweat,
+    respiratory water, CO2, and other losses.
+    \`water_in - mass_out\` is not literal body-water change.</div>`;
 
   return h;
 }
