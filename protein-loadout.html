@@ -1109,7 +1109,7 @@ function saveMassEntryDraft()
   };
 
   if (d.event_type == 'post_restroom_weight') event.water_loss = !!d.water_loss;
-  if (d.event_type == 'post_meal_weight') event.anchor_reset = !!d.anchor_reset;
+  if (d.event_type == 'checkpoint_weight') event.anchor_reset = !!d.anchor_reset;
 
   day.push(event);
 
@@ -1181,7 +1181,7 @@ function saveMassEventEdit()
 
     event.body_mass_kg = Math.round(num*100)/100;
     if (event.event_type == 'post_restroom_weight') event.water_loss = !!d.water_loss;
-    if (event.event_type == 'post_meal_weight') event.anchor_reset = !!d.anchor_reset;
+    if (event.event_type == 'checkpoint_weight') event.anchor_reset = !!d.anchor_reset;
   }
 
   g_mass_edit_id = null;
@@ -1306,6 +1306,11 @@ function computeMassLedger(date)
         }
       }
     }
+    else if (event.event_type == 'checkpoint_weight' && body_mass != null && event.anchor_reset)
+    {
+      info.anchor_reset = true;
+      if (unmatched_pres.length) unmatched_pres.splice(0, unmatched_pres.length);
+    }
 
     if (body_mass != null)
     {
@@ -1328,7 +1333,7 @@ function computeMassLedger(date)
     let cur_time = massEventTimestampValue(cur.event);
     let cur_info = event_info[cur.event.id];
 
-    if (cur_info && cur.event.event_type == 'post_meal_weight' && (cur_info.unpaired || cur_info.anchor_reset))
+    if (cur_info && (cur_info.anchor_reset || (cur.event.event_type == 'post_meal_weight' && cur_info.unpaired)))
     {
       cur_info.unresolved = true;
       continue;
@@ -2518,7 +2523,7 @@ function buildBodyweightKcalCSV()
     if (bodyweight_kg == null && totals.kcal <= 0 && !has_mass_data) continue;
 
     let line =  csvCell(date)
-      + ',' + csvCell(bodyweight_kg != null ? fmt1(bodyweight_kg) : '')
+      + ',' + csvCell(bodyweight_kg != null ? fmt2(bodyweight_kg) : '')
       + ',' + csvCell(fmt0(totals.kcal))
     if (mass_summary.water_in_kg && mass_summary.assumed_water_loss_kg)
     {
@@ -3331,7 +3336,7 @@ function refreshBodyweightFromShared()
     if (date == todayISO()) g_bodyweight_kg = bodyweight_kg;
 
     saveLocalJson(JSON.stringify(makeSavePayload()));
-    g_bodyweight_refresh_status = 'pulled ' + fmt1(bodyweight_kg) + ' kg';
+    g_bodyweight_refresh_status = 'pulled ' + fmt2(bodyweight_kg) + ' kg';
     render();
   }).catch(function()
   {
@@ -3380,7 +3385,7 @@ function pushBodyweightToShared()
   }).then(function()
   {
     saveLocalJson(JSON.stringify(makeSavePayload()));
-    g_bodyweight_refresh_status = 'pushed ' + fmt1(bodyweight_kg) + ' kg';
+    g_bodyweight_refresh_status = 'pushed ' + fmt2(bodyweight_kg) + ' kg';
     render();
   }).catch(function()
   {
@@ -4106,11 +4111,11 @@ function renderMassEntryDraft()
     </label>`;
   }
 
-  if (d.event_type == 'post_meal_weight')
+  if (d.event_type == 'checkpoint_weight')
   {
     h += `<label class="mass-flag-toggle">
       <input type="checkbox" data-massdraft="anchor_reset"${d.anchor_reset ? ' checked' : ''}>
-      <span>attire change</span>
+      <span>new anchor</span>
     </label>`;
   }
 
@@ -4174,11 +4179,11 @@ function renderMassEventEditRow(event)
       </label>`;
     }
 
-    if (event.event_type == 'post_meal_weight')
+    if (event.event_type == 'checkpoint_weight')
     {
       h += `<label class="mass-flag-toggle">
         <input type="checkbox" data-massedit="anchor_reset"${d.anchor_reset ? ' checked' : ''}>
-        <span>attire change</span>
+        <span>new anchor</span>
       </label>`;
     }
   }
@@ -4225,8 +4230,12 @@ function renderMassEventLog()
       if (event.event_type == 'post_meal_weight')
       {
         if (info.net_bracket_mass_kg != null) detail = 'Net bracket ' + formatMassKg(info.net_bracket_mass_kg, true);
-        else if (info.anchor_reset) detail = 'attire change · new anchor';
+        else if (info.anchor_reset) detail = 'new anchor';
         else if (info.unpaired) detail = 'unpaired meal · new anchor';
+      }
+      else if (event.event_type == 'checkpoint_weight' && info.anchor_reset)
+      {
+        detail = 'new anchor';
       }
     }
 
