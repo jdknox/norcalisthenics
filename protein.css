@@ -318,8 +318,9 @@ tfoot td{border-top:2px solid var(--line2);font-family:var(--mono);font-weight:6
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) var(--mass-water-input-width);
   grid-template-areas:
+    "log log amount"
     "label slider slider"
-    "log log amount";
+    ;
   gap: 8px;
   align-items: center;
   margin: 0 0 14px;
@@ -342,16 +343,13 @@ tfoot td{border-top:2px solid var(--line2);font-family:var(--mono);font-weight:6
   display:grid;
   grid-template-columns:repeat(3,minmax(0,1fr));
 }
-
 .summary.mass-summary .cell{
   border-right:1px solid var(--line);
   border-bottom:1px solid var(--line);
 }
-
 .summary.mass-summary .cell:nth-child(3n){
   border-right:none;
 }
-
 .summary.mass-summary .cell:nth-last-child(-n+3){
   border-bottom:none;
 }
