@@ -949,7 +949,7 @@ function sortedMassEvents(date)
 
 function isMassCheckpoint(event)
 {
-  return event && (event.event_type == 'pre_meal_weight' || event.event_type == 'post_meal_weight' || event.event_type == 'post_restroom_weight');
+  return event && (event.event_type == 'checkpoint_weight' || event.event_type == 'pre_meal_weight' || event.event_type == 'post_meal_weight' || event.event_type == 'post_restroom_weight');
 }
 
 function massEventBodyMass(event)
@@ -997,6 +997,7 @@ function massEventLabel(event_type)
   switch (event_type)
   {
     case 'water': return 'Water';
+    case 'checkpoint_weight': return 'Checkpoint';
     case 'pre_meal_weight': return 'Pre mass';
     case 'post_meal_weight': return 'Post mass';
     case 'post_restroom_weight': return 'Post latrine';
@@ -4060,6 +4061,7 @@ function renderMassQuickActions()
     <button class="mass-primary-action" data-a="mass-water-add" data-ml="${g_default_water_ml}"${disabled}>+${g_default_water_ml} mL</button>
     <button class="mass-action" data-a="mass-entry-open" data-type="pre_meal_weight"${disabled}>Pre Mass</button>
     <button class="mass-action" data-a="mass-entry-open" data-type="post_meal_weight"${disabled}>Post Mass</button>
+    <button class="mass-action" data-a="mass-entry-open" data-type="checkpoint_weight"${disabled}>Checkpoint</button>
     <button class="mass-action" data-a="mass-entry-open" data-type="post_restroom_weight"${disabled}>Post Latrine</button>
   </div>`;
 
@@ -4093,7 +4095,8 @@ function renderMassEntryDraft()
     <span class="unitinput mass-kg-input">
       <input type="text" inputmode="decimal" data-massdraft="body_mass" placeholder="81.35" value="${esc(d.body_mass_raw)}">
       <span class="unitghost">kg</span>
-    </span>`;
+    </span>
+    <span class="mass-entry-break"></span>`;
 
   if (d.event_type == 'post_restroom_weight')
   {
