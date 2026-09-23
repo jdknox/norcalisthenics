@@ -92,17 +92,22 @@ function weekdayNameForDate(iso)
 
 function renderDateJumpButtons()
 {
-  let jump_button = 'button class="smallbtn" data-a="date-jump"';
-  return `<div class="datejump">
-    <${jump_button} data-days="-7" >←1w</button>
-    <${jump_button} data-days="-14">←2w</button>
-    <${jump_button} data-days="-28">←4w</button>
-    <${jump_button} data-days="-56">←8w</button>
-    <${jump_button} data-days="+56">8w→</button>
-    <${jump_button} data-days="+28">4w→</button>
-    <${jump_button} data-days="+14">2w→</button>
-    <${jump_button} data-days="+7" >1w→</button>
+  let jump_button = 'button class="smallbtn datejumpbtn" data-a="date-jump"';
+  let dir = 'data-dir="back"';
+  let h = `<div class="datejump">
+    <${jump_button} ${dir} data-days="-7" >1w</button>
+    <${jump_button} ${dir} data-days="-14">2w</button>
+    <${jump_button} ${dir} data-days="-28">4w</button>
+    <${jump_button} ${dir} data-days="-56">8w</button>`;
+  dir = 'data-dir="fwd"';
+  h += `
+    <${jump_button} ${dir} data-days="+56">8w</button>
+    <${jump_button} ${dir} data-days="+28">4w</button>
+    <${jump_button} ${dir} data-days="+14">2w</button>
+    <${jump_button} ${dir} data-days="+7" >1w</button>
   </div>`;
+
+  return h;
 }
 
 let g_storage_key = 'protein-loadout:v1';
