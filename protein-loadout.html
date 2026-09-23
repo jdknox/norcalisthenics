@@ -90,6 +90,21 @@ function weekdayNameForDate(iso)
   return names[d.getDay()] || '';
 }
 
+function renderDateJumpButtons()
+{
+  let jump_button = 'button class="smallbtn" data-a="date-jump"';
+  return `<div class="datejump">
+    <${jump_button} data-days="-7" >←1w</button>
+    <${jump_button} data-days="-14">←2w</button>
+    <${jump_button} data-days="-28">←4w</button>
+    <${jump_button} data-days="-56">←8w</button>
+    <${jump_button} data-days="+56">8w→</button>
+    <${jump_button} data-days="+28">4w→</button>
+    <${jump_button} data-days="+14">2w→</button>
+    <${jump_button} data-days="+7" >1w→</button>
+  </div>`;
+}
+
 let g_storage_key = 'protein-loadout:v1';
 let g_unsynced_key = g_storage_key + ':unsynced';
 
@@ -4493,6 +4508,7 @@ function renderMassSection()
       </span>
       <button class="smallbtn" data-a="date-today">today</button>
     </div>
+    ${renderDateJumpButtons()}
   </div>`;
 
   h += renderMassQuickActions();
@@ -5056,6 +5072,7 @@ function renderScoopSection()
     }
 
   h += `</div>
+  ${renderDateJumpButtons()}
   </div>`;
 
   h += `<div class="summary">
@@ -5690,6 +5707,11 @@ document.addEventListener('click', function(ev)
 
     case 'date-today':
       g_view_date = todayISO();
+      render();
+      return;
+
+    case 'date-jump':
+      g_view_date = shiftDateISO(g_view_date, Number(target.dataset.days) || 0);
       render();
       return;
 

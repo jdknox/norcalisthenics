@@ -168,6 +168,8 @@ tfoot td{border-top:2px solid var(--line2);font-family:var(--mono);font-weight:6
 .datecore{display:inline-flex;flex-direction:column;align-items:center;gap:0}
 .datecore-nav{display:inline-flex;align-items:center;gap:10px}
 .dateweekday{text-align:center;font-family:var(--mono);font-size:12px;color:var(--faint)}
+.datejump{display:flex;gap:3px;margin-top:6px;}
+.datejump .smallbtn{padding:0px 6px;color:var(--line2)}
 .tagfilterbar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
 .scoopsearch{margin:0 0 10px}
 .scoopsearch input{width:100%;font-family:var(--mono);font-size:12px;background:var(--panel);border-color:var(--line);color:var(--text)}
