@@ -162,7 +162,12 @@ tfoot td{border-top:2px solid var(--line2);font-family:var(--mono);font-weight:6
 .smallbtn:hover{color:var(--text);border-color:var(--line2)}
 .smallbtn:disabled{opacity:.4;cursor:default}
 .admin-toggle.admin-on{color:#1b0f0b;background:var(--coral);border-color:#f0b09c;font-weight:666}
-.datenav{display:flex;align-items:center;gap:10px;margin:28px 0 12px}
+.datenav{display:flex;align-items:center;gap:10px;margin:0px 0 12px}
+.dateblock{display:block;width:max-content;margin:0 0 12px}
+.dateblock .datenav{align-items:flex-end;margin:0px 0 0}
+.datecore{display:inline-flex;flex-direction:column;align-items:center;gap:0}
+.datecore-nav{display:inline-flex;align-items:center;gap:10px}
+.dateweekday{text-align:center;font-family:var(--mono);font-size:12px;color:var(--faint)}
 .tagfilterbar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
 .scoopsearch{margin:0 0 10px}
 .scoopsearch input{width:100%;font-family:var(--mono);font-size:12px;background:var(--panel);border-color:var(--line);color:var(--text)}

@@ -70,6 +70,26 @@ function shiftDateISO(iso, delta)
   return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 }
 
+function weekdayNameForDate(iso)
+{
+  let parts = String(iso || '').split('-');
+  let names = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  let year;
+  let month;
+  let day;
+  let d;
+
+  if (parts.length != 3) return '';
+
+  year = Number(parts[0]);
+  month = Number(parts[1]);
+  day = Number(parts[2]);
+  if (!year || !month || !day) return '';
+
+  d = new Date(year, month - 1, day);
+  return names[d.getDay()] || '';
+}
+
 let g_storage_key = 'protein-loadout:v1';
 let g_unsynced_key = g_storage_key + ':unsynced';
 
@@ -4459,12 +4479,20 @@ function renderMassExportPanel()
 function renderMassSection()
 {
   let h = '';
+  let weekday = weekdayNameForDate(g_view_date);
 
-  h += `<div class="datenav">
-    <button class="smallbtn" data-a="date-prev">←</button>
-    <span class="datelabel">${esc(g_view_date)}</span>
-    <button class="smallbtn" data-a="date-next"${g_view_date >= todayISO() ? ' disabled' : ''}>→</button>
-    <button class="smallbtn" data-a="date-today">today</button>
+  h += `<div class="dateblock mass-dateblock">
+    <div class="datenav">
+      <span class="datecore">
+        <span class="dateweekday">${esc(weekday)}</span>
+        <span class="datecore-nav">
+          <button class="smallbtn" data-a="date-prev">←</button>
+          <span class="datelabel">${esc(g_view_date)}</span>
+          <button class="smallbtn" data-a="date-next"${g_view_date >= todayISO() ? ' disabled' : ''}>→</button>
+        </span>
+      </span>
+      <button class="smallbtn" data-a="date-today">today</button>
+    </div>
   </div>`;
 
   h += renderMassQuickActions();
@@ -5004,23 +5032,31 @@ function renderScoopSection()
   let is_editable = viewDateIsEditable();
   let totals = dayTotals(g_view_date);
   let tdiff = totals.protein - g_target;
-  let today_text = is_today ? 'today · ' : '';
+  let today_text = is_today ? ' · today' : '';
   let next_disabled = g_view_date >= todayISO() ? ' disabled' : '';
   let target_label = tdiff >= 0 ? 'over target' : 'under target';
   let target_class = tdiff >= 0 ? 'over' : 'under';
   let target_sign = tdiff >= 0 ? '+' : '';
+  let weekday = weekdayNameForDate(g_view_date);
 
-  h += `<div class="datenav">
-    <button class="smallbtn" data-a="date-prev">‹</button>
-    <span class="datelabel">${today_text}${esc(g_view_date)}</span>
-    <button class="smallbtn" data-a="date-next"${next_disabled}>›</button>`;
+  h += `<div class="dateblock">
+    <div class="datenav">
+      <span class="datecore">
+        <span class="dateweekday">${esc(weekday)}${today_text}</span>
+        <span class="datecore-nav">
+          <button class="smallbtn" data-a="date-prev">‹</button>
+          <span class="datelabel">${esc(g_view_date)}</span>
+          <button class="smallbtn" data-a="date-next"${next_disabled}>›</button>
+        </span>
+      </span>`;
 
-  if (!is_today)
-  {
-    h += `<button class="smallbtn" data-a="date-today">back to today</button>`;
-  }
+    if (!is_today)
+    {
+      h += `<button class="smallbtn" data-a="date-today">back to today</button>`;
+    }
 
-  h += `</div>`;
+  h += `</div>
+  </div>`;
 
   h += `<div class="summary">
     <div class="cell">
