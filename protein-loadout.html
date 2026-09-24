@@ -2088,6 +2088,16 @@ function recomputeScaleDraft(source)
   }
   else
   {
+    if (d.grams_raw.trim() == '')
+    {
+      d.grams_raw = '';
+      d.protein_g = null;
+      d.protein_g_raw = '';
+      d.kcal = null;
+      d.kcal_raw = '';
+      return;
+    }
+
     num = parseFloat(d.grams_raw);
     new_grams = isNaN(num) ? base_scoop : num;
     new_scale = base_scoop > 0 ? new_grams/base_scoop : 1;
