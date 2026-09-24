@@ -1116,7 +1116,6 @@ function openMassEntryDraft(event_type)
     let input = document.querySelector('[data-massdraft="body_mass"],[data-massdraft="mass_in"]');
     if (!input) return;
     input.focus();
-    input.select();
   }, 0);
 }
 
@@ -5312,7 +5311,7 @@ function renderPreservingFocus()
   if (!restored) return;
 
   restored.focus();
-  if (sel_start != null) restored.setSelectionRange(sel_start, sel_end);
+  if (sel_start != null && !massdraft_field && !massedit_field) restored.setSelectionRange(sel_start, sel_end);
   if (restored.scrollLeft != null) restored.scrollLeft = scroll_left;
 
   setTimeout(function()
