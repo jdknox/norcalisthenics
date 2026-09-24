@@ -16,6 +16,8 @@ The one place where an error changes the meaning is flagged with ⚠️.
 
 ## Planche pushup — horizontal push
 
+full ROM: wrists touch chest -> elbow lockout, scapula protracted/depressed
+
 | L | Criterion |
 |---|---|
 | 1 | Knees down, all weight off the hands, full ROM |
@@ -33,6 +35,8 @@ Feet elevation appears only in the handstand pushup progression.
 ---
 
 ## Front lever row — horizontal pull
+
+full ROM: elbows locked, scapula depressed w/slight retraction/packed shoulders -> wrists touch chest/torso
 
 | L | Criterion |
 |---|---|
