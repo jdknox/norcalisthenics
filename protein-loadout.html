@@ -1114,8 +1114,11 @@ function openMassEntryDraft(event_type)
   setTimeout(function()
   {
     let input = document.querySelector('[data-massdraft="body_mass"],[data-massdraft="mass_in"]');
+    let end;
     if (!input) return;
     input.focus();
+    end = input.value.length;
+    input.setSelectionRange(end, end);
   }, 0);
 }
 
