@@ -2577,6 +2577,56 @@ function buildMassEventsExportJSON()
   return JSON.stringify(makeMassEventsExportPayload(), null, 2);
 }
 
+function massEventExportTimestamp(date, event)
+{
+  if (event && event.timestamp && String(event.timestamp).indexOf('T') >= 0) return String(event.timestamp).slice(0, 16);
+  return date + 'T' + massEventTimeText(event);
+}
+
+function buildMassEventsCSV()
+{
+  let dates = [];
+  let lines = ['timestamp,body_mass_kg,water_delta_kg,event'];
+
+  for (let date in g_mass_events)
+  {
+    if (Array.isArray(g_mass_events[date]) && g_mass_events[date].length) dates.push(date);
+  }
+
+  dates.sort();
+
+  for (let i = 0; i < dates.length; ++i)
+  {
+    let date = dates[i];
+    let ledger = computeMassLedger(date);
+    let events = ledger.events;
+
+    for (let j = 0; j < events.length; ++j)
+    {
+      let event = events[j];
+      let info = ledger.event_info[event.id] || {};
+      let body_mass = massEventBodyMass(event);
+      let water_delta = '';
+
+      if (event.event_type == 'water')
+      {
+        water_delta = fmt3(waterEventMassKg(event));
+      }
+      else if (massEventCountsAsWaterLoss(event) && info.mass_out_kg != null)
+      {
+        water_delta = fmt3(-info.mass_out_kg);
+      }
+
+      lines.push(csvCell(massEventExportTimestamp(date, event))
+        + ',' + csvCell(body_mass != null ? fmt2(body_mass) : '')
+        + ',' + csvCell(water_delta)
+        + ',' + csvCell(massEventLabel(event.event_type)));
+    }
+  }
+
+  return lines.join('\n') + '\n';
+}
+
 function csvCell(value)
 {
   let text = String(value == null ? '' : value);
@@ -4459,6 +4509,7 @@ function renderMassExportPanel()
 {
   let csv_text = esc(buildBodyweightKcalCSV());
   let mass_json_text = esc(buildMassEventsExportJSON());
+  let mass_csv_text = esc(buildMassEventsCSV());
   let copy_status = g_copy_status ? `<span class="fetchstatus" style="padding:6px 0 0">${esc(g_copy_status)}</span>` : '';
   let h = '';
 
@@ -4475,6 +4526,12 @@ function renderMassExportPanel()
     <div class="btnrow2">
       <button class="smallbtn" data-a="mass-json-copy">copy</button>
       <button class="smallbtn" data-a="mass-json-download">download</button>
+    </div>
+    <div class="mass-section-head">water/mass CSV</div>
+    <textarea class="exp-out mass-exp-out" readonly spellcheck="false">${mass_csv_text}</textarea>
+    <div class="btnrow2">
+      <button class="smallbtn" data-a="mass-csv-copy">copy</button>
+      <button class="smallbtn" data-a="mass-csv-download">download</button>
     </div>
     <div class="hint" style="margin-top:10px">Import only water/mass-balance events. Full backups are accepted here too; pantry, protein, and kcal logs are ignored.</div>
     <input type="file" accept=".json,application/json" data-a="mass-import-file">
@@ -5981,6 +6038,14 @@ document.addEventListener('click', function(ev)
 
     case 'mass-json-download':
       downloadText('protein-mass-events-' + todayISO() + '.json', 'application/json', buildMassEventsExportJSON());
+      return;
+
+    case 'mass-csv-copy':
+      copyText(buildMassEventsCSV());
+      return;
+
+    case 'mass-csv-download':
+      downloadText('protein-mass-events-' + todayISO() + '.csv', 'text/csv', buildMassEventsCSV());
       return;
 
     case 'mass-import-parse':
