@@ -2692,7 +2692,7 @@ function buildBodyweightKcalCSV()
       + ',' + csvCell(bodyweight_kg != null ? fmt2(bodyweight_kg) : '')
       + ',' + csvCell(fmt0(totals.kcal))
       + ',' + csvCell(mass_summary.water_in_kg != null ? fmt3(mass_summary.water_in_kg) : '')
-      + ',' + csvCell(mass_summary.assumed_water_loss_kg != null ? fmt3(mass_summary.assumed_water_loss_kg) : '');
+      + ',' + csvCell(mass_summary.assumed_water_loss_kg ? fmt3(mass_summary.assumed_water_loss_kg) : '');
     lines.push(line);
   }
 
