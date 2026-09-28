@@ -63,6 +63,12 @@ function todayISO()
   return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 }
 
+function currentCalendarISO()
+{
+  let d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
 function shiftDateISO(iso, delta)
 {
   let d = new Date(iso + 'T00:00:00');
@@ -933,6 +939,21 @@ function massTimestampForView(time_text)
   return g_view_date + 'T' + t;
 }
 
+function massDateForNewEvent()
+{
+  if (g_view_date == todayISO()) return currentCalendarISO();
+  return g_view_date;
+}
+
+function massTimestampForNewEvent(time_text, date_text)
+{
+  let t = String(time_text || '').trim();
+  let date = date_text || massDateForNewEvent();
+
+  if (!/^[0-9][0-9]:[0-9][0-9]$/.test(t)) t = currentTimeText();
+  return date + 'T' + t;
+}
+
 function massEventTimeText(event)
 {
   if (!event || !event.timestamp) return '';
@@ -1068,7 +1089,7 @@ function addMassWater(volume_ml)
 
   day.push({
     id:uid(),
-    timestamp:massTimestampForView(currentTimeText()),
+    timestamp:massTimestampForNewEvent(currentTimeText()),
     event_type:'water',
     water_volume_ml:ml,
     mass_in_kg:ml/1000
@@ -1102,6 +1123,7 @@ function openMassEntryDraft(event_type)
 
   g_mass_entry_draft = {
     event_type:event_type,
+    timestamp_date:massDateForNewEvent(),
     timestamp:currentTimeText(),
     body_mass_raw:defaultMassEntryRaw(),
     mass_in_raw:'',
@@ -1151,7 +1173,7 @@ function saveMassEntryDraft()
 
     day.push({
       id:uid(),
-      timestamp:massTimestampForView(d.timestamp),
+      timestamp:massTimestampForNewEvent(d.timestamp, d.timestamp_date),
       event_type:'food_mass',
       mass_in_kg:grams/1000
     });
@@ -1174,7 +1196,7 @@ function saveMassEntryDraft()
 
   let event = {
     id:uid(),
-    timestamp:massTimestampForView(d.timestamp),
+    timestamp:massTimestampForNewEvent(d.timestamp, d.timestamp_date),
     event_type:d.event_type,
     body_mass_kg:Math.round(mass*100)/100
   };
@@ -2669,11 +2691,8 @@ function buildBodyweightKcalCSV()
     let line =  csvCell(date)
       + ',' + csvCell(bodyweight_kg != null ? fmt2(bodyweight_kg) : '')
       + ',' + csvCell(fmt0(totals.kcal))
-    if (mass_summary.water_in_kg && mass_summary.assumed_water_loss_kg)
-    {
-      line += ',' + csvCell(fmt3(mass_summary.water_in_kg))
-        + ',' + csvCell(fmt3(mass_summary.assumed_water_loss_kg));
-    }
+      + ',' + csvCell(mass_summary.water_in_kg != null ? fmt3(mass_summary.water_in_kg) : '')
+      + ',' + csvCell(mass_summary.assumed_water_loss_kg != null ? fmt3(mass_summary.assumed_water_loss_kg) : '');
     lines.push(line);
   }
 
