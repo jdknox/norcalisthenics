@@ -1674,8 +1674,7 @@ function loggedEntryDetail(entry)
   if (entry.protein_g)
   {
     let kcal_g = entry.kcal/entry.protein_g;
-    let formatted = fmt1(kcal_g);
-    if (kcal_g >= 100.0) formatted = fmt0(kcal_g);
+    let formatted = fmtKcalProteinRatio(kcal_g);
     let value = `(${formatted.padStart(4)}/g)`.padStart(10);
     detail += `<span class="logged-food-grams">${value}</span>`;
   }
@@ -3393,6 +3392,24 @@ function fmt_1(n)
   return (Math.ceil(n/10)*10).toFixed(0);
 }
 
+function fmtSi1(n)
+{
+  if (Math.abs(n) >= 10) return fmt0(n);
+
+  let text = n.toFixed(1);
+  if (text.slice(-2) == '.0') text = text.slice(0, -2);
+  return text;
+}
+
+function fmtKcalProteinRatio(n)
+{
+  if (!isFinite(n)) return '';
+  if (Math.abs(n) >= 1000000) return fmtSi1(n/1000000) + 'M';
+  if (Math.abs(n) >= 1000) return fmtSi1(n/1000) + 'k';
+  if (Math.abs(n) >= 100) return fmt0(n);
+  return fmt1(n);
+}
+
 function makeSavePayload()
 {
   return {
@@ -4172,7 +4189,7 @@ function renderProteinKgScale(logged_protein)
       <span class="protein-kg-note-protein">${mean_protein_text}</span>
       <span>(${mean_ratio_text}/kg)</span>
       <span class="protein-kg-note-kcal">${mean_kcal_text}</span>
-      <span>(${fmt1(mean_kcal/mean_protein)}/g)</span>
+      <span>(${fmtKcalProteinRatio(mean_kcal/mean_protein)}/g)</span>
       <span class="protein-kg-note-bodyweight">${mean_bodyweight_text} kg</span>
     </span>
   </div>`;
@@ -4695,7 +4712,7 @@ function renderItemRow(item, is_today, indent, context)
   let protein = item.protein_g != null ? fmt0(item.protein_g) : '—';
   let kcal = item.kcal != null ? fmt_1(item.kcal) : '—';
   let ratio = itemKcalProteinRatio(item);
-  let macro_ratio = ratio != null ? fmt1(ratio) + '/g' : '';
+  let macro_ratio = ratio != null ? fmtKcalProteinRatio(ratio) + '/g' : '';
   let disabled = !is_today || archived ? ' disabled' : '';
   let scale_disabled = archived ? ' disabled' : '';
 
@@ -5039,7 +5056,7 @@ function renderLoggedFoodList()
     total_kcal += entry.kcal;
     total_protein += entry.protein_g;
   }
-  if (total_kcal) { kcal_g = total_kcal/total_protein; }
+  if (total_kcal && total_protein) { kcal_g = total_kcal/total_protein; }
 
   if (g_logged_foods_open)
   {
@@ -5051,7 +5068,7 @@ function renderLoggedFoodList()
       <button class="logged-foods-headbtn logged-foods-collapse" data-a="logged-foods-toggle">${collapse_toggle}
         <span class="logged-foods-title">logged foods</span>
       </button>
-      <div class="logged-foods-title info"><span>(avg&nbsp;${fmt1(kcal_g).padStart(4)} kcal/g)</span></div>
+      <div class="logged-foods-title info"><span>(avg&nbsp;${fmtKcalProteinRatio(kcal_g).padStart(4)} kcal/g)</span></div>
       <div class="logged-foods-controls">${details_button}</div>
     </div>`;
 
