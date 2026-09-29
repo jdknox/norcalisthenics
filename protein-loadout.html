@@ -4687,6 +4687,7 @@ function renderItemRow(item, is_today, indent, context)
   let scoop_g = item.scoop_g != null ? esc(item.scoop_g) + ' g' : '—';
   let protein = item.protein_g != null ? fmt0(item.protein_g) : '—';
   let kcal = item.kcal != null ? fmt_1(item.kcal) : '—';
+  let macro_ratio = item.protein_g && item.kcal != null ? fmt1(item.kcal/item.protein_g) + '/g' : '';
   let disabled = !is_today || archived ? ' disabled' : '';
   let scale_disabled = archived ? ' disabled' : '';
 
@@ -4699,7 +4700,7 @@ function renderItemRow(item, is_today, indent, context)
     </td>
     <td class="num pack-out measurestack"><span>${esc(formatVolume(item))}</span><span>${scoop_g}</span></td>
     <td class="num pack-out protein">${protein}</td>
-    <td class="num pack-out kcal">${kcal}</td>
+    <td class="num pack-out kcal"><span>${kcal}</span><span class="pantry-macro-ratio">${macro_ratio}</span></td>
     <td class="num scoopcount">${count}</td>
     <td class="scoopactions">
       <div class="scoopactionstack">
