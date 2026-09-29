@@ -1666,7 +1666,10 @@ function loggedEntryDetail(entry)
 
   if (entry.protein_g)
   {
-    let value = `(${fmt1(entry.kcal/entry.protein_g).padStart(4)}/g)`.padStart(10);
+    let kcal_g = entry.kcal/entry.protein_g;
+    let formatted = fmt1(kcal_g);
+    if (kcal_g >= 100.0) formatted = fmt0(kcal_g);
+    let value = `(${formatted.padStart(4)}/g)`.padStart(10);
     detail += `<span class="logged-food-grams">${value}</span>`;
   }
 
@@ -1737,6 +1740,14 @@ function setDraftMacrosFromDensity(d, protein_100g, kcal_100g)
 
 function setEditDraftMacrosFromItem(d, item)
 {
+  if (item.protein_100g != null || item.kcal_100g != null)
+  {
+    d.macro_mode = '100g';
+    d.macro_protein = item.protein_100g != null ? String(item.protein_100g) : '';
+    d.macro_kcal = item.kcal_100g != null ? String(item.kcal_100g) : '';
+    return;
+  }
+
   if (item.protein_g != null || item.kcal != null)
   {
     d.macro_mode = 'serving';
@@ -1768,8 +1779,8 @@ function switchDraftMacroMode(d, new_mode)
     return;
   }
 
-  d.macro_protein = fields.protein_100g != null ? String(round1(fields.protein_100g)) : '';
-  d.macro_kcal = fields.kcal_100g != null ? String(Math.round(fields.kcal_100g)) : '';
+  d.macro_protein = fields.protein_100g != null ? String(fields.protein_100g) : '';
+  d.macro_kcal = fields.kcal_100g != null ? String(fields.kcal_100g) : '';
 }
 
 function renderMacroModeControl(kind, mode)
@@ -2031,15 +2042,23 @@ function closeScaleEdit()
 function resetScaleDraft()
 {
   let item = findScoopItem(g_scale_item_key);
+  let grams;
+  let protein_g;
+  let kcal;
+
   if (!item) return;
+
+  grams = item.scoop_g != null ? item.scoop_g : 0;
+  protein_g = item.protein_100g != null ? item.protein_100g*grams/100 : item.protein_g;
+  kcal = item.kcal_100g != null ? Math.round(item.kcal_100g*grams/100) : item.kcal;
 
   g_scale_draft = {
     scale: 1,
-    grams_raw: item.scoop_g != null ? String(item.scoop_g) : '0',
-    protein_g: item.protein_g,
-    protein_g_raw: item.protein_g != null ? String(item.protein_g) : '',
-    kcal: item.kcal,
-    kcal_raw: item.kcal != null ? String(item.kcal) : ''
+    grams_raw: String(grams),
+    protein_g: protein_g,
+    protein_g_raw: protein_g != null ? String(round1(protein_g)) : '',
+    kcal: kcal,
+    kcal_raw: kcal != null ? String(kcal) : ''
   };
 }
 
@@ -2083,10 +2102,12 @@ function liveScalePreview(new_scale)
   if (base_scoop > 0)
   {
     protein_el = document.querySelector('[data-scaledraft="protein_g"]');
-    if (protein_el && item.protein_g != null) protein_el.value = round1(item.protein_g/base_scoop*new_grams);
+    if (protein_el && item.protein_100g != null) protein_el.value = round1(item.protein_100g*new_grams/100);
+    else if (protein_el && item.protein_g != null) protein_el.value = round1(item.protein_g/base_scoop*new_grams);
 
     kcal_el = document.querySelector('[data-scaledraft="kcal"]');
-    if (kcal_el && item.kcal != null) kcal_el.value = Math.round(item.kcal/base_scoop*new_grams);
+    if (kcal_el && item.kcal_100g != null) kcal_el.value = Math.round(item.kcal_100g*new_grams/100);
+    else if (kcal_el && item.kcal != null) kcal_el.value = Math.round(item.kcal/base_scoop*new_grams);
   }
 }
 
@@ -2128,13 +2149,23 @@ function recomputeScaleDraft(source)
   d.scale = new_scale;
   d.grams_raw = String(round1(new_grams));
 
-  if (item.protein_g != null && base_scoop > 0)
+  if (item.protein_100g != null)
   {
-    d.protein_g = round1(item.protein_g/base_scoop*new_grams);
-    d.protein_g_raw = String(d.protein_g);
+    d.protein_g = item.protein_100g*new_grams/100;
+    d.protein_g_raw = String(round1(d.protein_g));
+  }
+  else if (item.protein_g != null && base_scoop > 0)
+  {
+    d.protein_g = item.protein_g/base_scoop*new_grams;
+    d.protein_g_raw = String(round1(d.protein_g));
   }
 
-  if (item.kcal != null && base_scoop > 0)
+  if (item.kcal_100g != null)
+  {
+    d.kcal = Math.round(item.kcal_100g*new_grams/100);
+    d.kcal_raw = String(d.kcal);
+  }
+  else if (item.kcal != null && base_scoop > 0)
   {
     d.kcal = Math.round(item.kcal/base_scoop*new_grams);
     d.kcal_raw = String(d.kcal);
@@ -2153,7 +2184,7 @@ function logScaledEntry()
   if (!viewDateIsEditable()) return;
 
   grams = parseFloat(d.grams_raw);
-  protein_g = d.protein_g_raw.trim() === '' ? null : parseFloat(d.protein_g_raw);
+  protein_g = d.protein_g_raw.trim() === '' ? null : d.protein_g;
   kcal = d.kcal_raw.trim() === '' ? null : parseFloat(d.kcal_raw);
 
   pushLogEntry(g_scale_item_key, isNaN(grams) ? null : grams, isNaN(protein_g) ? null : protein_g, isNaN(kcal) ? null : kcal, d.scale);
@@ -2276,8 +2307,8 @@ function computeMacrosFromDensity(scoop_g, protein_100g, kcal_100g)
   let scale = (scoop_g || 0)/100;
 
   return {
-    protein_g: protein_100g != null ? round1(protein_100g*scale) : null,
-    kcal: kcal_100g != null ? Math.round(kcal_100g*scale) : null
+    protein_g: protein_100g != null ? protein_100g*scale : null,
+    kcal: kcal_100g != null ? kcal_100g*scale : null
   };
 }
 
@@ -4655,7 +4686,7 @@ function renderItemRow(item, is_today, indent, context)
   let row_class = (indent ? ' groupmember' : '') + (is_match ? ' searchmatch' : '') + (archived ? ' archiveditem' : '');
   let scoop_g = item.scoop_g != null ? esc(item.scoop_g) + ' g' : '—';
   let protein = item.protein_g != null ? fmt0(item.protein_g) : '—';
-  let kcal = item.kcal != null ? esc(item.kcal) : '—';
+  let kcal = item.kcal != null ? fmt_1(item.kcal) : '—';
   let disabled = !is_today || archived ? ' disabled' : '';
   let scale_disabled = archived ? ' disabled' : '';
 
