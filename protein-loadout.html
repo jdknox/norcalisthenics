@@ -258,6 +258,12 @@ function itemIsArchived(item)
   return !!item.archived;
 }
 
+function itemKcalProteinRatio(item)
+{
+  if (!item.protein_g || item.kcal == null) return null;
+  return item.kcal/item.protein_g;
+}
+
 function sortedActiveScoopItems()
 {
   let sorted = sortedScoopItems();
@@ -681,6 +687,7 @@ let g_custom_status = '';
 let g_collapsed_groups = {};    /* lowercase group name -> true if collapsed */
 let g_active_tags = {};         /* lowercase tag key -> true if active as a float-to-top filter (not persisted) */
 let g_flatten_view = false;     /* true = ignore grouping entirely, show every item as a flat list (not persisted) */
+let g_flatten_sort = 'name';    /* 'name' | 'ratio_desc' while flat view is active (not persisted) */
 let g_group_rename_key = null;  /* lowercase group key currently being renamed, or null */
 let g_group_rename_draft = '';
 let g_export_open = false;
@@ -4687,7 +4694,8 @@ function renderItemRow(item, is_today, indent, context)
   let scoop_g = item.scoop_g != null ? esc(item.scoop_g) + ' g' : '—';
   let protein = item.protein_g != null ? fmt0(item.protein_g) : '—';
   let kcal = item.kcal != null ? fmt_1(item.kcal) : '—';
-  let macro_ratio = item.protein_g && item.kcal != null ? fmt1(item.kcal/item.protein_g) + '/g' : '';
+  let ratio = itemKcalProteinRatio(item);
+  let macro_ratio = ratio != null ? fmt1(ratio) + '/g' : '';
   let disabled = !is_today || archived ? ' disabled' : '';
   let scale_disabled = archived ? ' disabled' : '';
 
@@ -4789,14 +4797,34 @@ function renderGroupedItems(is_today)
 
   if (g_flatten_view)
   {
-    flat = sortedActiveScoopItems().map(function(item)
+    flat = [];
+    let items = sortedActiveScoopItems();
+    for (let i = 0; i < items.length; ++i)
     {
-      return { item:item, sortname:(itemMatchesSearch(item) ? '0_' : '1_') + (tagsMatchActive(itemTags(item)) ? '0_' : '1_') + item.name.toLowerCase() };
-    });
+      let item = items[i];
+      let ratio = itemKcalProteinRatio(item);
+      flat.push({
+        item:item,
+        search_rank:itemMatchesSearch(item) ? 0 : 1,
+        tag_rank:tagsMatchActive(itemTags(item)) ? 0 : 1,
+        name:item.name.toLowerCase(),
+        ratio:ratio
+      });
+    }
 
     flat.sort(function(a, b)
     {
-      return a.sortname < b.sortname ? -1 : a.sortname > b.sortname ? 1 : 0;
+      if (a.search_rank != b.search_rank) return a.search_rank - b.search_rank;
+      if (a.tag_rank != b.tag_rank) return a.tag_rank - b.tag_rank;
+
+      if (g_flatten_sort == 'ratio_desc')
+      {
+        if (a.ratio == null && b.ratio != null) return 1;
+        if (a.ratio != null && b.ratio == null) return -1;
+        if (a.ratio != null && b.ratio != null && a.ratio != b.ratio) return b.ratio - a.ratio;
+      }
+
+      return a.name < b.name ? -1 : a.name > b.name ? 1 : 0;
     });
 
     for (let i = 0; i < flat.length; ++i) h += renderItemRow(flat[i].item, is_today, false, 'standalone');
@@ -5122,6 +5150,7 @@ function renderTagFilterBar()
 {
   let names = distinctTagNames();
   let h = '';
+  let sort_class = g_flatten_sort == 'ratio_desc' ? ' on' : '';
 
   h += `<div class="tagfilterbar">`;
 
@@ -5134,6 +5163,7 @@ function renderTagFilterBar()
   }
 
   h += `<button class="tagfilterbtn flattenbtn${g_flatten_view ? ' on' : ''}" data-a="flatten-toggle">${g_flatten_view ? 'show grouped' : 'show all'}</button>
+  ${g_flatten_view ? `<button class="tagfilterbtn${sort_class}" data-a="flatten-sort-ratio" title="sort by kcal per protein gram, highest first">kcal/g ↓</button>` : ''}
   </div>`;
 
   return h;
@@ -6047,6 +6077,11 @@ document.addEventListener('click', function(ev)
 
     case 'flatten-toggle':
       toggleFlattenView();
+      return;
+
+    case 'flatten-sort-ratio':
+      g_flatten_sort = g_flatten_sort == 'ratio_desc' ? 'name' : 'ratio_desc';
+      render();
       return;
 
     case 'print-scoop':
