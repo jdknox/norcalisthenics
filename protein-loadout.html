@@ -687,7 +687,7 @@ let g_custom_status = '';
 let g_collapsed_groups = {};    /* lowercase group name -> true if collapsed */
 let g_active_tags = {};         /* lowercase tag key -> true if active as a float-to-top filter (not persisted) */
 let g_flatten_view = false;     /* true = ignore grouping entirely, show every item as a flat list (not persisted) */
-let g_flatten_sort = 'name';    /* 'name' | 'ratio_desc' while flat view is active (not persisted) */
+let g_flatten_sort = 'name';    /* 'name' | 'ratio_asc' while flat view is active (not persisted) */
 let g_group_rename_key = null;  /* lowercase group key currently being renamed, or null */
 let g_group_rename_draft = '';
 let g_export_open = false;
@@ -4817,11 +4817,11 @@ function renderGroupedItems(is_today)
       if (a.search_rank != b.search_rank) return a.search_rank - b.search_rank;
       if (a.tag_rank != b.tag_rank) return a.tag_rank - b.tag_rank;
 
-      if (g_flatten_sort == 'ratio_desc')
+      if (g_flatten_sort == 'ratio_asc')
       {
-        if (a.ratio == null && b.ratio != null) return 1;
-        if (a.ratio != null && b.ratio == null) return -1;
-        if (a.ratio != null && b.ratio != null && a.ratio != b.ratio) return b.ratio - a.ratio;
+        if (b.ratio == null && a.ratio != null) return 1;
+        if (b.ratio != null && a.ratio == null) return -1;
+        if (b.ratio != null && a.ratio != null && a.ratio != b.ratio) return a.ratio - b.ratio;
       }
 
       return a.name < b.name ? -1 : a.name > b.name ? 1 : 0;
@@ -5150,7 +5150,7 @@ function renderTagFilterBar()
 {
   let names = distinctTagNames();
   let h = '';
-  let sort_class = g_flatten_sort == 'ratio_desc' ? ' on' : '';
+  let sort_class = g_flatten_sort == 'ratio_asc' ? ' on' : '';
 
   h += `<div class="tagfilterbar">`;
 
@@ -6080,7 +6080,7 @@ document.addEventListener('click', function(ev)
       return;
 
     case 'flatten-sort-ratio':
-      g_flatten_sort = g_flatten_sort == 'ratio_desc' ? 'name' : 'ratio_desc';
+      g_flatten_sort = g_flatten_sort == 'ratio_asc' ? 'name' : 'ratio_asc';
       render();
       return;
 
