@@ -4955,6 +4955,14 @@ function renderCustomRow()
   return h;
 }
 
+function renderCustomPanel()
+{
+  return `<table class="pantrytable custompantrytable">
+    <colgroup><col class="pantrycol-item"><col class="pantrycol-volume"><col class="pantrycol-protein"><col class="pantrycol-kcal"><col class="pantrycol-today"><col class="pantrycol-actions"></colgroup>
+    <tbody>${renderCustomRow()}</tbody>
+  </table>`;
+}
+
 function renderAdjustedLogDetails()
 {
   let entries = adjustedLogEntries(g_view_date);
@@ -5221,6 +5229,8 @@ function renderScoopSection()
 
   h += renderAdjustedLogDetails();
 
+  h += renderCustomPanel();
+
   h += renderScoopSearch();
 
   h += renderTagFilterBar();
@@ -5244,8 +5254,6 @@ function renderScoopSection()
       <th class="num">today</th>
       <th></th>
     </tr></thead><tbody>`;
-
-  h += renderCustomRow();
 
   h += renderGroupedItems(is_editable);
   h += renderArchivedItems();
