@@ -2147,7 +2147,7 @@ function recomputeScaleDraft(source)
   }
 
   d.scale = new_scale;
-  d.grams_raw = String(round1(new_grams));
+  if (source == 'scale') d.grams_raw = String(round1(new_grams));
 
   if (item.protein_100g != null)
   {
@@ -2242,12 +2242,12 @@ function renderScalePanel(item)
     for (let i = 0; i < today_entries.length; ++i)
     {
       e = today_entries[i];
-      let grams = e.grams != null ? e.grams + ' g' : '—';
-      let protein = e.protein_g != null ? e.protein_g + ' g protein' : '—';
-      let kcal = e.kcal != null ? e.kcal + ' kcal' : '—';
+      let grams = e.grams != null ? fmt0(e.grams) + ' g' : '—';
+      let protein = e.protein_g != null ? fmt1(e.protein_g) + ' g protein' : '—';
+      let kcal = e.kcal != null ? fmt0(e.kcal) + ' kcal' : '—';
 
       h += `<div class="scale-entry">
-          <span>${grams} — ${protein} / ${kcal}</span>
+          <span>${grams} — ${protein}/${kcal}</span>
           <button class="smallbtn" data-a="scoop-entry-delete" data-entry="${e.id}">remove</button>
         </div>`;
     }
