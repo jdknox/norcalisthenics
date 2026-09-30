@@ -129,8 +129,10 @@ let g_foods = [
   { key:'rice',         name:'Rice (dry, uncooked)',     kind:'bulk', package_grams:2250, package_protein:160, daily:57, price:15 }
 ];
 
-let g_target = 128;
+let g_target = 130;
 let g_target_raw = String(g_target);
+let g_target_kcal_ratio = 2550/g_target;
+let g_target_kcal_raw = '2550';
 let g_bodyweight_kg = 82;
 let g_bodyweight_by_date = {};
 let g_bodyweight_raw_by_date = {};
@@ -1548,6 +1550,27 @@ function customKcalEstimate(protein_g)
 {
   let ratio = customKcalRatio();
   return Math.round(ratio*protein_g);
+}
+
+function targetKcalDay()
+{
+  return g_target*g_target_kcal_ratio;
+}
+
+function refreshTargetKcalRaw()
+{
+  let kcal = targetKcalDay();
+  g_target_kcal_raw = kcal > 0 ? fmt0(kcal) : '';
+}
+
+function remainingKcalProteinRatio(totals)
+{
+  let protein_remaining = g_target - totals.protein;
+  let kcal_remaining = targetKcalDay() - totals.kcal;
+
+  if (protein_remaining <= 0) return null;
+  if (kcal_remaining < 0) return null;
+  return kcal_remaining/protein_remaining;
 }
 
 function loggedValueDiffers(actual, expected, tolerance)
@@ -3146,6 +3169,9 @@ function applyReplaceImport()
     g_target = parsed.target;
     g_target_raw = String(g_target);
   }
+  if (parsed.target_kcal_ratio != null) g_target_kcal_ratio = parsed.target_kcal_ratio;
+  else if (parsed.target_kcal_day != null && g_target > 0) g_target_kcal_ratio = parsed.target_kcal_day/g_target;
+  refreshTargetKcalRaw();
 
   if (parsed.bodyweight_kg != null)
   {
@@ -3414,6 +3440,8 @@ function makeSavePayload()
 {
   return {
     target:g_target,
+    target_kcal_ratio:g_target_kcal_ratio,
+    target_kcal_day:targetKcalDay(),
     bodyweight_kg:g_bodyweight_kg,
     bodyweight_by_date:g_bodyweight_by_date,
     foods:g_foods,
@@ -3956,6 +3984,9 @@ function load()
       g_target = payload.target;
       g_target_raw = String(g_target);
     }
+    if (payload.target_kcal_ratio != null) g_target_kcal_ratio = payload.target_kcal_ratio;
+    else if (payload.target_kcal_day != null && g_target > 0) g_target_kcal_ratio = payload.target_kcal_day/g_target;
+    refreshTargetKcalRaw();
 
     if (payload.bodyweight_kg != null)
     {
@@ -4135,6 +4166,8 @@ function renderTargetRow()
   h += `<div class="targetrow">
     <label>target g/day</label>
     <input type="text" inputmode="decimal" id="target-input" value="${g_target_raw}">
+    <label>kcal/day</label>
+    <input type="text" inputmode="decimal" id="target-kcal-input" value="${g_target_kcal_raw}">
     </div>`;
     /* <button class="reset" data-a="reset">reset to defaults</button> */
 
@@ -5234,6 +5267,8 @@ function renderScoopSection()
   let target_class = tdiff >= 0 ? 'over' : 'under';
   let target_sign = tdiff >= 0 ? '+' : '';
   let weekday = weekdayNameForDate(g_view_date);
+  let remaining_ratio = remainingKcalProteinRatio(totals);
+  let remaining_ratio_text = remaining_ratio != null ? fmtKcalProteinRatio(remaining_ratio) : '—';
 
   h += `<div class="dateblock">
     <div class="datenav">
@@ -5267,6 +5302,7 @@ function renderScoopSection()
     <div class="cell">
       <div class="lab">kcal</div>
       <div class="val kval">${fmt_1(totals.kcal)}</div>
+      <span class="pantry-macro-ratio">${remaining_ratio_text} kcal/g rem</span>
     </div>
   </div>`;
 
@@ -5561,6 +5597,17 @@ document.addEventListener('input', function(ev)
     g_target_raw = target.value;
     num = parseFloat(target.value);
     g_target = isNaN(num) ? 0 : num;
+    refreshTargetKcalRaw();
+    renderPreservingFocus();
+    save();
+    return;
+  }
+
+  if (target.id == 'target-kcal-input')
+  {
+    g_target_kcal_raw = target.value;
+    num = parseFloat(target.value);
+    g_target_kcal_ratio = !isNaN(num) && g_target > 0 ? num/g_target : 0;
     renderPreservingFocus();
     save();
     return;
@@ -5867,6 +5914,8 @@ document.addEventListener('click', function(ev)
       }
       g_target = 128;
       g_target_raw = '128';
+      g_target_kcal_ratio = 2500/g_target;
+      g_target_kcal_raw = '2500';
       g_bodyweight_kg = 82;
       g_bodyweight_by_date[todayISO()] = g_bodyweight_kg;
       g_bodyweight_dirty_dates[todayISO()] = true;
