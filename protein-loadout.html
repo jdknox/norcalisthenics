@@ -2259,9 +2259,18 @@ function renderScalePanel(item)
   h += `<div class="hint" style="margin:2px 0 8px">volume at this scale: <span id="scale-volume-preview">${esc(volume_preview)}</span></div>
 
       <div class="scalerow">
-        <span class="scaleunitbox"><input type="text" inputmode="decimal" data-scaledraft="grams" value="${esc(d.grams_raw)}"><span>mass g</span></span>
-        <span class="scaleunitbox"><input type="text" inputmode="decimal" data-scaledraft="protein_g" value="${esc(d.protein_g_raw)}"><span>protein g</span></span>
-        <span class="scaleunitbox"><input type="text" inputmode="decimal" data-scaledraft="kcal" value="${esc(d.kcal_raw)}"><span>kcal</span></span>
+        <span class="scaleunitbox">
+          <input type="text" inputmode="decimal" data-scaledraft="grams"
+            value="${esc(d.grams_raw)}"><span>mass g</span>
+        </span>
+        <span class="scaleunitbox">
+          <input type="text" inputmode="decimal" data-scaledraft="protein_g"
+            value="${esc(d.protein_g_raw)}"><span>protein g</span>
+        </span>
+        <span class="scaleunitbox">
+          <input type="text" inputmode="decimal" data-scaledraft="kcal"
+            value="${esc(d.kcal_raw)}"><span>kcal</span>
+        </span>
       </div>
 
       <div class="btnrow2">
