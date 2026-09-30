@@ -133,6 +133,7 @@ let g_target = 130;
 let g_target_raw = String(g_target);
 let g_target_kcal_ratio = 2550/g_target;
 let g_target_kcal_raw = '2550';
+let g_kcal_per_kg_bodyfat = 7700;
 let g_bodyweight_kg = 82;
 let g_bodyweight_by_date = {};
 let g_bodyweight_raw_by_date = {};
@@ -4186,9 +4187,6 @@ function renderProteinKgScale(logged_protein)
   let ratio = bodyweight_kg > 0 ? logged_protein/bodyweight_kg : 0;
   let ratio_text = bodyweight_kg > 0 ? fmt2(ratio) : '—';
   let mean_ratio_text = bodyweight_kg > 0 ? fmt2(mean_protein/bodyweight_kg) : '—';
-  let mean_protein_text = fmt0(mean_protein);
-  let mean_kcal_text = fmt_1(mean_kcal);
-  let mean_bodyweight_text = fmt1(mean_bodyweight_kg);
   let marker_pct = (ratio - scale_min)/(scale_max - scale_min)*100;
   let marker_clamped = Math.max(0.0, Math.min(100.0, marker_pct));
   let range_class = ratio < scale_min ? ' under' : ratio > scale_target ? ' over' : '';
@@ -4198,8 +4196,11 @@ function renderProteinKgScale(logged_protein)
     marker_transform = `; transform: translateX(${(marker_pct - 50).toFixed()}%)`;
   }
   let refresh_status = g_bodyweight_refresh_status ? `<span class="bodyweight-refresh-status">${esc(g_bodyweight_refresh_status)}</span>` : '';
-  let h = '';
 
+  let implied_mass = fmt2(7*(mean_kcal - targetKcalDay())/g_kcal_per_kg_bodyfat);
+  let diff_sign = implied_mass >= 0 ? '+' : '';
+
+  let h = '';
   h += `<div class="protein-kg-scale${range_class}">
     <div class="protein-kg-scale-head">
       <span>protein/bodyweight</span>
@@ -4220,11 +4221,12 @@ function renderProteinKgScale(logged_protein)
       <span class="protein-kg-tick" style="left:100%"><i></i><b>1.8</b></span>
     </div>
     <span class="protein-kg-note"><p>Weekly averages:</p>
-      <span class="protein-kg-note-protein">${mean_protein_text}</span>
+      <span class="protein-kg-note-protein">${fmt0(mean_protein)}</span>
       <span>(${mean_ratio_text}/kg)</span>
-      <span class="protein-kg-note-kcal">${mean_kcal_text}</span>
+      <span class="protein-kg-note-kcal">${fmt_1(mean_kcal)}</span>
       <span>(${fmtKcalProteinRatio(mean_kcal/mean_protein)}/g)</span>
-      <span class="protein-kg-note-bodyweight">${mean_bodyweight_text} kg</span>
+      <span class="protein-kg-note-bodyweight">${fmt1(mean_bodyweight_kg)} kg</span>
+      <span>(${diff_sign}${implied_mass} kg)</span>
     </span>
   </div>`;
 
