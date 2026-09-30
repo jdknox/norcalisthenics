@@ -288,7 +288,12 @@ tfoot td{border-top:2px solid var(--line2);font-family:var(--mono);font-weight:6
 .scalelabelrow{display:block;margin-bottom:4px}
 .scalerangerow{flex-wrap:nowrap}
 .scalelab{font-family:var(--mono);font-size:11px;color:var(--faint);letter-spacing:.05em}
-.scalerow input[type=text]{width:80px}
+.scaleunitbox{position:relative;display:inline-flex}
+.scaleunitbox input{position:relative;z-index:2;width:124px;background:transparent}
+/* .scaleunitbox input[data-scaledraft="grams"] { color: var(--muted); } */
+.scaleunitbox input[data-scaledraft="protein_g"] { color: var(--search-hi); }
+.scaleunitbox input[data-scaledraft="kcal"] { color: var(--blue); }
+.scaleunitbox span{position:absolute;z-index:1;right:8px;top:50%;transform:translateY(-50%);font-family:var(--mono);font-size:11px;color:var(--faint);letter-spacing:.05em;pointer-events:none}
 .scalerow input[type=range]{flex:1;width:100%;min-width:120px;accent-color:var(--green)}
 .scale-entry-list{display:flex;flex-direction:column;gap:4px}
 .scale-entry{display:flex;align-items:center;justify-content:space-between;gap:8px;font-family:var(--mono);font-size:12px;color:var(--muted);background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:5px 8px}

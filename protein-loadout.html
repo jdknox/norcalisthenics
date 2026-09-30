@@ -2233,13 +2233,18 @@ function renderScalePanel(item)
   let h = '';
   let e;
   let disabled = !is_today ? ' disabled' : '';
-  let step = (1/d.protein_g).toFixed(9);
+
+  let range_min = 0.5;
+  let range_max = 2.0;
+  let step = (0.5/item.protein_g).toFixed(9);
+  step = Math.min(step, (range_max - range_min)/30)
 
   h += `<tr class="editrow"><td colspan="6">
     <div class="scalepanel">
       <label class="scalelab scalelabelrow" id="scale-label">${d.scale.toFixed(2)}× → ${d.grams_raw} g</label>
       <div class="scalerow scalerangerow">
-        <input type="range" min="0.5" max="2.001" step="${step}" value="${d.scale}" data-scaledraft="scale">
+        <input type="range" min="${range_min}" max="${range_max}" step="${step}"
+          value="${d.scale}" data-scaledraft="scale">
       </div>`;
 
   if (item.volume_ml != null)
@@ -2254,9 +2259,9 @@ function renderScalePanel(item)
   h += `<div class="hint" style="margin:2px 0 8px">volume at this scale: <span id="scale-volume-preview">${esc(volume_preview)}</span></div>
 
       <div class="scalerow">
-        <label class="scalelab">scoop g</label><input type="text" inputmode="decimal" data-scaledraft="grams" value="${esc(d.grams_raw)}">
-        <label class="scalelab">protein g</label><input type="text" inputmode="decimal" data-scaledraft="protein_g" value="${esc(d.protein_g_raw)}">
-        <label class="scalelab">kcal</label><input type="text" inputmode="decimal" data-scaledraft="kcal" value="${esc(d.kcal_raw)}">
+        <span class="scaleunitbox"><input type="text" inputmode="decimal" data-scaledraft="grams" value="${esc(d.grams_raw)}"><span>mass g</span></span>
+        <span class="scaleunitbox"><input type="text" inputmode="decimal" data-scaledraft="protein_g" value="${esc(d.protein_g_raw)}"><span>protein g</span></span>
+        <span class="scaleunitbox"><input type="text" inputmode="decimal" data-scaledraft="kcal" value="${esc(d.kcal_raw)}"><span>kcal</span></span>
       </div>
 
       <div class="btnrow2">
