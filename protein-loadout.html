@@ -5268,8 +5268,6 @@ function renderScoopSection()
   let target_class = tdiff >= 0 ? 'over' : 'under';
   let target_sign = tdiff >= 0 ? '+' : '';
   let weekday = weekdayNameForDate(g_view_date);
-  let remaining_ratio = remainingKcalProteinRatio(totals);
-  let remaining_ratio_text = remaining_ratio != null ? fmtKcalProteinRatio(remaining_ratio) : '—';
 
   h += `<div class="dateblock">
     <div class="datenav">
@@ -5291,6 +5289,9 @@ function renderScoopSection()
   ${renderDateJumpButtons()}
   </div>`;
 
+  let remaining_ratio = remainingKcalProteinRatio(totals);
+  let remaining_ratio_text = remaining_ratio != null ? fmtKcalProteinRatio(remaining_ratio) : '—';
+  let rem_kcal = fmt0(targetKcalDay() - totals.kcal);
   h += `<div class="summary">
     <div class="cell">
       <div class="lab">logged protein</div>
@@ -5303,7 +5304,7 @@ function renderScoopSection()
     <div class="cell">
       <div class="lab">kcal</div>
       <div class="val kval">${fmt_1(totals.kcal)}</div>
-      <span class="pantry-macro-ratio">${remaining_ratio_text} kcal/g rem</span>
+      <span class="pantry-macro-ratio">${rem_kcal}<br />${remaining_ratio_text}/g rem</span>
     </div>
   </div>`;
 
