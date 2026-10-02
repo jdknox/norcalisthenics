@@ -5888,46 +5888,9 @@ function renderScoopSection()
 
   h += renderCustomPanel();
 
-  h += renderScoopSearch();
-
-  h += renderTagFilterBar();
-
-  if (g_last_lookup_debug)
-  {
-    h += `<div class="debugbox">
-      <div class="hint" style="margin:0 0 6px">raw response from the last O.F.F./web-search lookup that didn't parse cleanly:</div>
-      <pre class="debugpre">${esc(g_last_lookup_debug)}</pre>
-      <button class="smallbtn" data-a="lookup-debug-clear">clear debug</button>
-    </div>`;
-  }
-
-  h += `<table class="pantrytable">
-    <colgroup><col class="pantrycol-item"><col class="pantrycol-volume"><col class="pantrycol-protein"><col class="pantrycol-kcal"><col class="pantrycol-today"><col class="pantrycol-actions"></colgroup>
-    <thead><tr>
-      <th>item</th>
-      <th class="num">volume</th>
-      <th class="num" style="display: block; margin-left: -16px;">protein&nbsp;g</th>
-      <th class="num">kcal</th>
-      <th class="num">today</th>
-      <th></th>
-    </tr></thead><tbody>`;
-
-  h += renderGroupedItems(is_editable);
-  h += renderArchivedItems();
-
-  h += `</tbody></table>`;
-
-  h += `<div class="btnrow2">
+  h+= `<div class="btnrow2">
     <button class="smallbtn" data-a="scoop-add-item-open">+ add pantry item</button>
-    <button class="smallbtn" data-a="print-scoop">print fridge list</button>
-    <button class="smallbtn" data-a="export-toggle">${g_export_open ? 'hide export' : 'export data'}</button>
-    <button class="smallbtn" data-a="import-toggle">${g_import_open ? 'hide import' : 'import data'}</button>
   </div>`;
-
-  if (g_print_status)
-  {
-    h += `<div class="fetchstatus">${esc(g_print_status)}</div>`;
-  }
 
   if (g_scoop_add_draft)
   {
@@ -5964,6 +5927,46 @@ function renderScoopSection()
 
     h += `<div class="hint" style="width:100%;margin-top:2px">Use 100g when copying label or O.F.F. values per 100g; use serving when the label values are for the scoop/serving mass you entered.</div>
     </div>`;
+  }
+
+  h += renderScoopSearch();
+
+  h += renderTagFilterBar();
+
+  if (g_last_lookup_debug)
+  {
+    h += `<div class="debugbox">
+      <div class="hint" style="margin:0 0 6px">raw response from the last O.F.F./web-search lookup that didn't parse cleanly:</div>
+      <pre class="debugpre">${esc(g_last_lookup_debug)}</pre>
+      <button class="smallbtn" data-a="lookup-debug-clear">clear debug</button>
+    </div>`;
+  }
+
+  h += `<table class="pantrytable">
+    <colgroup><col class="pantrycol-item"><col class="pantrycol-volume"><col class="pantrycol-protein"><col class="pantrycol-kcal"><col class="pantrycol-today"><col class="pantrycol-actions"></colgroup>
+    <thead><tr>
+      <th>item</th>
+      <th class="num">volume</th>
+      <th class="num" style="display: block; margin-left: -16px;">protein&nbsp;g</th>
+      <th class="num">kcal</th>
+      <th class="num">today</th>
+      <th></th>
+    </tr></thead><tbody>`;
+
+  h += renderGroupedItems(is_editable);
+  h += renderArchivedItems();
+
+  h += `</tbody></table>`;
+
+  h += `<div class="btnrow2">
+    <button class="smallbtn" data-a="print-scoop">print fridge list</button>
+    <button class="smallbtn" data-a="export-toggle">${g_export_open ? 'hide export' : 'export data'}</button>
+    <button class="smallbtn" data-a="import-toggle">${g_import_open ? 'hide import' : 'import data'}</button>
+  </div>`;
+
+  if (g_print_status)
+  {
+    h += `<div class="fetchstatus">${esc(g_print_status)}</div>`;
   }
 
   if (g_export_open)
