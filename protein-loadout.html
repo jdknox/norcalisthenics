@@ -664,8 +664,6 @@ function migrateLogFormat()
 }
 
 let g_log = {};                 /* isoDate -> [entry, ...] */
-let g_deleted_log_entry_ids = {}; /* entry_id -> true */
-let g_deleted_log_entries = {};   /* entry_id -> { deleted_at, date, entry } */
 let g_mass_events = {};         /* isoDate -> [whole-body mass accounting events, ...] */
 let g_deleted_mass_event_ids = {}; /* event_id -> true */
 let g_view_date = todayISO();   /* editing allowed for today, or viewed date in admin mode */
@@ -803,7 +801,7 @@ function logCount(date, key)
 
   for (let i = 0; i < day.length; ++i)
   {
-    if (day[i].item_key == key) ++n;
+    if (day[i].item_key == key && !logEntryIsDeleted(day[i])) ++n;
   }
 
   return n;
@@ -812,6 +810,37 @@ function logCount(date, key)
 function viewDateIsEditable()
 {
   return g_admin_mode || g_view_date == todayISO();
+}
+
+function logEntryDeleteCount(entry)
+{
+  if (!entry || entry.delete_count == null) return 0;
+  return Number(entry.delete_count) || 0;
+}
+
+function logEntryIsDeleted(entry)
+{
+  return logEntryDeleteCount(entry) > 0 || !!(entry && entry.deleted_at);
+}
+
+function logEntryIsBuried(entry)
+{
+  return logEntryDeleteCount(entry) >= 2 || !!(entry && entry.buried_at);
+}
+
+function markLogEntryDeleted(entry)
+{
+  if (!entry) return;
+
+  if (logEntryIsDeleted(entry))
+  {
+    entry.delete_count = Math.max(logEntryDeleteCount(entry) + 1, 2);
+    if (!entry.buried_at) entry.buried_at = new Date().toISOString();
+    return;
+  }
+
+  entry.deleted_at = new Date().toISOString();
+  entry.delete_count = 1;
 }
 
 function adminBannerHTML()
@@ -849,10 +878,9 @@ function removeScoop(key)
 
   for (let i = day.length - 1; i >= 0; --i)
   {
-    if (day[i].item_key == key)
+    if (day[i].item_key == key && !logEntryIsDeleted(day[i]))
     {
-      markDeletedLogEntry(day[i], g_view_date);
-      day.splice(i, 1);
+      markLogEntryDeleted(day[i]);
       return;
     }
   }
@@ -895,8 +923,7 @@ function removeLogEntry(entry_id)
   {
     if (day[i].id == entry_id)
     {
-      markDeletedLogEntry(day[i], g_view_date);
-      day.splice(i, 1);
+      markLogEntryDeleted(day[i]);
       return;
     }
   }
@@ -909,7 +936,7 @@ function entriesForItem(date, key)
 
   for (let i = 0; i < day.length; ++i)
   {
-    if (day[i].item_key == key) out.push(day[i]);
+    if (day[i].item_key == key && !logEntryIsDeleted(day[i])) out.push(day[i]);
   }
 
   return out;
@@ -925,6 +952,7 @@ function dayTotals(date)
 
   for (let i = 0; i < day.length; ++i)
   {
+    if (logEntryIsDeleted(day[i])) continue;
     if (day[i].protein_g != null) protein += day[i].protein_g;
     if (day[i].kcal != null) kcal += day[i].kcal;
   }
@@ -1597,6 +1625,8 @@ function adjustedLogEntries(date)
   for (let i = 0; i < day.length; ++i)
   {
     let entry = day[i];
+    if (logEntryIsDeleted(entry)) continue;
+
     if (entry.item_key == 'custom')
     {
       out.push({ entry:entry, item:null, custom:true, expected_protein:null, expected_kcal:null });
@@ -2644,7 +2674,11 @@ function buildDiaryText()
     for (let i = 0; i < day.length; ++i)
     {
       let entry = day[i];
-      lines.push('  ' + diaryEntryLabel(entry)
+      let state = '';
+      if (logEntryIsBuried(entry)) state = ' [buried]';
+      else if (logEntryIsDeleted(entry)) state = ' [deleted]';
+
+      lines.push('  ' + diaryEntryLabel(entry) + state
         + (entry.grams != null ? ' (' + entry.grams + ' g' + (entry.scale != null && entry.scale != 1 ? ', ' + entry.scale.toFixed(2) + '×' : '') + ')' : '')
         + (entry.protein_g != null ? ' — ' + fmt0(entry.protein_g) + ' g' : '')
         + (entry.kcal != null ? ' / ' + fmt_1(entry.kcal) + ' kcal' : ''));
@@ -2922,7 +2956,7 @@ function importLogEntryChangeStats(import_log, replace)
 
   for (let id in import_ids)
   {
-    if (!current_ids[id] && !g_deleted_log_entry_ids[id])
+    if (!current_ids[id])
     {
       ++result.added;
       if (!replace) ++result.total;
@@ -3219,10 +3253,6 @@ function applyReplaceImport()
   }
 
   if (parsed.log && typeof parsed.log == 'object') g_log = parsed.log;
-  g_deleted_log_entry_ids = {};
-  if (parsed.deleted_log_entry_ids && typeof parsed.deleted_log_entry_ids == 'object') g_deleted_log_entry_ids = parsed.deleted_log_entry_ids;
-  g_deleted_log_entries = {};
-  if (parsed.deleted_log_entries && typeof parsed.deleted_log_entries == 'object') g_deleted_log_entries = parsed.deleted_log_entries;
   g_mass_events = {};
   if (parsed.mass_events && typeof parsed.mass_events == 'object') g_mass_events = parsed.mass_events;
   g_deleted_mass_event_ids = {};
@@ -3231,9 +3261,9 @@ function applyReplaceImport()
 
   mergeKnownItems(); /* pick up any known items added to this tool since the backup was made */
   migrateLogFormat();
+  applyLegacyDeletedLogEntries(parsed.deleted_log_entry_ids, parsed.deleted_log_entries);
   migrateTagsFormat();
   migrateMassEvents();
-  pruneDeletedLogEntries();
   pruneDeletedMassEvents();
 
   g_import_pending = null;
@@ -3286,8 +3316,8 @@ function applyMergeImport()
     }
   }
 
-  mergeDeletedLogEntryIds(parsed.deleted_log_entry_ids, parsed.deleted_log_entries);
   mergeLogEntries(parsed.log);
+  applyLegacyDeletedLogEntries(parsed.deleted_log_entry_ids, parsed.deleted_log_entries);
   mergeDeletedMassEventIds(parsed.deleted_mass_event_ids);
   mergeMassEvents(parsed.mass_events);
 
@@ -3303,7 +3333,6 @@ function applyMergeImport()
   migrateLogFormat();
   migrateTagsFormat();
   migrateMassEvents();
-  pruneDeletedLogEntries();
   pruneDeletedMassEvents();
 
   g_import_pending = null;
@@ -3467,8 +3496,6 @@ function makeSavePayload()
     foods:g_foods,
     scoop_items:g_scoop_items,
     log:g_log,
-    deleted_log_entry_ids:g_deleted_log_entry_ids,
-    deleted_log_entries:g_deleted_log_entries,
     mass_events:g_mass_events,
     deleted_mass_event_ids:g_deleted_mass_event_ids,
     collapsed_groups:g_collapsed_groups
@@ -3522,26 +3549,6 @@ function setSyncOk()
   g_unsynced_changes = false;
   saveUnsyncedFlag(false);
   updateSyncChrome();
-}
-
-function markDeletedLogEntry(entry, date)
-{
-  if (!entry || !entry.id) return;
-
-  g_deleted_log_entry_ids[entry.id] = true;
-  g_deleted_log_entries[entry.id] = {
-    deleted_at:new Date().toISOString(),
-    date:date || g_view_date,
-    entry:{
-      id:entry.id,
-      item_key:entry.item_key,
-      grams:entry.grams,
-      protein_g:entry.protein_g,
-      kcal:entry.kcal,
-      scale:entry.scale,
-      note:entry.note
-    }
-  };
 }
 
 function bodyweightForDate(date)
@@ -3721,42 +3728,87 @@ function mergeScoopItems(remote_items)
   }
 }
 
-function mergeDeletedLogEntryIds(ids, entries)
+function findLogEntryById(entry_id)
 {
-  if (!ids || typeof ids != 'object') return;
+  if (!entry_id) return null;
 
-  for (let id in ids)
-  {
-    if (ids[id]) g_deleted_log_entry_ids[id] = true;
-    if (entries && typeof entries == 'object' && entries[id]) g_deleted_log_entries[id] = entries[id];
-  }
-}
-
-function pruneDeletedLogEntries()
-{
   for (let date in g_log)
   {
     let day = g_log[date];
     if (!Array.isArray(day)) continue;
 
-    for (let i = day.length - 1; i >= 0; --i)
+    for (let i = 0; i < day.length; ++i)
     {
-      if (day[i].id && g_deleted_log_entry_ids[day[i].id]) day.splice(i, 1);
+      if (day[i] && day[i].id == entry_id) return day[i];
     }
   }
+
+  return null;
+}
+
+function applyLegacyDeletedLogEntries(ids, entries)
+{
+  if (entries && typeof entries == 'object')
+  {
+    for (let id in entries)
+    {
+      let record = entries[id];
+      let entry = record && record.entry;
+      let date = record && record.date;
+      let existing = findLogEntryById(id);
+
+      if (!entry || !entry.id || !date) continue;
+
+      if (!existing)
+      {
+        if (!Array.isArray(g_log[date])) g_log[date] = [];
+        existing = entry;
+        g_log[date].push(existing);
+      }
+
+      existing.deleted_at = record.deleted_at || existing.deleted_at || null;
+      existing.delete_count = Math.max(logEntryDeleteCount(existing), 1);
+    }
+  }
+
+  if (!ids || typeof ids != 'object') return;
+
+  for (let id in ids)
+  {
+    let existing = findLogEntryById(id);
+    if (!ids[id] || !existing) continue;
+
+    existing.delete_count = Math.max(logEntryDeleteCount(existing), 1);
+  }
+}
+
+function mergeLogEntryState(local_entry, remote_entry)
+{
+  let local_count;
+  let remote_count;
+
+  if (!local_entry || !remote_entry) return;
+
+  local_count = logEntryDeleteCount(local_entry);
+  remote_count = logEntryDeleteCount(remote_entry);
+
+  if (remote_entry.deleted_at && !local_entry.deleted_at) local_entry.deleted_at = remote_entry.deleted_at;
+  if (remote_entry.buried_at && !local_entry.buried_at) local_entry.buried_at = remote_entry.buried_at;
+
+  if (remote_count > local_count) local_entry.delete_count = remote_count;
+  if (remote_entry.buried_at && logEntryDeleteCount(local_entry) < 2) local_entry.delete_count = 2;
+  if (remote_entry.note && !local_entry.note) local_entry.note = remote_entry.note;
 }
 
 function mergeLogEntries(remote_log)
 {
   if (!remote_log || typeof remote_log != 'object') return;
 
-  pruneDeletedLogEntries();
-
   for (let date in remote_log)
   {
     let remote_day = remote_log[date];
     let local_day = g_log[date];
-    let local_ids = {};
+    let local_entries = {};
 
     if (!Array.isArray(remote_day)) continue;
 
@@ -3768,23 +3820,22 @@ function mergeLogEntries(remote_log)
 
     for (let i = 0; i < local_day.length; ++i)
     {
-      if (local_day[i].id) local_ids[local_day[i].id] = true;
+      if (local_day[i].id) local_entries[local_day[i].id] = local_day[i];
     }
 
     for (let i = 0; i < remote_day.length; ++i)
     {
       let entry = remote_day[i];
       if (!entry.id) continue;
-      if (g_deleted_log_entry_ids[entry.id])
-      {
-        if (g_deleted_log_entries[entry.id]) continue;
 
-        delete g_deleted_log_entry_ids[entry.id];
+      if (local_entries[entry.id])
+      {
+        mergeLogEntryState(local_entries[entry.id], entry);
+        continue;
       }
-      if (local_ids[entry.id]) continue;
 
       local_day.push(entry);
-      local_ids[entry.id] = true;
+      local_entries[entry.id] = entry;
     }
   }
 }
@@ -3892,11 +3943,10 @@ function mergeLoadedPayload(payload)
   mergeBodyweightByDate(payload.bodyweight_by_date);
 
   mergeScoopItems(payload.scoop_items);
-  mergeDeletedLogEntryIds(payload.deleted_log_entry_ids, payload.deleted_log_entries);
   mergeLogEntries(payload.log);
+  applyLegacyDeletedLogEntries(payload.deleted_log_entry_ids, payload.deleted_log_entries);
   mergeDeletedMassEventIds(payload.deleted_mass_event_ids);
   mergeMassEvents(payload.mass_events);
-  pruneDeletedLogEntries();
   pruneDeletedMassEvents();
 }
 
@@ -4070,9 +4120,12 @@ function load()
       }
     }
 
-    if (payload.log) g_log = payload.log;
-    if (payload.deleted_log_entry_ids && typeof payload.deleted_log_entry_ids == 'object') g_deleted_log_entry_ids = payload.deleted_log_entry_ids;
-    if (payload.deleted_log_entries && typeof payload.deleted_log_entries == 'object') g_deleted_log_entries = payload.deleted_log_entries;
+    if (payload.log)
+    {
+      g_log = payload.log;
+      migrateLogFormat();
+      applyLegacyDeletedLogEntries(payload.deleted_log_entry_ids, payload.deleted_log_entries);
+    }
     if (payload.mass_events && typeof payload.mass_events == 'object') g_mass_events = payload.mass_events;
     if (payload.deleted_mass_event_ids && typeof payload.deleted_mass_event_ids == 'object') g_deleted_mass_event_ids = payload.deleted_mass_event_ids;
     if (payload.collapsed_groups) g_collapsed_groups = payload.collapsed_groups;
@@ -4104,7 +4157,6 @@ function load()
     migrateLogFormat();
     migrateTagsFormat();
     migrateMassEvents();
-    pruneDeletedLogEntries();
     pruneDeletedMassEvents();
     render();
   }
@@ -5129,9 +5181,13 @@ function renderLoggedFoodList()
   let kcal_g = 0;
   let total_kcal = 0;
   let total_protein = 0;
+  let visible_count = 0;
   for (let i = 0; i < day.length; ++i)
   {
     let entry = day[i];
+    if (!logEntryIsBuried(entry)) ++visible_count;
+    if (logEntryIsDeleted(entry)) continue;
+
     total_kcal += entry.kcal;
     total_protein += entry.protein_g;
   }
@@ -5157,7 +5213,7 @@ function renderLoggedFoodList()
     return h;
   }
 
-  if (!day.length)
+  if (!visible_count)
   {
     h += `<div class="logged-foods-empty">none logged</div>`;
   }
@@ -5168,17 +5224,21 @@ function renderLoggedFoodList()
     for (let i = 0; i < day.length; ++i)
     {
       let entry = day[i];
+      let is_deleted = logEntryIsDeleted(entry);
       let is_custom = entry.item_key == 'custom';
       let note = entry.note || '';
       let note_size = Math.max(5, note.length + 1);
       let custom_note_label = is_custom && note;
       let empty_note_class = !note ? ' empty-note' : '';
-      let disabled = !is_today ? ' disabled' : '';
+      let deleted_class = is_deleted ? ' deleted' : '';
+      let disabled = !is_today || is_deleted ? ' disabled' : '';
       let title_content = '';
       let inline_note_input = '';
       let note_line_input = '';
       let detail_line = '';
       let remove_button = '';
+
+      if (logEntryIsBuried(entry)) continue;
 
       if (custom_note_label)
       {
@@ -5211,10 +5271,10 @@ function renderLoggedFoodList()
 
       if (is_today)
       {
-        remove_button = `<button class="logged-food-remove" data-a="scoop-entry-delete" data-entry="${entry.id}" title="remove logged entry">−</button>`;
+        remove_button = `<button class="logged-food-remove" data-a="scoop-entry-delete" data-entry="${entry.id}" title="${is_deleted ? 'hide deleted entry' : 'remove logged entry'}">−</button>`;
       }
 
-      h += `<div class="logged-food-item">
+      h += `<div class="logged-food-item${deleted_class}">
         <div class="logged-food-main">
           <div class="logged-food-titleline${empty_note_class}">${title_content}${inline_note_input}</div>
           ${note_line_input}
