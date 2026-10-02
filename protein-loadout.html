@@ -692,7 +692,7 @@ let g_flatten_sort = 'name';    /* 'name' | 'ratio_asc' while flat view is activ
 let g_group_rename_key = null;  /* lowercase group key currently being renamed, or null */
 let g_group_rename_draft = '';
 let g_export_open = false;
-let g_export_fmt = 'diary';     /* 'diary' | 'json' | 'bodyweight_kcal_csv' */
+let g_export_fmt = 'diary';     /* 'diary' | 'tsv' | 'bodyweight_kcal_csv' */
 let g_copy_status = '';
 let g_import_open = false;
 let g_import_text = '';
@@ -2759,6 +2759,120 @@ function buildExportJSON()
   return JSON.stringify(makeSavePayload(), null, 2);
 }
 
+function pushBackupTsvRow(lines, values, state)
+{
+  let cells = [];
+
+  for (let i = 0; i < values.length; ++i)
+  {
+    let value = values[i];
+    let text = value == null ? '' : String(value);
+
+    if (text.indexOf('\t') >= 0 || text.indexOf('\n') >= 0 || text.indexOf('\r') >= 0)
+    {
+      state.error = 'TSV cannot export tabs or newlines in text: ' + text.slice(0, 40);
+      return;
+    }
+
+    cells.push(text);
+  }
+
+  lines.push(cells.join('\t'));
+}
+
+function pushBackupTsvSection(lines, name, headers, state)
+{
+  if (state.error) return;
+  if (lines.length) lines.push('');
+  lines.push('[' + name + ']');
+  pushBackupTsvRow(lines, headers, state);
+}
+
+function backupTsvBool(value)
+{
+  if (value == null) return '';
+  return value ? 'true' : 'false';
+}
+
+function buildBackupTSV()
+{
+  let lines = ['# protein-loadout-tsv\tv1'];
+  let state = { error:'' };
+
+  pushBackupTsvSection(lines, 'meta', ['key', 'value'], state);
+  pushBackupTsvRow(lines, ['target', g_target], state);
+  pushBackupTsvRow(lines, ['target_kcal_ratio', g_target_kcal_ratio], state);
+  pushBackupTsvRow(lines, ['target_kcal_day', targetKcalDay()], state);
+  pushBackupTsvRow(lines, ['bodyweight_kg', g_bodyweight_kg], state);
+
+  pushBackupTsvSection(lines, 'bodyweight', ['date', 'kg'], state);
+  for (let date in g_bodyweight_by_date)
+  {
+    pushBackupTsvRow(lines, [date, g_bodyweight_by_date[date]], state);
+  }
+
+  pushBackupTsvSection(lines, 'collapsed_groups', ['group_key', 'collapsed'], state);
+  for (let key in g_collapsed_groups)
+  {
+    pushBackupTsvRow(lines, [key, backupTsvBool(g_collapsed_groups[key])], state);
+  }
+
+  pushBackupTsvSection(lines, 'foods', ['key', 'name', 'kind', 'unit_grams', 'unit_protein', 'package_grams', 'package_protein', 'daily', 'price', 'package_units'], state);
+  for (let i = 0; i < g_foods.length; ++i)
+  {
+    let food = g_foods[i];
+    pushBackupTsvRow(lines, [food.key, food.name, food.kind, food.unit_grams, food.unit_protein, food.package_grams, food.package_protein, food.daily, food.price, food.package_units], state);
+  }
+
+  pushBackupTsvSection(lines, 'pantry_items', ['key', 'name', 'brand', 'barcode', 'scoop_g', 'protein_g', 'kcal', 'protein_100g', 'kcal_100g', 'volume_ml', 'volume_label', 'archived'], state);
+  for (let i = 0; i < g_scoop_items.length; ++i)
+  {
+    let item = g_scoop_items[i];
+    pushBackupTsvRow(lines, [item.key, item.name, item.brand, item.barcode, item.scoop_g, item.protein_g, item.kcal, item.protein_100g, item.kcal_100g, item.volume_ml, item.volume_label, backupTsvBool(item.archived)], state);
+  }
+
+  pushBackupTsvSection(lines, 'pantry_item_tags', ['item_key', 'tag'], state);
+  for (let i = 0; i < g_scoop_items.length; ++i)
+  {
+    let item = g_scoop_items[i];
+    if (!Array.isArray(item.tags)) continue;
+
+    for (let j = 0; j < item.tags.length; ++j)
+    {
+      pushBackupTsvRow(lines, [item.key, item.tags[j]], state);
+    }
+  }
+
+  pushBackupTsvSection(lines, 'log_entries', ['date', 'id', 'item_key', 'grams', 'protein_g', 'kcal', 'scale', 'note', 'deleted_at', 'delete_count', 'buried_at'], state);
+  for (let date in g_log)
+  {
+    let day = g_log[date];
+    if (!Array.isArray(day)) continue;
+
+    for (let i = 0; i < day.length; ++i)
+    {
+      let entry = day[i];
+      pushBackupTsvRow(lines, [date, entry.id, entry.item_key, entry.grams, entry.protein_g, entry.kcal, entry.scale, entry.note, entry.deleted_at, entry.delete_count, entry.buried_at], state);
+    }
+  }
+
+  pushBackupTsvSection(lines, 'mass_events', ['date', 'id', 'timestamp', 'event_type', 'body_mass_kg', 'water_volume_ml', 'mass_in_kg', 'water_loss', 'anchor_reset', 'deleted_at', 'delete_count', 'buried_at'], state);
+  for (let date in g_mass_events)
+  {
+    let day = g_mass_events[date];
+    if (!Array.isArray(day)) continue;
+
+    for (let i = 0; i < day.length; ++i)
+    {
+      let event = day[i];
+      pushBackupTsvRow(lines, [date, event.id, event.timestamp, event.event_type, event.body_mass_kg, event.water_volume_ml, event.mass_in_kg, backupTsvBool(event.water_loss), backupTsvBool(event.anchor_reset), event.deleted_at, event.delete_count, event.buried_at], state);
+    }
+  }
+
+  if (state.error) return { ok:false, text:'', error:state.error };
+  return { ok:true, text:lines.join('\n') + '\n', error:'' };
+}
+
 function makeMassEventsExportPayload()
 {
   return {
@@ -2877,7 +2991,11 @@ function buildCurrentExportText()
 {
   switch (g_export_fmt)
   {
-    case 'json': return buildExportJSON();
+    case 'tsv':
+    {
+      let result = buildBackupTSV();
+      return result.ok ? result.text : 'Cannot export TSV:\n' + result.error;
+    }
     case 'bodyweight_kcal_csv': return buildBodyweightKcalCSV();
   }
 
@@ -2944,6 +3062,272 @@ function massEventIds(events_by_date)
   }
 
   return result;
+}
+
+function parseTsvNumber(text)
+{
+  let value = String(text || '').trim();
+  let n;
+
+  if (!value) return null;
+  n = Number(value);
+  return isNaN(n) ? null : n;
+}
+
+function parseTsvBool(text)
+{
+  let value = String(text || '').trim().toLowerCase();
+
+  if (!value) return null;
+  if (value == 'true' || value == '1' || value == 'yes') return true;
+  if (value == 'false' || value == '0' || value == 'no') return false;
+  return null;
+}
+
+function setIfNumber(obj, key, text)
+{
+  let n = parseTsvNumber(text);
+  if (n != null) obj[key] = n;
+}
+
+function setIfText(obj, key, text)
+{
+  if (text != null && text != '') obj[key] = text;
+}
+
+function setIfBool(obj, key, text)
+{
+  let value = parseTsvBool(text);
+  if (value != null) obj[key] = value;
+}
+
+function parseBackupTsvSections(text)
+{
+  let sections = {};
+  let lines = String(text || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
+  let current = null;
+
+  for (let i = 0; i < lines.length; ++i)
+  {
+    let line = lines[i];
+    let trimmed = line.trim();
+
+    if (!trimmed) continue;
+    if (trimmed.charAt(0) == '#') continue;
+
+    if (trimmed.charAt(0) == '[' && trimmed.charAt(trimmed.length - 1) == ']')
+    {
+      let name = trimmed.slice(1, -1);
+      if (!name) return { ok:false, error:'empty section name on line ' + (i + 1), sections:null };
+      current = { name:name, headers:null, rows:[] };
+      sections[name] = current;
+      continue;
+    }
+
+    if (!current) return { ok:false, error:'row before section on line ' + (i + 1), sections:null };
+
+    let cells = line.split('\t');
+
+    if (!current.headers)
+    {
+      current.headers = cells;
+      continue;
+    }
+
+    if (cells.length != current.headers.length)
+    {
+      return { ok:false, error:'wrong column count in [' + current.name + '] on line ' + (i + 1), sections:null };
+    }
+
+    current.rows.push(cells);
+  }
+
+  return { ok:true, error:'', sections:sections };
+}
+
+function tsvRowObject(headers, row)
+{
+  let obj = {};
+
+  for (let i = 0; i < headers.length; ++i)
+  {
+    obj[headers[i]] = row[i];
+  }
+
+  return obj;
+}
+
+function parseBackupTSV(text)
+{
+  let parsed = parseBackupTsvSections(text);
+  let payload = {
+    foods:[],
+    scoop_items:[],
+    log:{},
+    mass_events:{},
+    bodyweight_by_date:{},
+    collapsed_groups:{}
+  };
+  let tag_rows = [];
+  let item_by_key = {};
+
+  if (!parsed.ok) return { ok:false, error:parsed.error, payload:null };
+
+  let meta = parsed.sections.meta;
+  if (meta)
+  {
+    for (let i = 0; i < meta.rows.length; ++i)
+    {
+      let row = tsvRowObject(meta.headers, meta.rows[i]);
+      let value = parseTsvNumber(row.value);
+
+      if (row.key == 'target' && value != null) payload.target = value;
+      else if (row.key == 'target_kcal_ratio' && value != null) payload.target_kcal_ratio = value;
+      else if (row.key == 'target_kcal_day' && value != null) payload.target_kcal_day = value;
+      else if (row.key == 'bodyweight_kg' && value != null) payload.bodyweight_kg = value;
+    }
+  }
+
+  let bodyweight = parsed.sections.bodyweight;
+  if (bodyweight)
+  {
+    for (let i = 0; i < bodyweight.rows.length; ++i)
+    {
+      let row = tsvRowObject(bodyweight.headers, bodyweight.rows[i]);
+      let kg = parseTsvNumber(row.kg);
+      if (row.date && kg != null) payload.bodyweight_by_date[row.date] = kg;
+    }
+  }
+
+  let collapsed = parsed.sections.collapsed_groups;
+  if (collapsed)
+  {
+    for (let i = 0; i < collapsed.rows.length; ++i)
+    {
+      let row = tsvRowObject(collapsed.headers, collapsed.rows[i]);
+      let value = parseTsvBool(row.collapsed);
+      if (row.group_key && value != null) payload.collapsed_groups[row.group_key] = value;
+    }
+  }
+
+  let foods = parsed.sections.foods;
+  if (foods)
+  {
+    for (let i = 0; i < foods.rows.length; ++i)
+    {
+      let row = tsvRowObject(foods.headers, foods.rows[i]);
+      let food = { key:row.key, name:row.name, kind:row.kind };
+
+      setIfNumber(food, 'unit_grams', row.unit_grams);
+      setIfNumber(food, 'unit_protein', row.unit_protein);
+      setIfNumber(food, 'package_grams', row.package_grams);
+      setIfNumber(food, 'package_protein', row.package_protein);
+      setIfNumber(food, 'daily', row.daily);
+      setIfNumber(food, 'price', row.price);
+      setIfNumber(food, 'package_units', row.package_units);
+
+      if (food.key) payload.foods.push(food);
+    }
+  }
+
+  let pantry = parsed.sections.pantry_items;
+  if (pantry)
+  {
+    for (let i = 0; i < pantry.rows.length; ++i)
+    {
+      let row = tsvRowObject(pantry.headers, pantry.rows[i]);
+      let item = { key:row.key, name:row.name || '', tags:[] };
+
+      setIfText(item, 'brand', row.brand);
+      setIfText(item, 'barcode', row.barcode);
+      setIfText(item, 'volume_label', row.volume_label);
+      setIfNumber(item, 'scoop_g', row.scoop_g);
+      setIfNumber(item, 'protein_g', row.protein_g);
+      setIfNumber(item, 'kcal', row.kcal);
+      setIfNumber(item, 'protein_100g', row.protein_100g);
+      setIfNumber(item, 'kcal_100g', row.kcal_100g);
+      setIfNumber(item, 'volume_ml', row.volume_ml);
+      setIfBool(item, 'archived', row.archived);
+
+      if (item.key)
+      {
+        payload.scoop_items.push(item);
+        item_by_key[item.key] = item;
+      }
+    }
+  }
+
+  let tags = parsed.sections.pantry_item_tags;
+  if (tags)
+  {
+    for (let i = 0; i < tags.rows.length; ++i)
+    {
+      tag_rows.push(tsvRowObject(tags.headers, tags.rows[i]));
+    }
+  }
+
+  for (let i = 0; i < tag_rows.length; ++i)
+  {
+    let row = tag_rows[i];
+    let item = item_by_key[row.item_key];
+    if (item && row.tag) item.tags.push(row.tag);
+  }
+
+  let log_entries = parsed.sections.log_entries;
+  if (log_entries)
+  {
+    for (let i = 0; i < log_entries.rows.length; ++i)
+    {
+      let row = tsvRowObject(log_entries.headers, log_entries.rows[i]);
+      let entry = { id:row.id, item_key:row.item_key };
+      let date = row.date;
+
+      setIfNumber(entry, 'grams', row.grams);
+      setIfNumber(entry, 'protein_g', row.protein_g);
+      setIfNumber(entry, 'kcal', row.kcal);
+      setIfNumber(entry, 'scale', row.scale);
+      setIfText(entry, 'note', row.note);
+      setIfText(entry, 'deleted_at', row.deleted_at);
+      setIfNumber(entry, 'delete_count', row.delete_count);
+      setIfText(entry, 'buried_at', row.buried_at);
+
+      if (date && entry.id && entry.item_key)
+      {
+        if (!Array.isArray(payload.log[date])) payload.log[date] = [];
+        payload.log[date].push(entry);
+      }
+    }
+  }
+
+  let mass_events = parsed.sections.mass_events;
+  if (mass_events)
+  {
+    for (let i = 0; i < mass_events.rows.length; ++i)
+    {
+      let row = tsvRowObject(mass_events.headers, mass_events.rows[i]);
+      let event = { id:row.id, timestamp:row.timestamp, event_type:row.event_type };
+      let date = row.date;
+
+      setIfNumber(event, 'body_mass_kg', row.body_mass_kg);
+      setIfNumber(event, 'water_volume_ml', row.water_volume_ml);
+      setIfNumber(event, 'mass_in_kg', row.mass_in_kg);
+      setIfBool(event, 'water_loss', row.water_loss);
+      setIfBool(event, 'anchor_reset', row.anchor_reset);
+      setIfText(event, 'deleted_at', row.deleted_at);
+      setIfNumber(event, 'delete_count', row.delete_count);
+      setIfText(event, 'buried_at', row.buried_at);
+
+      if (date && event.id && event.event_type)
+      {
+        if (!Array.isArray(payload.mass_events[date])) payload.mass_events[date] = [];
+        payload.mass_events[date].push(event);
+      }
+    }
+  }
+
+  if (!payload.foods.length || !payload.scoop_items.length) return { ok:false, error:'missing foods or pantry_items sections', payload:null };
+
+  return { ok:true, error:'', payload:payload };
 }
 
 function importArrayChangeStats(current_items, import_items, replace)
@@ -3128,30 +3512,28 @@ function parseImportText()
 
   if (!g_import_text.trim())
   {
-    g_import_status = 'paste JSON or choose a file first';
+    g_import_status = 'paste TSV or choose a file first';
     render();
     return;
   }
 
-  try
+  parsed = parseBackupTSV(g_import_text);
+
+  if (!parsed.ok)
   {
-    parsed = JSON.parse(g_import_text);
-  }
-  catch (e)
-  {
-    g_import_status = 'not valid JSON — ' + e.message;
+    g_import_status = 'not valid TSV — ' + parsed.error;
     render();
     return;
   }
 
-  if (!parsed || typeof parsed != 'object' || !Array.isArray(parsed.foods) || !Array.isArray(parsed.scoop_items))
+  if (!parsed.payload || typeof parsed.payload != 'object' || !Array.isArray(parsed.payload.foods) || !Array.isArray(parsed.payload.scoop_items))
   {
-    g_import_status = 'this doesn\'t look like a protein-loadout export — missing foods/scoop_items';
+    g_import_status = 'this doesn\'t look like a protein-loadout TSV export — missing foods/pantry_items';
     render();
     return;
   }
 
-  g_import_pending = parsed;
+  g_import_pending = parsed.payload;
   g_import_status = '';
   render();
 }
@@ -5587,7 +5969,7 @@ function renderScoopSection()
   if (g_export_open)
   {
     let diary_on = g_export_fmt == 'diary' ? ' on' : '';
-    let json_on = g_export_fmt == 'json' ? ' on' : '';
+    let tsv_on = g_export_fmt == 'tsv' ? ' on' : '';
     let bodyweight_kcal_csv_on = g_export_fmt == 'bodyweight_kcal_csv' ? ' on' : '';
     let export_text = esc(buildCurrentExportText());
     let copy_status = g_copy_status ? `<span class="fetchstatus" style="padding:6px 0 0">${esc(g_copy_status)}</span>` : '';
@@ -5596,7 +5978,7 @@ function renderScoopSection()
       <div class="exp-tabs">
         <button class="smallbtn${diary_on}" data-a="export-fmt" data-f="diary">diary (text)</button>
         <button class="smallbtn${bodyweight_kcal_csv_on}" data-a="export-fmt" data-f="bodyweight_kcal_csv">bodymass/kcal (csv)</button>
-        <button class="smallbtn${json_on}" data-a="export-fmt" data-f="json">full backup (json)</button>
+        <button class="smallbtn${tsv_on}" data-a="export-fmt" data-f="tsv">full backup (tsv)</button>
       </div>
       <textarea class="exp-out" readonly spellcheck="false">${export_text}</textarea>
       <div class="btnrow2">
@@ -5610,9 +5992,9 @@ function renderScoopSection()
   if (g_import_open)
   {
     h += `<div class="exportbox">
-      <div class="hint" style="margin-top:0">Restore a "full backup (json)" export from another machine. Merge keeps current data and adds anything missing; replace makes the backup authoritative.</div>
-      <input type="file" accept=".json,application/json" data-a="import-file">
-      <textarea class="exp-out" placeholder="…or paste exported JSON here" data-field="import-text">${esc(g_import_text)}</textarea>
+      <div class="hint" style="margin-top:0">Restore a "full backup (tsv)" export from another machine. Merge keeps current data and adds anything missing; replace makes the backup authoritative.</div>
+      <input type="file" accept=".tsv,text/tab-separated-values,text/plain" data-a="import-file">
+      <textarea class="exp-out" placeholder="…or paste exported TSV here" data-field="import-text">${esc(g_import_text)}</textarea>
       <div class="btnrow2">
         <button class="smallbtn" data-a="import-parse">check</button>`;
 
@@ -6367,11 +6749,33 @@ document.addEventListener('click', function(ev)
       return;
 
     case 'export-copy':
+      if (g_export_fmt == 'tsv')
+      {
+        let result = buildBackupTSV();
+        if (!result.ok)
+        {
+          g_copy_status = result.error;
+          render();
+          return;
+        }
+        copyText(result.text);
+        return;
+      }
       copyText(buildCurrentExportText());
       return;
 
     case 'export-download':
-      if (g_export_fmt == 'json') downloadText('protein-loadout-export-' + todayISO() + '.json', 'application/json', buildExportJSON());
+      if (g_export_fmt == 'tsv')
+      {
+        let result = buildBackupTSV();
+        if (!result.ok)
+        {
+          g_copy_status = result.error;
+          render();
+          return;
+        }
+        downloadText('protein-loadout-export-' + todayISO() + '.tsv', 'text/tab-separated-values', result.text);
+      }
       else if (g_export_fmt == 'bodyweight_kcal_csv') downloadText('protein-bodyweight-kcal-' + todayISO() + '.csv', 'text/csv', buildBodyweightKcalCSV());
       else downloadText('protein-loadout-export-' + todayISO() + '.txt', 'text/plain', buildDiaryText());
       return;
