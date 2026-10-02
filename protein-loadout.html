@@ -665,6 +665,7 @@ function migrateLogFormat()
 
 let g_log = {};                 /* isoDate -> [entry, ...] */
 let g_deleted_log_entry_ids = {}; /* entry_id -> true */
+let g_deleted_log_entries = {};   /* entry_id -> { deleted_at, date, entry } */
 let g_mass_events = {};         /* isoDate -> [whole-body mass accounting events, ...] */
 let g_deleted_mass_event_ids = {}; /* event_id -> true */
 let g_view_date = todayISO();   /* editing allowed for today, or viewed date in admin mode */
@@ -850,7 +851,7 @@ function removeScoop(key)
   {
     if (day[i].item_key == key)
     {
-      markDeletedLogEntry(day[i]);
+      markDeletedLogEntry(day[i], g_view_date);
       day.splice(i, 1);
       return;
     }
@@ -894,7 +895,7 @@ function removeLogEntry(entry_id)
   {
     if (day[i].id == entry_id)
     {
-      markDeletedLogEntry(day[i]);
+      markDeletedLogEntry(day[i], g_view_date);
       day.splice(i, 1);
       return;
     }
@@ -3220,6 +3221,8 @@ function applyReplaceImport()
   if (parsed.log && typeof parsed.log == 'object') g_log = parsed.log;
   g_deleted_log_entry_ids = {};
   if (parsed.deleted_log_entry_ids && typeof parsed.deleted_log_entry_ids == 'object') g_deleted_log_entry_ids = parsed.deleted_log_entry_ids;
+  g_deleted_log_entries = {};
+  if (parsed.deleted_log_entries && typeof parsed.deleted_log_entries == 'object') g_deleted_log_entries = parsed.deleted_log_entries;
   g_mass_events = {};
   if (parsed.mass_events && typeof parsed.mass_events == 'object') g_mass_events = parsed.mass_events;
   g_deleted_mass_event_ids = {};
@@ -3283,6 +3286,7 @@ function applyMergeImport()
     }
   }
 
+  mergeDeletedLogEntryIds(parsed.deleted_log_entry_ids, parsed.deleted_log_entries);
   mergeLogEntries(parsed.log);
   mergeDeletedMassEventIds(parsed.deleted_mass_event_ids);
   mergeMassEvents(parsed.mass_events);
@@ -3464,6 +3468,7 @@ function makeSavePayload()
     scoop_items:g_scoop_items,
     log:g_log,
     deleted_log_entry_ids:g_deleted_log_entry_ids,
+    deleted_log_entries:g_deleted_log_entries,
     mass_events:g_mass_events,
     deleted_mass_event_ids:g_deleted_mass_event_ids,
     collapsed_groups:g_collapsed_groups
@@ -3519,9 +3524,24 @@ function setSyncOk()
   updateSyncChrome();
 }
 
-function markDeletedLogEntry(entry)
+function markDeletedLogEntry(entry, date)
 {
-  if (entry && entry.id) g_deleted_log_entry_ids[entry.id] = true;
+  if (!entry || !entry.id) return;
+
+  g_deleted_log_entry_ids[entry.id] = true;
+  g_deleted_log_entries[entry.id] = {
+    deleted_at:new Date().toISOString(),
+    date:date || g_view_date,
+    entry:{
+      id:entry.id,
+      item_key:entry.item_key,
+      grams:entry.grams,
+      protein_g:entry.protein_g,
+      kcal:entry.kcal,
+      scale:entry.scale,
+      note:entry.note
+    }
+  };
 }
 
 function bodyweightForDate(date)
@@ -3701,13 +3721,14 @@ function mergeScoopItems(remote_items)
   }
 }
 
-function mergeDeletedLogEntryIds(ids)
+function mergeDeletedLogEntryIds(ids, entries)
 {
   if (!ids || typeof ids != 'object') return;
 
   for (let id in ids)
   {
     if (ids[id]) g_deleted_log_entry_ids[id] = true;
+    if (entries && typeof entries == 'object' && entries[id]) g_deleted_log_entries[id] = entries[id];
   }
 }
 
@@ -3754,7 +3775,12 @@ function mergeLogEntries(remote_log)
     {
       let entry = remote_day[i];
       if (!entry.id) continue;
-      if (g_deleted_log_entry_ids[entry.id]) continue;
+      if (g_deleted_log_entry_ids[entry.id])
+      {
+        if (g_deleted_log_entries[entry.id]) continue;
+
+        delete g_deleted_log_entry_ids[entry.id];
+      }
       if (local_ids[entry.id]) continue;
 
       local_day.push(entry);
@@ -3866,7 +3892,7 @@ function mergeLoadedPayload(payload)
   mergeBodyweightByDate(payload.bodyweight_by_date);
 
   mergeScoopItems(payload.scoop_items);
-  mergeDeletedLogEntryIds(payload.deleted_log_entry_ids);
+  mergeDeletedLogEntryIds(payload.deleted_log_entry_ids, payload.deleted_log_entries);
   mergeLogEntries(payload.log);
   mergeDeletedMassEventIds(payload.deleted_mass_event_ids);
   mergeMassEvents(payload.mass_events);
@@ -4046,6 +4072,7 @@ function load()
 
     if (payload.log) g_log = payload.log;
     if (payload.deleted_log_entry_ids && typeof payload.deleted_log_entry_ids == 'object') g_deleted_log_entry_ids = payload.deleted_log_entry_ids;
+    if (payload.deleted_log_entries && typeof payload.deleted_log_entries == 'object') g_deleted_log_entries = payload.deleted_log_entries;
     if (payload.mass_events && typeof payload.mass_events == 'object') g_mass_events = payload.mass_events;
     if (payload.deleted_mass_event_ids && typeof payload.deleted_mass_event_ids == 'object') g_deleted_mass_event_ids = payload.deleted_mass_event_ids;
     if (payload.collapsed_groups) g_collapsed_groups = payload.collapsed_groups;
