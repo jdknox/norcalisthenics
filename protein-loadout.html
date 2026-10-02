@@ -178,6 +178,8 @@ let g_legacy_key_name_fixups = { skyr_siggis:'Skyr; plain 0%' };
 
 let g_scoop_items = [];
 
+let g_other = '~OTHER';
+
 function cloneKnownItem(known)
 {
   let item = {
@@ -298,6 +300,13 @@ function itemTags(item)
   return Array.isArray(item.tags) ? item.tags : [];
 }
 
+function displayItemTags(item)
+{
+  let tags = itemTags(item);
+  if (tags.length) return tags;
+  return [g_other];
+}
+
 function parseTagsInput(text)
 {
   let parts = text.split(',');
@@ -332,6 +341,36 @@ function distinctTagNames()
     if (itemIsArchived(item)) continue;
 
     tags = itemTags(item);
+    for (let j = 0; j < tags.length; ++j)
+    {
+      let key = tags[j].toLowerCase();
+      if (seen[key]) continue;
+      seen[key] = true;
+      out.push(tags[j]);
+    }
+  }
+
+  out.sort(function(a, b)
+  {
+    return a.toLowerCase() < b.toLowerCase() ? -1 : a.toLowerCase() > b.toLowerCase() ? 1 : 0;
+  });
+
+  return out;
+}
+
+function distinctDisplayTagNames()
+{
+  let seen = {};
+  let out = [];
+
+  for (let i = 0; i < g_scoop_items.length; ++i)
+  {
+    let item = g_scoop_items[i];
+    let tags;
+
+    if (itemIsArchived(item)) continue;
+
+    tags = displayItemTags(item);
     for (let j = 0; j < tags.length; ++j)
     {
       let key = tags[j].toLowerCase();
@@ -426,8 +465,9 @@ function pickTagSuggestion(tag)
 /* an item can carry multiple tags and renders as a member under EVERY tag that
    currently has 2+ members (same underlying item, same key, at each appearance —
    not a data duplicate, just rendered more than once). a tag with only one
-   current member doesn't count as a group; items with no qualifying tag render
-   standalone exactly once. */
+   current member doesn't count as a group, except for the display-only other
+   bucket for untagged items; items with no qualifying tag render standalone
+   exactly once. */
 function tagsMatchActive(tags)
 {
 
@@ -437,6 +477,11 @@ function tagsMatchActive(tags)
   }
 
   return false;
+}
+
+function tagQualifiesForGroup(tag_key, tag_counts)
+{
+  return tag_key == g_other || tag_counts[tag_key] >= 2;
 }
 
 function scoopSearchTerm()
@@ -463,7 +508,7 @@ function itemTagsMatchSearch(item)
 
   if (!term) return false;
 
-  tags = itemTags(item);
+  tags = displayItemTags(item);
   for (let i = 0; i < tags.length; ++i)
   {
     if (tags[i].toLowerCase().indexOf(term) >= 0) return true;
@@ -518,7 +563,7 @@ function groupedNodes()
 
   for (let i = 0; i < sorted.length; ++i)
   {
-    let tags = itemTags(sorted[i]);
+    let tags = displayItemTags(sorted[i]);
     for (let j = 0; j < tags.length; ++j)
     {
       let tag_key = tags[j].toLowerCase();
@@ -530,11 +575,11 @@ function groupedNodes()
   for (let i = 0; i < sorted.length; ++i)
   {
     let item = sorted[i];
-    let tags = itemTags(item);
+    let tags = displayItemTags(item);
     for (let j = 0; j < tags.length; ++j)
     {
       let tag_key = tags[j].toLowerCase();
-      if (tag_counts[tag_key] < 2) continue;
+      if (!tagQualifiesForGroup(tag_key, tag_counts)) continue;
       if (!groups[tag_key]) groups[tag_key] = { key:tag_key, name:tag_display[tag_key], members:[] };
       groups[tag_key].members.push(item);
     }
@@ -543,11 +588,11 @@ function groupedNodes()
   for (let i = 0; i < sorted.length; ++i)
   {
     let item = sorted[i];
-    let tags = itemTags(item);
+    let tags = displayItemTags(item);
     let has_qualifying = false;
     for (let j = 0; j < tags.length; ++j)
     {
-      if (tag_counts[tags[j].toLowerCase()] >= 2)
+      if (tagQualifiesForGroup(tags[j].toLowerCase(), tag_counts))
       {
         has_qualifying = true;
         break;
@@ -567,8 +612,8 @@ function groupedNodes()
     let b_is_group = b.type == 'group';
     let a_matches = a_is_group ? groupMatchesSearch(a.group) : itemMatchesSearch(a.item);
     let b_matches = b_is_group ? groupMatchesSearch(b.group) : itemMatchesSearch(b.item);
-    let a_active = a_is_group ? !!g_active_tags[a.group.key] : tagsMatchActive(itemTags(a.item));
-    let b_active = b_is_group ? !!g_active_tags[b.group.key] : tagsMatchActive(itemTags(b.item));
+    let a_active = a_is_group ? !!g_active_tags[a.group.key] : tagsMatchActive(displayItemTags(a.item));
+    let b_active = b_is_group ? !!g_active_tags[b.group.key] : tagsMatchActive(displayItemTags(b.item));
     let a_name = a_is_group ? a.group.name.toLowerCase() : a.item.name.toLowerCase();
     let b_name = b_is_group ? b.group.name.toLowerCase() : b.item.name.toLowerCase();
 
@@ -5382,8 +5427,8 @@ function renderGroupHeader(g)
     <button class="grouptoggle" data-a="group-toggle" data-group="${esc(g.key)}">
       ${icon} ${esc(g.name)}<span class="unit">(${total_count}/${g.members.length})</span>
     </button>
-    <button class="editbtn" data-a="group-rename-open" data-group="${esc(g.key)}"
-      data-name="${esc(g.name)}" title="rename group">✎</button>
+    ${g.key != g_other ? `<button class="editbtn" data-a="group-rename-open" data-group="${esc(g.key)}"
+      data-name="${esc(g.name)}" title="rename group">✎</button>` : ''}
   </td>
   <td class="num pack-out protein">${fmt0(total_protein)}</td>
   <td class="num pack-out kcal">${fmt_1(total_kcal)}</td>
@@ -5421,7 +5466,7 @@ function renderGroupedItems(is_today)
       flat.push({
         item:item,
         search_rank:itemMatchesSearch(item) ? 0 : 1,
-        tag_rank:tagsMatchActive(itemTags(item)) ? 0 : 1,
+        tag_rank:tagsMatchActive(displayItemTags(item)) ? 0 : 1,
         name:item.name.toLowerCase(),
         ratio:ratio
       });
@@ -5518,6 +5563,8 @@ function toggleGroupCollapse(key)
 
 function openGroupRename(key, currentName)
 {
+  if (key == g_other) return;
+
   g_group_rename_key = key;
   g_group_rename_draft = currentName;
   render();
@@ -5535,6 +5582,7 @@ function saveGroupRename()
   let new_name = g_group_rename_draft.trim();
   let new_key;
 
+  if (g_group_rename_key == g_other) return;
   if (!new_name) return;
 
   new_key = new_name.toLowerCase();
@@ -5704,6 +5752,7 @@ function renderLoggedFoodList()
       let note_line_input = '';
       let detail_line = '';
       let remove_button = '';
+      let restore_button = '';
 
       if (logEntryIsBuried(entry)) continue;
 
@@ -5738,7 +5787,14 @@ function renderLoggedFoodList()
 
       if (is_today)
       {
-        remove_button = `<button class="logged-food-remove" data-a="scoop-entry-delete" data-entry="${entry.id}" title="${is_deleted ? 'hide deleted entry' : 'remove logged entry'}">−</button>`;
+        let title = is_deleted ? 'hide deleted entry' : 'remove logged entry';
+        remove_button = `<button class="logged-food-remove" data-a="scoop-entry-delete"
+          data-entry="${entry.id}" title="${title}">−</button>`;
+        if (is_deleted)
+        {
+          restore_button = `<button class="logged-food-remove" data-a="scoop-entry-restore"
+            data-entry="${entry.id}" title="restore logged entry">+</button>`;
+        }
       }
 
       h += `<div class="logged-food-item${deleted_class}">
@@ -5748,6 +5804,7 @@ function renderLoggedFoodList()
           ${detail_line}
         </div>
         ${remove_button}
+        ${restore_button}
       </div>`;
     }
 
@@ -5771,7 +5828,7 @@ function renderScoopSearch()
 
 function renderTagFilterBar()
 {
-  let names = distinctTagNames();
+  let names = distinctDisplayTagNames();
   let h = '';
   let sort_class = g_flatten_sort == 'ratio_asc' ? ' on' : '';
 
@@ -6636,6 +6693,13 @@ document.addEventListener('click', function(ev)
     case 'scoop-entry-delete':
       if (!viewDateIsEditable()) return;
       removeLogEntry(target.dataset.entry);
+      render();
+      save();
+      return;
+
+    case 'scoop-entry-restore':
+      if (!viewDateIsEditable()) return;
+      
       render();
       save();
       return;
