@@ -872,6 +872,38 @@ function logEntryIsBuried(entry)
   return logEntryDeleteCount(entry) >= 2 || !!(entry && entry.buried_at);
 }
 
+function timestampMillis(value)
+{
+  let millis;
+
+  if (!value) return 0;
+
+  millis = new Date(value).getTime();
+  return isNaN(millis) ? 0 : millis;
+}
+
+function logEntryDeleteMillis(entry)
+{
+  let millis = 0;
+  let deleted_millis;
+  let buried_millis;
+
+  if (!entry) return 0;
+
+  deleted_millis = timestampMillis(entry.deleted_at);
+  buried_millis = timestampMillis(entry.buried_at);
+  if (deleted_millis > millis) millis = deleted_millis;
+  if (buried_millis > millis) millis = buried_millis;
+
+  return millis;
+}
+
+function logEntryRestoreMillis(entry)
+{
+  if (!entry || logEntryIsDeleted(entry)) return 0;
+  return timestampMillis(entry.restored_at);
+}
+
 function markLogEntryDeleted(entry)
 {
   if (!entry) return;
@@ -880,11 +912,28 @@ function markLogEntryDeleted(entry)
   {
     entry.delete_count = Math.max(logEntryDeleteCount(entry) + 1, 2);
     if (!entry.buried_at) entry.buried_at = new Date().toISOString();
+    delete entry.restored_at;
     return;
   }
 
   entry.deleted_at = new Date().toISOString();
   entry.delete_count = 1;
+  delete entry.restored_at;
+}
+
+function setLogEntryRestored(entry, restored_at)
+{
+  if (!entry) return;
+
+  delete entry.deleted_at;
+  delete entry.buried_at;
+  entry.delete_count = 0;
+  entry.restored_at = restored_at;
+}
+
+function markLogEntryRestored(entry)
+{
+  setLogEntryRestored(entry, new Date().toISOString());
 }
 
 function adminBannerHTML()
@@ -968,6 +1017,22 @@ function removeLogEntry(entry_id)
     if (day[i].id == entry_id)
     {
       markLogEntryDeleted(day[i]);
+      return;
+    }
+  }
+}
+
+function restoreLogEntry(entry_id)
+{
+  let day = g_log[g_view_date];
+
+  if (!day) return;
+
+  for (let i = 0; i < day.length; ++i)
+  {
+    if (day[i].id == entry_id)
+    {
+      markLogEntryRestored(day[i]);
       return;
     }
   }
@@ -1142,7 +1207,7 @@ function sortedVisibleMassEvents(date)
 
   for (let i = 0; i < source.length; ++i)
   {
-    if (!massEventIsBuried(source[i])) day.push({ event:source[i], index:i });
+    if (g_admin_mode || !massEventIsBuried(source[i])) day.push({ event:source[i], index:i });
   }
 
   day.sort(function(a, b)
@@ -2888,7 +2953,7 @@ function buildBackupTSV()
     }
   }
 
-  pushBackupTsvSection(lines, 'log_entries', ['date', 'id', 'item_key', 'grams', 'protein_g', 'kcal', 'scale', 'note', 'deleted_at', 'delete_count', 'buried_at'], state);
+  pushBackupTsvSection(lines, 'log_entries', ['date', 'id', 'item_key', 'grams', 'protein_g', 'kcal', 'scale', 'note', 'deleted_at', 'delete_count', 'buried_at', 'restored_at'], state);
   for (let date in g_log)
   {
     let day = g_log[date];
@@ -2897,7 +2962,7 @@ function buildBackupTSV()
     for (let i = 0; i < day.length; ++i)
     {
       let entry = day[i];
-      pushBackupTsvRow(lines, [date, entry.id, entry.item_key, entry.grams, entry.protein_g, entry.kcal, entry.scale, entry.note, entry.deleted_at, entry.delete_count, entry.buried_at], state);
+      pushBackupTsvRow(lines, [date, entry.id, entry.item_key, entry.grams, entry.protein_g, entry.kcal, entry.scale, entry.note, entry.deleted_at, entry.delete_count, entry.buried_at, entry.restored_at], state);
     }
   }
 
@@ -3335,6 +3400,7 @@ function parseBackupTSV(text)
       setIfText(entry, 'deleted_at', row.deleted_at);
       setIfNumber(entry, 'delete_count', row.delete_count);
       setIfText(entry, 'buried_at', row.buried_at);
+      setIfText(entry, 'restored_at', row.restored_at);
 
       if (date && entry.id && entry.item_key)
       {
@@ -4266,19 +4332,41 @@ function applyLegacyDeletedLogEntries(ids, entries)
 
 function mergeLogEntryState(local_entry, remote_entry)
 {
+  let local_delete_millis;
+  let local_restore_millis;
   let local_count;
+  let remote_delete_millis;
+  let remote_restore_millis;
   let remote_count;
 
   if (!local_entry || !remote_entry) return;
 
+  local_delete_millis = logEntryDeleteMillis(local_entry);
+  local_restore_millis = logEntryRestoreMillis(local_entry);
+  remote_delete_millis = logEntryDeleteMillis(remote_entry);
+  remote_restore_millis = logEntryRestoreMillis(remote_entry);
   local_count = logEntryDeleteCount(local_entry);
   remote_count = logEntryDeleteCount(remote_entry);
+
+  if (remote_restore_millis > local_delete_millis)
+  {
+    setLogEntryRestored(local_entry, remote_entry.restored_at);
+    if (remote_entry.note && !local_entry.note) local_entry.note = remote_entry.note;
+    return;
+  }
+
+  if (local_restore_millis > remote_delete_millis)
+  {
+    if (remote_entry.note && !local_entry.note) local_entry.note = remote_entry.note;
+    return;
+  }
 
   if (remote_entry.deleted_at && !local_entry.deleted_at) local_entry.deleted_at = remote_entry.deleted_at;
   if (remote_entry.buried_at && !local_entry.buried_at) local_entry.buried_at = remote_entry.buried_at;
 
   if (remote_count > local_count) local_entry.delete_count = remote_count;
   if (remote_entry.buried_at && logEntryDeleteCount(local_entry) < 2) local_entry.delete_count = 2;
+  if (logEntryIsDeleted(local_entry)) delete local_entry.restored_at;
   if (remote_entry.note && !local_entry.note) local_entry.note = remote_entry.note;
 }
 
@@ -5700,7 +5788,7 @@ function renderLoggedFoodList()
   for (let i = 0; i < day.length; ++i)
   {
     let entry = day[i];
-    if (!logEntryIsBuried(entry)) ++visible_count;
+    if (g_admin_mode || !logEntryIsBuried(entry)) ++visible_count;
     if (logEntryIsDeleted(entry)) continue;
 
     total_kcal += entry.kcal;
@@ -5754,7 +5842,7 @@ function renderLoggedFoodList()
       let remove_button = '';
       let restore_button = '';
 
-      if (logEntryIsBuried(entry)) continue;
+      if (!g_admin_mode && logEntryIsBuried(entry)) continue;
 
       if (custom_note_label)
       {
@@ -6699,7 +6787,7 @@ document.addEventListener('click', function(ev)
 
     case 'scoop-entry-restore':
       if (!viewDateIsEditable()) return;
-      
+      restoreLogEntry(target.dataset.entry);
       render();
       save();
       return;
