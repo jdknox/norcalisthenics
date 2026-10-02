@@ -5502,9 +5502,12 @@ function renderGroupHeader(g)
   {
     let item = g.members[i];
     let count = logCount(g_view_date, item.key);
-    total_protein += count*item.protein_g;
-    total_kcal    += count*item.kcal;
-    total_g       += count*item.scoop_g;
+
+    if (!count) continue;
+
+    if (!isNaN(Number(item.protein_g))) total_protein += count*Number(item.protein_g);
+    if (!isNaN(Number(item.kcal))) total_kcal += count*Number(item.kcal);
+    if (!isNaN(Number(item.scoop_g))) total_g += count*Number(item.scoop_g);
     total_count   += count;
   }
 
@@ -5518,10 +5521,11 @@ function renderGroupHeader(g)
     ${g.key != g_other ? `<button class="editbtn" data-a="group-rename-open" data-group="${esc(g.key)}"
       data-name="${esc(g.name)}" title="rename group">✎</button>` : ''}
   </td>
-  <td class="num pack-out protein">${fmt0(total_protein)}</td>
-  <td class="num pack-out kcal">${fmt_1(total_kcal)}</td>
-  <td class="num pack-out grams">${fmt_1(total_g)}</td>
+    <td class="num pack-out protein">${fmt0(total_protein)}</td>
+    <td class="num pack-out kcal">${fmt_1(total_kcal)}</td>
+    <td class="num pack-out grams"></td>
   </tr>`;
+  /* ${fmt_1(total_g)} */
 
   if (g_group_rename_key == g.key)
   {
