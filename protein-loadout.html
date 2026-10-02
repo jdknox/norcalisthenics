@@ -759,6 +759,7 @@ let g_unsynced_changes = false;
 let g_sync_in_flight = false;
 let g_local_revision = 0;
 let g_sync_retry_timer = null;
+let g_authoritative_replace_sync = false;
 let custom_kcal_ratio_fallback = 23;
 let custom_kcal_ratio_rho = 0.85;
 let g_default_water_ml = 740;
@@ -3734,7 +3735,7 @@ function applyReplaceMassImport()
   g_mass_import_text = '';
   g_mass_import_status = 'imported mass data ✓';
   render();
-  save();
+  saveAuthoritativeReplacement();
 }
 
 function applyMergeMassImport()
@@ -3804,6 +3805,7 @@ function applyReplaceImport()
     }
   }
 
+  g_log = {};
   if (parsed.log && typeof parsed.log == 'object') g_log = parsed.log;
   g_mass_events = {};
   if (parsed.mass_events && typeof parsed.mass_events == 'object') g_mass_events = parsed.mass_events;
@@ -3821,7 +3823,7 @@ function applyReplaceImport()
   g_import_status = 'imported ✓';
   g_import_open = false;
   render();
-  save();
+  saveAuthoritativeReplacement();
 }
 
 function applyMergeImport()
@@ -4095,6 +4097,7 @@ function setSyncOk()
   g_sync_failed = false;
   g_sync_status = '';
   g_unsynced_changes = false;
+  g_authoritative_replace_sync = false;
   saveUnsyncedFlag(false);
   updateSyncChrome();
 }
@@ -4608,7 +4611,7 @@ function syncPendingChanges()
     let write_revision;
 
     if (!result || !result.revision) throw new Error('shared storage does not support safe revision checks');
-    if (result.value) mergeLoadedPayload(storagePayloadFromValue(result.value));
+    if (result.value && !g_authoritative_replace_sync) mergeLoadedPayload(storagePayloadFromValue(result.value));
 
     merged_json_text = JSON.stringify(makeSavePayload());
     saveLocalJson(merged_json_text);
@@ -4633,7 +4636,7 @@ function syncPendingChanges()
 
     if (error && error.status == 409)
     {
-      if (error.result && error.result.value)
+      if (error.result && error.result.value && !g_authoritative_replace_sync)
       {
         mergeLoadedPayload(storagePayloadFromValue(error.result.value));
         saveLocalJson(JSON.stringify(makeSavePayload()));
@@ -4656,6 +4659,12 @@ function save()
   saveUnsyncedFlag(true);
   ++g_local_revision;
   syncPendingChanges();
+}
+
+function saveAuthoritativeReplacement()
+{
+  g_authoritative_replace_sync = true;
+  save();
 }
 
 function load()
