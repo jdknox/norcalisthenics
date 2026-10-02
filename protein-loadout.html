@@ -665,7 +665,6 @@ function migrateLogFormat()
 
 let g_log = {};                 /* isoDate -> [entry, ...] */
 let g_mass_events = {};         /* isoDate -> [whole-body mass accounting events, ...] */
-let g_deleted_mass_event_ids = {}; /* event_id -> true */
 let g_view_date = todayISO();   /* editing allowed for today, or viewed date in admin mode */
 let g_admin_mode = false;       /* session-only: lets the viewed day behave as editable */
 let g_fetch_status = {};        /* item_key -> transient status text, not persisted */
@@ -1014,10 +1013,54 @@ function massEventMillis(event)
   return isNaN(t) ? 0 : t;
 }
 
-function massEventsForDate(date)
+function massEventDeleteCount(event)
+{
+  if (!event || event.delete_count == null) return 0;
+  return Number(event.delete_count) || 0;
+}
+
+function massEventIsDeleted(event)
+{
+  return massEventDeleteCount(event) > 0 || !!(event && event.deleted_at);
+}
+
+function massEventIsBuried(event)
+{
+  return massEventDeleteCount(event) >= 2 || !!(event && event.buried_at);
+}
+
+function markMassEventDeleted(event)
+{
+  if (!event) return;
+
+  if (massEventIsDeleted(event))
+  {
+    event.delete_count = Math.max(massEventDeleteCount(event) + 1, 2);
+    if (!event.buried_at) event.buried_at = new Date().toISOString();
+    return;
+  }
+
+  event.deleted_at = new Date().toISOString();
+  event.delete_count = 1;
+}
+
+function rawMassEventsForDate(date)
 {
   let day = g_mass_events[date];
   return Array.isArray(day) ? day : [];
+}
+
+function massEventsForDate(date)
+{
+  let source = rawMassEventsForDate(date);
+  let day = [];
+
+  for (let i = 0; i < source.length; ++i)
+  {
+    if (!massEventIsDeleted(source[i])) day.push(source[i]);
+  }
+
+  return day;
 }
 
 function sortedMassEvents(date)
@@ -1028,6 +1071,33 @@ function sortedMassEvents(date)
   for (let i = 0; i < source.length; ++i)
   {
     day.push({ event:source[i], index:i });
+  }
+
+  day.sort(function(a, b)
+  {
+    let at = massEventTimestampValue(a.event);
+    let bt = massEventTimestampValue(b.event);
+    if (at < bt) return -1;
+    if (at > bt) return 1;
+    return a.index - b.index;
+  });
+
+  for (let i = 0; i < day.length; ++i)
+  {
+    day[i] = day[i].event;
+  }
+
+  return day;
+}
+
+function sortedVisibleMassEvents(date)
+{
+  let source = rawMassEventsForDate(date);
+  let day = [];
+
+  for (let i = 0; i < source.length; ++i)
+  {
+    if (!massEventIsBuried(source[i])) day.push({ event:source[i], index:i });
   }
 
   day.sort(function(a, b)
@@ -1105,11 +1175,6 @@ function massEventLabel(event_type)
   }
 
   return event_type || 'Event';
-}
-
-function markDeletedMassEvent(event)
-{
-  if (event && event.id) g_deleted_mass_event_ids[event.id] = true;
 }
 
 function addMassWater(volume_ml)
@@ -1252,7 +1317,7 @@ function saveMassEntryDraft()
 
 function findMassEvent(date, event_id)
 {
-  let day = massEventsForDate(date);
+  let day = rawMassEventsForDate(date);
 
   for (let i = 0; i < day.length; ++i)
   {
@@ -1266,7 +1331,7 @@ function openMassEventEdit(event_id)
 {
   let event = findMassEvent(g_view_date, event_id);
 
-  if (!event || !viewDateIsEditable()) return;
+  if (!event || massEventIsDeleted(event) || !viewDateIsEditable()) return;
 
   g_mass_edit_id = event_id;
   g_mass_edit_draft = {
@@ -1332,7 +1397,7 @@ function saveMassEventEdit()
 
 function deleteMassEvent(event_id)
 {
-  let day = massEventsForDate(g_view_date);
+  let day = rawMassEventsForDate(g_view_date);
 
   if (!viewDateIsEditable()) return;
 
@@ -1340,8 +1405,7 @@ function deleteMassEvent(event_id)
   {
     if (day[i].id == event_id)
     {
-      markDeletedMassEvent(day[i]);
-      day.splice(i, 1);
+      markMassEventDeleted(day[i]);
       if (g_mass_edit_id == event_id) cancelMassEventEdit();
       render();
       save();
@@ -2700,8 +2764,7 @@ function makeMassEventsExportPayload()
   return {
     export_type:'protein-loadout-mass-events',
     exported_at:new Date().toISOString(),
-    mass_events:g_mass_events,
-    deleted_mass_event_ids:g_deleted_mass_event_ids
+    mass_events:g_mass_events
   };
 }
 
@@ -2723,7 +2786,7 @@ function buildMassEventsCSV()
 
   for (let date in g_mass_events)
   {
-    if (Array.isArray(g_mass_events[date]) && g_mass_events[date].length) dates.push(date);
+    if (massEventsForDate(date).length) dates.push(date);
   }
 
   dates.sort();
@@ -2986,7 +3049,7 @@ function importMassEventChangeStats(import_events, replace)
 
   for (let id in import_ids)
   {
-    if (!current_ids[id] && !g_deleted_mass_event_ids[id])
+    if (!current_ids[id])
     {
       ++result.added;
       if (!replace) ++result.total;
@@ -3171,11 +3234,8 @@ function applyReplaceMassImport()
   g_mass_events = {};
   if (parsed.mass_events && typeof parsed.mass_events == 'object') g_mass_events = parsed.mass_events;
 
-  g_deleted_mass_event_ids = {};
-  if (parsed.deleted_mass_event_ids && typeof parsed.deleted_mass_event_ids == 'object') g_deleted_mass_event_ids = parsed.deleted_mass_event_ids;
-
   migrateMassEvents();
-  pruneDeletedMassEvents();
+  applyLegacyDeletedMassEvents(parsed.deleted_mass_event_ids);
 
   g_mass_import_pending = null;
   g_mass_import_text = '';
@@ -3190,10 +3250,9 @@ function applyMergeMassImport()
 
   if (!parsed) return;
 
-  mergeDeletedMassEventIds(parsed.deleted_mass_event_ids);
   mergeMassEvents(parsed.mass_events);
   migrateMassEvents();
-  pruneDeletedMassEvents();
+  applyLegacyDeletedMassEvents(parsed.deleted_mass_event_ids);
 
   g_mass_import_pending = null;
   g_mass_import_text = '';
@@ -3255,8 +3314,6 @@ function applyReplaceImport()
   if (parsed.log && typeof parsed.log == 'object') g_log = parsed.log;
   g_mass_events = {};
   if (parsed.mass_events && typeof parsed.mass_events == 'object') g_mass_events = parsed.mass_events;
-  g_deleted_mass_event_ids = {};
-  if (parsed.deleted_mass_event_ids && typeof parsed.deleted_mass_event_ids == 'object') g_deleted_mass_event_ids = parsed.deleted_mass_event_ids;
   if (parsed.collapsed_groups && typeof parsed.collapsed_groups == 'object') g_collapsed_groups = parsed.collapsed_groups;
 
   mergeKnownItems(); /* pick up any known items added to this tool since the backup was made */
@@ -3264,7 +3321,7 @@ function applyReplaceImport()
   applyLegacyDeletedLogEntries(parsed.deleted_log_entry_ids, parsed.deleted_log_entries);
   migrateTagsFormat();
   migrateMassEvents();
-  pruneDeletedMassEvents();
+  applyLegacyDeletedMassEvents(parsed.deleted_mass_event_ids);
 
   g_import_pending = null;
   g_import_text = '';
@@ -3318,8 +3375,8 @@ function applyMergeImport()
 
   mergeLogEntries(parsed.log);
   applyLegacyDeletedLogEntries(parsed.deleted_log_entry_ids, parsed.deleted_log_entries);
-  mergeDeletedMassEventIds(parsed.deleted_mass_event_ids);
   mergeMassEvents(parsed.mass_events);
+  applyLegacyDeletedMassEvents(parsed.deleted_mass_event_ids);
 
   if (parsed.collapsed_groups && typeof parsed.collapsed_groups == 'object')
   {
@@ -3333,7 +3390,6 @@ function applyMergeImport()
   migrateLogFormat();
   migrateTagsFormat();
   migrateMassEvents();
-  pruneDeletedMassEvents();
 
   g_import_pending = null;
   g_import_text = '';
@@ -3497,7 +3553,6 @@ function makeSavePayload()
     scoop_items:g_scoop_items,
     log:g_log,
     mass_events:g_mass_events,
-    deleted_mass_event_ids:g_deleted_mass_event_ids,
     collapsed_groups:g_collapsed_groups
   };
 }
@@ -3840,41 +3895,63 @@ function mergeLogEntries(remote_log)
   }
 }
 
-function mergeDeletedMassEventIds(ids)
+function findMassEventById(event_id)
 {
-  if (!ids || typeof ids != 'object') return;
+  if (!event_id) return null;
 
-  for (let id in ids)
-  {
-    if (ids[id]) g_deleted_mass_event_ids[id] = true;
-  }
-}
-
-function pruneDeletedMassEvents()
-{
   for (let date in g_mass_events)
   {
     let day = g_mass_events[date];
     if (!Array.isArray(day)) continue;
 
-    for (let i = day.length - 1; i >= 0; --i)
+    for (let i = 0; i < day.length; ++i)
     {
-      if (day[i].id && g_deleted_mass_event_ids[day[i].id]) day.splice(i, 1);
+      if (day[i] && day[i].id == event_id) return day[i];
     }
   }
+
+  return null;
+}
+
+function applyLegacyDeletedMassEvents(ids)
+{
+  if (!ids || typeof ids != 'object') return;
+
+  for (let id in ids)
+  {
+    let event = findMassEventById(id);
+    if (!ids[id] || !event) continue;
+
+    event.delete_count = Math.max(massEventDeleteCount(event), 1);
+  }
+}
+
+function mergeMassEventState(local_event, remote_event)
+{
+  let local_count;
+  let remote_count;
+
+  if (!local_event || !remote_event) return;
+
+  local_count = massEventDeleteCount(local_event);
+  remote_count = massEventDeleteCount(remote_event);
+
+  if (remote_event.deleted_at && !local_event.deleted_at) local_event.deleted_at = remote_event.deleted_at;
+  if (remote_event.buried_at && !local_event.buried_at) local_event.buried_at = remote_event.buried_at;
+
+  if (remote_count > local_count) local_event.delete_count = remote_count;
+  if (remote_event.buried_at && massEventDeleteCount(local_event) < 2) local_event.delete_count = 2;
 }
 
 function mergeMassEvents(remote_events)
 {
   if (!remote_events || typeof remote_events != 'object') return;
 
-  pruneDeletedMassEvents();
-
   for (let date in remote_events)
   {
     let remote_day = remote_events[date];
     let local_day = g_mass_events[date];
-    let local_ids = {};
+    let local_events = {};
 
     if (!Array.isArray(remote_day)) continue;
 
@@ -3886,18 +3963,22 @@ function mergeMassEvents(remote_events)
 
     for (let i = 0; i < local_day.length; ++i)
     {
-      if (local_day[i].id) local_ids[local_day[i].id] = true;
+      if (local_day[i].id) local_events[local_day[i].id] = local_day[i];
     }
 
     for (let i = 0; i < remote_day.length; ++i)
     {
       let event = remote_day[i];
       if (!event.id) continue;
-      if (g_deleted_mass_event_ids[event.id]) continue;
-      if (local_ids[event.id]) continue;
+
+      if (local_events[event.id])
+      {
+        mergeMassEventState(local_events[event.id], event);
+        continue;
+      }
 
       local_day.push(event);
-      local_ids[event.id] = true;
+      local_events[event.id] = event;
     }
   }
 }
@@ -3945,9 +4026,8 @@ function mergeLoadedPayload(payload)
   mergeScoopItems(payload.scoop_items);
   mergeLogEntries(payload.log);
   applyLegacyDeletedLogEntries(payload.deleted_log_entry_ids, payload.deleted_log_entries);
-  mergeDeletedMassEventIds(payload.deleted_mass_event_ids);
   mergeMassEvents(payload.mass_events);
-  pruneDeletedMassEvents();
+  applyLegacyDeletedMassEvents(payload.deleted_mass_event_ids);
 }
 
 function saveLocalJson(json_text)
@@ -4126,8 +4206,12 @@ function load()
       migrateLogFormat();
       applyLegacyDeletedLogEntries(payload.deleted_log_entry_ids, payload.deleted_log_entries);
     }
-    if (payload.mass_events && typeof payload.mass_events == 'object') g_mass_events = payload.mass_events;
-    if (payload.deleted_mass_event_ids && typeof payload.deleted_mass_event_ids == 'object') g_deleted_mass_event_ids = payload.deleted_mass_event_ids;
+    if (payload.mass_events && typeof payload.mass_events == 'object')
+    {
+      g_mass_events = payload.mass_events;
+      migrateMassEvents();
+      applyLegacyDeletedMassEvents(payload.deleted_mass_event_ids);
+    }
     if (payload.collapsed_groups) g_collapsed_groups = payload.collapsed_groups;
   }
 
@@ -4157,7 +4241,6 @@ function load()
     migrateLogFormat();
     migrateTagsFormat();
     migrateMassEvents();
-    pruneDeletedMassEvents();
     render();
   }
 
@@ -4579,7 +4662,7 @@ function renderMassEventEditRow(event)
 function renderMassEventLog()
 {
   let ledger = computeMassLedger(g_view_date);
-  let events = ledger.events;
+  let events = sortedVisibleMassEvents(g_view_date);
   let h = '';
 
   h += `<div class="mass-log">
@@ -4594,11 +4677,13 @@ function renderMassEventLog()
   {
     let event = events[i];
     let info = ledger.event_info[event.id] || {};
+    let is_deleted = massEventIsDeleted(event);
     let primary = '';
     let detail = '';
     let extra = '';
-    let edit = g_mass_edit_id == event.id ? renderMassEventEditRow(event) : '';
-    let disabled = !viewDateIsEditable() ? ' disabled' : '';
+    let edit = !is_deleted && g_mass_edit_id == event.id ? renderMassEventEditRow(event) : '';
+    let disabled = !viewDateIsEditable() || is_deleted ? ' disabled' : '';
+    let deleted_class = is_deleted ? ' deleted' : '';
 
     if (event.event_type == 'water')
     {
@@ -4629,7 +4714,7 @@ function renderMassEventLog()
       extra = 'Mass out ' + formatMassKg(info.mass_out_kg, false);
     }
 
-    h += `<div class="mass-event">
+    h += `<div class="mass-event${deleted_class}">
       <div class="mass-event-time">${esc(massEventTimeText(event))}
         <button class="editbtn mass-event-editbtn" data-a="mass-event-edit"
         data-event="${esc(event.id)}" title="edit mass event"${disabled}>✎
@@ -4643,7 +4728,7 @@ function renderMassEventLog()
         ${edit}
       </div>
       <div class="mass-event-actions">
-        <button class="logged-food-remove" data-a="mass-event-delete" data-event="${esc(event.id)}" title="delete mass event"${disabled}>−</button>
+        <button class="logged-food-remove" data-a="mass-event-delete" data-event="${esc(event.id)}" title="${is_deleted ? 'hide deleted mass event' : 'delete mass event'}"${!viewDateIsEditable() ? ' disabled' : ''}>−</button>
       </div>
     </div>`;
   }
@@ -4661,7 +4746,7 @@ function renderMassDailySummaries()
 
   for (let date in g_mass_events)
   {
-    if (Array.isArray(g_mass_events[date]) && g_mass_events[date].length) dates[date] = true;
+    if (massEventsForDate(date).length) dates[date] = true;
   }
   dates[g_view_date] = true;
 
