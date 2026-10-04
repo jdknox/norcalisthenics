@@ -1679,7 +1679,7 @@ function computeMassLedger(date)
   return { events:events, event_info:event_info, totals:totals };
 }
 
-function formatMassKg(kg, signed)
+function formatMassKg(kg, signed, grams=1)
 {
   let sign = '';
   let abs;
@@ -1689,7 +1689,10 @@ function formatMassKg(kg, signed)
   if (kg < -0.0005) sign = '-';
 
   abs = Math.abs(kg);
-  if (abs < 1) return sign + Math.round(abs*1000) + ' g';
+  if (grams && (abs < 1))
+  {
+    return sign + Math.round(abs*1000) + ' g';
+  }
   return sign + fmt2(abs) + ' kg';
 }
 
@@ -6022,24 +6025,24 @@ function renderScoopSection()
   let remaining_ratio = remainingKcalProteinRatio(totals);
   let remaining_ratio_text = remaining_ratio != null ? fmtKcalProteinRatio(remaining_ratio) : '—';
   let target_kcal = targetKcalDay();
-  let kcal_difference = target_kcal - totals.kcal;
-  let kcal_percent = target_kcal > 0 ? Math.abs(kcal_difference)/target_kcal*100 : 0;
-  let weekly_mass_kg = Math.abs(kcal_difference)*7/g_kcal_per_kg_bodyfat;
+  let kcal_difference = totals.kcal - target_kcal;
+  let kcal_percent = target_kcal > 0 ? kcal_difference/target_kcal*100 : 0;
+  let weekly_mass_kg = kcal_difference*7/g_kcal_per_kg_bodyfat;
   let kcal_balance_text;
   let weekly_mass_text;
   let kcal_remaining_text;
 
-  if (kcal_difference > 0)
+  kcal_balance_text = fmt0(kcal_percent) + '%';
+  weekly_mass_text = formatMassKg(weekly_mass_kg, 1, 0) + '/wk';
+  kcal_remaining_text = fmt0(Math.abs(kcal_difference));
+
+  if (kcal_difference < 0)
   {
-    kcal_balance_text = fmt1(kcal_percent) + '% cut';
-    weekly_mass_text = fmt2(weekly_mass_kg) + ' kg/wk loss';
-    kcal_remaining_text = fmt0(kcal_difference) + ' rem';
+    kcal_remaining_text += ' rem';
   }
-  else if (kcal_difference < 0)
+  else if (kcal_difference > 0)
   {
-    kcal_balance_text = fmt1(kcal_percent) + '% surplus';
-    weekly_mass_text = fmt2(weekly_mass_kg) + ' kg/wk gain';
-    kcal_remaining_text = fmt0(Math.abs(kcal_difference)) + ' over';
+    kcal_remaining_text += ' over';
   }
   else
   {
@@ -6048,11 +6051,11 @@ function renderScoopSection()
     kcal_remaining_text = '0 rem';
   }
 
-  if (remaining_ratio != null) kcal_remaining_text += ' · ' + remaining_ratio_text + '/g rem';
   h += `<div class="summary">
     <div class="cell">
-      <div class="lab">logged protein</div>
+      <div class="lab">protein</div>
       <div class="val">${fmt0(totals.protein)} g</div>
+      <span class="pantry-macro-ratio">${remaining_ratio_text + '/g rem'}</span>
     </div>
     <div class="cell">
       <div class="lab">${target_label}</div>
@@ -6062,7 +6065,8 @@ function renderScoopSection()
       <div class="lab">kcal</div>
       <div class="val kval">${fmt_1(totals.kcal)}</div>
       <span class="pantry-macro-ratio" title="Assumes the kcal/day target is maintenance; uses 7,700 kcal/kg">
-        ${kcal_balance_text} · ${weekly_mass_text}<br />${kcal_remaining_text}
+        ${kcal_remaining_text} (${kcal_balance_text})<br />
+        ${weekly_mass_text}
       </span>
     </div>
   </div>`;
