@@ -6021,7 +6021,34 @@ function renderScoopSection()
 
   let remaining_ratio = remainingKcalProteinRatio(totals);
   let remaining_ratio_text = remaining_ratio != null ? fmtKcalProteinRatio(remaining_ratio) : '—';
-  let rem_kcal = fmt0(targetKcalDay() - totals.kcal);
+  let target_kcal = targetKcalDay();
+  let kcal_difference = target_kcal - totals.kcal;
+  let kcal_percent = target_kcal > 0 ? Math.abs(kcal_difference)/target_kcal*100 : 0;
+  let weekly_mass_kg = Math.abs(kcal_difference)*7/g_kcal_per_kg_bodyfat;
+  let kcal_balance_text;
+  let weekly_mass_text;
+  let kcal_remaining_text;
+
+  if (kcal_difference > 0)
+  {
+    kcal_balance_text = fmt1(kcal_percent) + '% cut';
+    weekly_mass_text = fmt2(weekly_mass_kg) + ' kg/wk loss';
+    kcal_remaining_text = fmt0(kcal_difference) + ' rem';
+  }
+  else if (kcal_difference < 0)
+  {
+    kcal_balance_text = fmt1(kcal_percent) + '% surplus';
+    weekly_mass_text = fmt2(weekly_mass_kg) + ' kg/wk gain';
+    kcal_remaining_text = fmt0(Math.abs(kcal_difference)) + ' over';
+  }
+  else
+  {
+    kcal_balance_text = 'on target';
+    weekly_mass_text = '0.00 kg/wk';
+    kcal_remaining_text = '0 rem';
+  }
+
+  if (remaining_ratio != null) kcal_remaining_text += ' · ' + remaining_ratio_text + '/g rem';
   h += `<div class="summary">
     <div class="cell">
       <div class="lab">logged protein</div>
@@ -6034,7 +6061,9 @@ function renderScoopSection()
     <div class="cell">
       <div class="lab">kcal</div>
       <div class="val kval">${fmt_1(totals.kcal)}</div>
-      <span class="pantry-macro-ratio">${rem_kcal}<br />${remaining_ratio_text}/g rem</span>
+      <span class="pantry-macro-ratio" title="Assumes the kcal/day target is maintenance; uses 7,700 kcal/kg">
+        ${kcal_balance_text} · ${weekly_mass_text}<br />${kcal_remaining_text}
+      </span>
     </div>
   </div>`;
 
