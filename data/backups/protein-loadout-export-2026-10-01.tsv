@@ -1,0 +1,814 @@
+# protein-loadout-tsv	v1
+
+[meta]
+key	value
+target	130
+target_kcal_ratio	19.615384615384617
+target_kcal_day	2550
+bodyweight_kg	82.4
+
+[bodyweight]
+date	kg
+2026-04-11	82
+2026-04-12	81.4
+2026-07-05	81.8
+2026-07-06	79.9
+2026-07-07	79.3
+2026-07-08	78.9
+2026-07-10	79.2
+2026-07-11	79.6
+2026-07-12	79.9
+2026-07-13	80.2
+2026-07-14	79.4
+2026-07-15	79.1
+2026-07-16	79.8
+2026-07-17	80
+2026-07-18	80.2
+2026-07-19	79.6
+2026-07-20	79.6
+2026-07-21	79.4
+2026-07-22	78.5
+2026-07-23	79.9
+2026-07-24	80.2
+2026-07-25	80.8
+2026-07-26	79.7
+2026-07-27	80.6
+2026-07-29	80.4
+2026-07-30	79.6
+2026-07-31	80.2
+2026-08-05	80.8
+2026-08-06	80.8
+2026-08-07	80.7
+2026-08-08	80.4
+2026-08-09	79.7
+2026-08-10	80.4
+2026-08-11	80.8
+2026-08-13	81.1
+2026-08-14	80.4
+2026-08-15	80.8
+2026-08-16	80.7
+2026-08-19	81.5
+2026-08-20	80.8
+2026-08-21	80.2
+2026-08-23	81.4
+2026-08-24	81
+2026-08-25	80
+2026-08-28	81.3
+2026-08-30	81.8
+2026-08-31	80.6
+2026-09-01	82.4
+2026-09-02	82.1
+2026-09-03	81.8
+2026-09-04	82.6
+2026-09-05	82.2
+2026-09-06	82
+2026-09-07	81.7
+2026-09-08	81
+2026-09-09	81.8
+2026-09-10	82.1
+2026-09-11	81.5
+2026-09-12	81.4
+2026-09-13	81.85
+2026-09-14	81.8
+2026-09-15	81.8
+2026-09-16	81.7
+2026-09-17	82.2
+2026-09-18	82.15
+2026-09-19	82.2
+2026-09-20	81.3
+2026-09-21	82.05
+2026-09-22	82.25
+2026-09-23	82.25
+2026-09-24	82.35
+2026-09-25	81.85
+2026-09-26	82.25
+2026-09-27	82.15
+2026-09-28	82.1
+2026-09-29	81.9
+2026-09-30	81.85
+2026-10-01	82.4
+
+[collapsed_groups]
+group_key	collapsed
+__archived	true
+cheese	true
+egg sandwich	true
+fish	true
+restaurants	true
+rxbar	true
+salmon bowl	true
+skyr bowl	true
+snack mix	true
+subway	true
+tea	true
+~other	true
+
+[foods]
+key	name	kind	unit_grams	unit_protein	package_grams	package_protein	daily	price	package_units
+egg	Egg	unit	50	6			2	10	12
+seitan	Seitan	bulk			227	72	40	8	
+pink_salmon	Pink salmon (canned)	bulk			170	36	170	4	
+edamame	Edamame (shelled)	bulk			283	36	80	4	
+barramundi	Barramundi	bulk			340	63	50	8	
+skyr	Skyr	bulk			680	76	300	4	
+rice	Rice (dry, uncooked)	bulk			2250	160	60	15	
+
+[pantry_items]
+key	name	brand	barcode	scoop_g	protein_g	kcal	protein_100g	kcal_100g	volume_ml	volume_label	archived
+cashew_tj	Cashew Pieces	Trader Joe's	00505154	48	8	275	16.6667	572.9167	80		
+granola_pe	Granola; M.A.B.	purely elizabeth	855140002991	40	4	175	10	437.5	120		
+skyr_siggis	Skyr; plain 0%	siggi's	898248001411	250	28	150	11.2	60		BOWL	
+099482477196	Flaxseed; ground	365	099482477196	12	2.8	65	16.6667	541.6667	23		
+898248001428	Skyr; vanilla 0%	siggi's	898248001428	250	25	180	10	72		BOWL	
+00914055	Salmon; AK	Trader Joe's	00914055	170	34	220	20	129.4118		CAN	
+829696000473	Salmon; pink	Gus's	829696000473	170	36	180	21.1765	105.8824		CAN	
+011152066301	Rice; sushi	Nishiki	011152066301	150	4	215	2.6667	143.3333		BOWL	
+099482479657	Granola; M.A.B.	365	099482479657	44	6	200	13.6364	454.5455	120		
+mtjhxp1v9so0uy	Falafel Salad	Gott's Roadside		485	30	900	6.185567010309279	185.56701030927834		BOWL	false
+705105357713	Seitan; traditional	Upton's Naturals	705105357713	40	12.6	63	31.5	157.5	80		
+638031605026	Deli slices; M&B	Field Roast	638031605026	55	17	120	30.909090909090907	218.18181818181816		3 SLICES	
+042563007805	Edamame; shelled	Woodstock	042563007805	80	10.4	113	13	141.25	120		
+mtrhq338r8a51q	MB Shake			200	26	300	13	150		CUP	true
+mts1t8nzcykk1w	RX-Nut Butter & Oat	RXBAR	193908005175	55	10	220	18.181818181818183	400		BAR	
+mts266nqclc1d3	Mackerel sandwich	Lucca		500	60	1500	12	300		ENTYRE SANDWICH!	false
+mtsxoyl73cnhrf	Milk A2/A2	Trader Joe's	00809719	120	4	75	3.3333333333333335	62.5			false
+mtte4bo4knozir	Smoked Salmon with Sichuan Chili Crisp	Fishwife	860006380410	90	19	340	21.111111111111	377.777777777778		CAN	
+mttmbwxsk0k4l4	Footlong Veggie Delight (jdk)	Subway; no sauces		500	33	590	6.6000000000000005	118		ENTYRE SANDWICH!	false
+mttmfnyvw3q2gy	Provolone	Gus's	816649010023	56	16	200	28.57142857142857	357.14285714285717		2 SLICES	
+mttmsoem3cn6rm	Черен Квас	Kvas Taras	4820000456531	190	1.6	65	0.83	34		½ C&C W/ICE	
+mtuanfoz9qchcd	Protein	Just One Ingredient	191011001862	12	10.3	45	85.83333333333334	375		SCOOP	false
+mtuqnr4uanro8m	Salmon	Ukrainian	4823097910269	150	25	210	16.666666666666664	140		CAN	true
+mtv0dajfj7583a	Mozzarella; fresh	BelGioioso	031142000887	100	17.9	250	17.9	250			false
+mtvujpfoi0omnv	H.K. Tea (even SCM & EM)	Knox		20	2.4	75	12	375		TEACUP	false
+mtvxcwom9vbl4a	Orange Juice	Gus's	044643600326	185	1.4800000000000002	86.00000000000001	0.8	46.48648648648649		1/2 C&C	false
+mtvxjydkse5rvd	Bread; Wheat 21 Whole Grains and Seeds	Dave's Killer Bread	013764027053	90	12	220	13.333333333333334	244.44444444444446		2 SLICES	
+mtvxofjjlzh8dn	Eggs; free range	Judy's Family Farm	021428951316	48	6.1	69	12.708333333333332	143.75		EGG	
+mtxps7jgawxoll	granola; Peanut Butter	KIND	602652171826	50	7.7	200	15.4	400			false
+mtxpvrw9mwt18b	Peanut Butter; crunchy	Trader Joe's	00014885	30	7.5	178	25	593.3333333333334		KNIFEFULL	false
+mtwbwpsygqiaav	Greek Yogurt; Plain Organic	Straus Family Creamery	784830004055	250	22.1	191	8.84	76.4		BOWL	
+mu05yl2wccqn62	RX-Chocolate Sea Salt	RXBAR	857777004232	52	12	200	23.076923076923077	384.61538461538464		BAR	
+mu0iz28ol6x55r	Havarti Cheese Slices	Castello	654858705893	56	12	220	21.428571428571427	392.85714285714283		2 SLICES	false
+mu0c2w6c5qfu18	Caprese sandwich	Falletti		485	46	1025	9.4845	211.34		ENTYRE SANDWICH!	false
+mu0bw4j5o9gywd	Deli Slices, Peppered	Tofurky	025583004221	52	14	110	26.923076923076923	211.53846153846155		3 SLICES	false
+mu1jrz4tq6ex91	Crispy Tofu Bánh Mi	Dinosaurs		400	20	850	5	212.5			false
+mu1r57ndni28dn	Pink Salmon	Kirkland Signature	096619916146	170	34	160	20	94.11764705882352		CAN	false
+mu2w2ymalyhtvd	Lassi, Mango	Gopi	796252300295	250	4	216	1.6	86.4			
+mu2w8k0xs64ek4	RX-Blueberry	RXBAR	857777004195	52	12	180	23.076923076923077	346.1538461538462		BAR	false
+mu3gzgj4dmy4fd	Broccoli Cheddar Soup	Panera Bread	077958790918	340	13	330	3.823529411764706	97.05882352941177		½ TUB	false
+mu4czyj2pm8ewn	Nazook	22nd Irving Market	641542000020	116	7	507	6.0344827586206895	437.0689655172414		2 ROLLS	false
+mu4jo28u2oqg97	Strawberry Preserves	Bonne Maman	088702015607	30	0.1	71	0.4	235.135135135135			
+mu4k20sogp6lts	Banana			64	0.7	57	1.09375	89.0625		HALF	false
+mu4yes57h9oauc	Seared Salmon	Sous Vide	225274029834	140	22.7	188	16.214285714285715	134.28571428571428			false
+mu4nxvq55vb54b	#14 Veggie	Jersey Mike's		500	40	960	8	192			
+mu68l0qudq25vp	Almond Butter Balls	Knox		40	10	200	25	500		BALL	false
+mu6e9wmo2u28hg	Mozzarella; Shredded	Trader Joe's	00810852	30	8.6	86	28.666666666666668	286.6666666666667			false
+mu6ekae5r4c7am	Ritz crackers	Ritz	044000058241	24	1.5	120	6.25	500			false
+mu77z4vndirqgy	Evaporated milk	CA Farms	095684300157	20	1.3	25	6.5	125			false
+mu785ni60uhw3n	Sweetened Condensed Milk	CA Farms	095684300126	20	1.5	67	7.5	335			false
+mu7a44gmwjg5n7	Vitamin D3 Gummies	Nordic Naturals	768990311413	6	0.0023999999999999994	20	0.039999999999999994	333.33333333333337			false
+mu7fkei78od23c	#298 - Jaymeetless (no sauces)	Ike's			30	570				ENTYRE	false
+mu7fnjhuleras7	Secret Buffalo Sauce	Knox		50	10	96	20	192			
+mu7rsb8llikbka	Salmon; pink	Kirkland	096619653133	170	34	160	20	94.11764705882352		CAN	false
+mu7sgtf7o5i8tt	Greek Yogurt; plain	Clover Sonoma	070852993485	250	32	175	12.8	70		BOWL	false
+mu7syn4ahffmtb	Burrata	Belgioioso	031142001105	50	5.4	125	10.8	250			false
+mu8w4qb42ctj98	Thai Ice Tea	Sweet Lime		400	4	300	1	75			false
+mu8wniajv0huu3	Choo Chee salmon curry	Sweet Lime			43	770					
+muaifvuwapq81t	French Toast	Grove			26	950					false
+muarn0uatsvj36	Blueberry Just Fruit Spread	CROFTER'S	067275000357	32	0.21333333333333332	53.333334400000005	0.6666666666666666	166.66667			false
+mubxmp67cfzlq9	merci chocolates	Storck	072799035570	25	2	140	8	560			
+muc837xv6hhxwx	Chicken Nuggets	Impossible	816697021149	95	13	240	13.7	253			
+mud71s8zlyetmy	Veggie bowl	Chipotle		800	32	1325	4	165.625			false
+mueltxjomregc3	Egg & Cheese Biscuit; special	Devil's Teeth		400	28	900	7.000000000000001	225			false
+muevflpbghzfw6	Egg waffle; Original	Egettes			3.5	200					false
+muevh6ikrdepv1	Milk Tea; malt	Egettes		480	3	340	0.625	70.83333333333334			false
+muf4wxqmh5dnkd	Greek Yogurt; 20 g	Chobani	818290015907	250	26.3	184	10.5	73.6842105263158			
+mug8vnp15wv5vr	salmon; honey smoked	Honey Smoked Fish Co	660646001559	56	13	180	23.214285714285715	321.42857142857144			false
+mug957ak8e31ie	Barramundi	The Better Fish	810093120864	113	21	100	18.58407079646018	88.49557522123894			false
+mug9i2s66rorlm	Sweet Potato Hash Brown	Strong Roots	810012620789	160	4	240	2.5	150		4 WELL DONE	false
+mug9sh9pk2vmsf	Olive Oil	Trader Giotto's	00014373	15	2.6999999999999996e-7	120	0.0000018	800			false
+muhvkb836hw3zc	Salmon; Blackened Atlantic	Kirkland Signature	196633881236	152	29	300	19.078947368421055	197.36842105263156		FILLET	false
+muiphw6m3166rc	MAPLE SYRUP	SHADY MAPLE FARMS	066676283758	20	0.008	55	0.04	275			false
+muj14v9pycdi77	HK Tea	By Me Boba		650	4.5	275	0.6923076923076923	42.30769230769231			false
+muk4tpcndticmf	Whipping cream	Trader Joe's	00981859	20	0.54	60	2.7	300			false
+mukc5m41s92sfj	Vegennaise	Follow Your Heart	049568010168	25	0.3375	142.857142857143	1.35	571.428571428572			false
+mukpejhakzfh9s	Edamame; shelled	Trader Joe's	00687096	40	4.2	47	10.500000000000002	117.5			false
+muljnsinc1g6f2	HK Tea w/whipping cream	Knox		60	3	200	5	333.33333333333337		MIX	false
+mulqnr5o066303	Dave's Taco Bowl (no meat)	Mixt			23	700					false
+mum923iud7x6in	Kefir	Clover Sonoma	070852991474	240	9	110	3.75	45.8333333333333			
+munj8qyarbsxvx	Avocado	Trees		50	1	80	2	160		HALF	false
+muoj847n0fluj9	Cherries; frozen	Woodstock	042563007935	60	0.66	39.12	1.1	65.2			
+muoyg6amtei5ch	General Tsao Tofu	Kung Food		550	34	925	6.181818181818182	168.1818181818182			false
+muq16kqy469jnp	Sauces; mayo, creamy Sriracha, aioli	Subway			0.1	440					false
+
+[pantry_item_tags]
+item_key	tag
+cashew_tj	skyr bowl
+cashew_tj	snack mix
+granola_pe	skyr bowl
+granola_pe	snack mix
+skyr_siggis	skyr bowl
+099482477196	skyr bowl
+898248001428	skyr bowl
+00914055	salmon bowl
+00914055	fish
+829696000473	salmon bowl
+829696000473	fish
+011152066301	salmon bowl
+099482479657	skyr bowl
+mtjhxp1v9so0uy	restaurants
+705105357713	salmon bowl
+638031605026	egg sandwich
+042563007805	salmon bowl
+mts1t8nzcykk1w	rxbar
+mts266nqclc1d3	restaurants
+mtte4bo4knozir	subway
+mtte4bo4knozir	fish
+mttmbwxsk0k4l4	subway
+mttmbwxsk0k4l4	restaurants
+mttmfnyvw3q2gy	subway
+mttmfnyvw3q2gy	egg sandwich
+mtuanfoz9qchcd	protein
+mtv0dajfj7583a	cheese
+mtvujpfoi0omnv	tea
+mtvxjydkse5rvd	egg sandwich
+mtvxofjjlzh8dn	egg sandwich
+mtxps7jgawxoll	snack mix
+mu05yl2wccqn62	rxbar
+mu0iz28ol6x55r	cheese
+mu0iz28ol6x55r	egg sandwich
+mu0c2w6c5qfu18	restaurants
+mu0bw4j5o9gywd	egg sandwich
+mu1jrz4tq6ex91	restaurants
+mu1r57ndni28dn	fish
+mu2w8k0xs64ek4	rxbar
+mu3gzgj4dmy4fd	soup
+mu3gzgj4dmy4fd	restaurants
+mu4k20sogp6lts	skyr bowl
+mu4yes57h9oauc	salmon bowl
+mu4yes57h9oauc	fish
+mu4nxvq55vb54b	restaurants
+mu68l0qudq25vp	snack mix
+mu68l0qudq25vp	rxbar
+mu6e9wmo2u28hg	cheese
+mu77z4vndirqgy	tea
+mu785ni60uhw3n	tea
+mu7fkei78od23c	restaurants
+mu7rsb8llikbka	salmon bowl
+mu7sgtf7o5i8tt	skyr bowl
+mu7syn4ahffmtb	cheese
+mu8w4qb42ctj98	tea
+muaifvuwapq81t	restaurants
+muarn0uatsvj36	skyr bowl
+mud71s8zlyetmy	restaurants
+mueltxjomregc3	restaurants
+muevflpbghzfw6	restaurants
+muevh6ikrdepv1	tea
+mug8vnp15wv5vr	fish
+mug957ak8e31ie	fish
+muhvkb836hw3zc	fish
+muhvkb836hw3zc	salmon bowl
+muj14v9pycdi77	restaurants
+muj14v9pycdi77	tea
+mukpejhakzfh9s	salmon bowl
+mulqnr5o066303	restaurants
+muoyg6amtei5ch	restaurants
+muq16kqy469jnp	subway
+
+[log_entries]
+date	id	item_key	grams	protein_g	kcal	scale	note	deleted_at	delete_count	buried_at	restored_at
+2026-09-01	mtkt8uc2t7m8s9	cashew_tj	48	8	275	1					
+2026-09-01	mtkt8uc2ud0lya	cashew_tj	48	8	275	1					
+2026-09-01	mtkt8uc2g4b5xn	099482477196	12	2.8	65	1					
+2026-09-01	mtkt8uc2dzmklx	099482477196	12	2.8	65	1					
+2026-09-01	mtkt8uc20g2b4c	granola_pe	40	4	175	1					
+2026-09-01	mtkt8uc26gezf6	granola_pe	40	4	175	1					
+2026-09-01	mtkt8uc2jvij43	898248001428	250	25	180	1					
+2026-09-01	mtkt8uc2tcl9qi	898248001428	250	25	180	1					
+2026-09-01	mtkt8uc2wf6s8f	mtjhxp1v9so0uy		26	900	1					
+2026-09-02	mtktg6eqg7qryt	898248001428	200	20	144	0.8					
+2026-09-02	mtktgy3xsb1akh	cashew_tj	40.8	6.8	234	0.85					
+2026-09-02	mtkthauwmjrd49	042563007805	80	10.4	113	1					
+2026-09-02	mtkthe4vxgs7wc	granola_pe	40	4	175	1					
+2026-09-02	mtkthr4otm581m	011152066301	150	4	215	1					
+2026-09-02	mtkti5qyp6yodo	829696000473	170	36	180	1					
+2026-09-02	mtktibng0c62ns	705105357713	40	12.6	63	1					
+2026-09-02	mtktqdzffenf29	custom		15	345						
+2026-09-02	mtktijdk260902	mu1jrz4tq6ex91	400	20	850	1					
+2026-09-02	mu5t9177nshkma	custom		4	325		Thai I' Tea				
+2026-09-03	mtm1rwyqs5ebzr	custom		35	805						
+2026-09-03	mtm1so33vctr2d	00914055	80	16	104	0.47058823529411764					
+2026-09-03	mtmi940jtptuoc	898248001428	220	23.1	198	1.1					
+2026-09-03	mtmi9isjr7o6vk	855140002991	40	4	175	1					
+2026-09-03	mtmi9m8hjsxn8e	099482477196	12	2	65	1					
+2026-09-03	mtmi9r8clw4ob4	00505154	48	8	275	1					
+2026-09-03	mjdk2609141208	custom		12	410		TB - veggie bowl				
+2026-09-03	mjdk2609141209	custom		9	170		TB - pintos n cheese				
+2026-09-03	mjdk2609141210	custom		15	530		TB - mexican pizza				
+2026-09-04	mtn77qnpguwvj5	custom		11	253						
+2026-09-04	mtn77qnpguwvj6	custom		30	1000						
+2026-09-04	mtn784y7jpgksh	00505154	24	4	138	0.5					
+2026-09-04	mtnslafd7rdyit	042563007805	96	12.5	138	1.2					
+2026-09-04	mtnslqoazq7754	00914055	85	17	110	0.5					
+2026-09-04	mtnslvm64gi8av	705105357713	40	12.6	63	1					
+2026-09-04	mtnsmh60jngr58	011152066301	150	4	215	1					
+2026-09-04	mu5um5mj25uly9	mttmsoem3cn6rm	380	2	130	2	bottle				
+2026-09-04	mu5uso33ygea00	custom		13	256		khachapuri				
+2026-09-05	mtp3qgjrahbsao	custom		40	920						
+2026-09-05	mtp3qvnw6vii1v	custom		8	184						
+2026-09-05	mtp3uy6lnx4o7a	custom		8	184						
+2026-09-05	mtp49kkiv061xp	00914055	119	23.8	154	0.7					
+2026-09-05	mtp49vc6m6rfhg	custom		20	460						
+2026-09-05	mtpa4b2yq4bt7d	custom		20	460						
+2026-09-06	mtqdbei42sd2qf	custom		22	506						
+2026-09-06	mtqdbj361kwni3	custom		45	1035						
+2026-09-06	mtqt32g1foklln	898248001411	250	28	150	1					
+2026-09-06	mtqt32vgzwnjqj	099482479657	44	6	200	1					
+2026-09-06	mtqt3391t17r9d	099482477196	12	2	65	1					
+2026-09-06	mtqt344o0ju7f5	00505154	48	8	275	1					
+2026-09-06	mtqt80emwwaeyj	custom		9	207						
+2026-09-07	mtrhzdobdk4r8o	custom		3	69						
+2026-09-07	mts28n18xztqjo	mts266nqclc1d3	500	60	1500	1					
+2026-09-07	mts3p06k15xer5	mts1t8nzcykk1w	55	10	220	1					
+2026-09-07	mts424ipsr10g0	mtrhq338r8a51q	200	26	300	1					
+2026-09-08	mtsxu2vnwzu7hn	mts1t8nzcykk1w	55	10	220	1					
+2026-09-08	mttj0088i29waf	mtte4bo4knozir	85.5	18.1	323	0.95					
+2026-09-08	mttj5g3odhx568	mtrhq338r8a51q	200	24	75	1					
+2026-09-08	mttmc1qviq8xis	mttmbwxsk0k4l4	500	33	1030	1					
+2026-09-08	mttmnbtgw6i0gp	mttmfnyvw3q2gy	56	16	200	1					
+2026-09-08	mttmtwfoj92bkh	mttmsoem3cn6rm	190	1.6	65	1					
+2026-09-08	mttmyirrh33xi3	mttmfnyvw3q2gy	28	8	100	0.5					
+2026-09-08	mttn5s7a08dpmz	skyr_siggis	237.5	26.6	143	0.95					
+2026-09-08	mttn9vzgbr5cgm	custom		0	50						
+2026-09-09	mtuajadx2ucsu4	custom		8	120		TJ sourdough				
+2026-09-09	mtuak4qjh3nws6	custom		4	200		cream cheese				
+2026-09-09	mtuanry4s9ux0w	mtuanfoz9qchcd	12	10.3	45	1					
+2026-09-09	mtuarnbrz1yxjs	mttmfnyvw3q2gy	28	8	100	0.5					
+2026-09-09	mtuozu0d1jk4ak	011152066301	172.5	4.6	247	1.15					
+2026-09-09	mtuqo0guyjgb4q	mtuqnr4uanro8m	150	25	210	1					
+2026-09-09	mtuqoa5a6raj4z	705105357713	40	12.6	63	1					
+2026-09-09	mtuqydmt8v2mld	mtuanfoz9qchcd	12	10.3	45	1					
+2026-09-09	mtur1k1y5g0wd8	mttmsoem3cn6rm	190	1.6	65	1					
+2026-09-09	mtv0e2re7a2vqq	mtv0dajfj7583a	100	17.9	250	1					
+2026-09-09	mtv0f4ytibr0f4	custom		4	240		TJ's sourdough (adjusted for morning)				
+2026-09-09	mtv0kk4udg5ywk	custom		2	160		Avocado				
+2026-09-09	mtv0nrc2t7tlai	mtte4bo4knozir	40	8.4	151	0.4444444444444444					
+2026-09-09	mtv0r215tmg7b9	mttmsoem3cn6rm	190	1.6	65	1					
+2026-09-09	mtv1w1io5iwy7e	cashew_tj	24	4	138	0.5					
+2026-09-09	mtv1wvr9xc79se	898248001428	250	25	180	1					
+2026-09-09	mtv1y3978gaidu	custom		0	66						
+2026-09-10	mtvuk1p2f34q2t	mtvujpfoi0omnv	360	7	240	1					
+2026-09-10	mtvxdoghbkme35	mtvxcwom9vbl4a	185	0	86	1					
+2026-09-10	mtvxeaqb4gzvxx	638031605026	55	17	120	1					
+2026-09-10	mtvxg1r836ffj9	mttmfnyvw3q2gy	56	16	200	1					
+2026-09-10	mtvxqxnz4i57wj	mtvxjydkse5rvd	90	12	220	1					
+2026-09-10	mtvxqzzcvteoy6	mtvxofjjlzh8dn	48	6.1	69	1					
+2026-09-10	mtwblonq5uhgpp	custom		25	500		Fricick'n noodle soup				
+2026-09-10	mtwbonuct8x91y	mtwboaqo7238u3	100	1.2	176	1					
+2026-09-10	mtwbrboy9w1tlg	mtuanfoz9qchcd	12	10.3	45	1	Soup				
+2026-09-10	mtwc0nzqi3iav8	mtwbwpsygqiaav	45	4	34	0.18	Tot Buffalo sauce				
+2026-09-10	mtx7b5i3c8hcz8	mtwbwpsygqiaav	200	17.7	153	0.8					
+2026-09-10	mtx7bp1vic4rr6	custom		0	50		strawberry preserves				
+2026-09-10	mtx7cd7vr5z4s0	cashew_tj	24	4	138	0.5					
+2026-09-10	mu5teisoghvzfl	custom		0	100		Berry Blondie - SB				
+2026-09-11	mtx8e8asuyzves	mtvujpfoi0omnv	320	7	240	1					
+2026-09-11	mtxd4tj1ozwflo	mtvxcwom9vbl4a	120.3	0	56	0.65					
+2026-09-11	mtxdhb7ntszlzb	mts1t8nzcykk1w	55	10	220	1					
+2026-09-11	mtxfipa7mbmc2q	custom		4	350		Thai I' Tea				
+2026-09-11	mtxh0upatyy9nj	custom		1	180		Thai I' Coffee				
+2026-09-11	mtxh27mcqbr1cc	custom		30	900		Red Curry				
+2026-09-11	mtxpsiaz4hs4zj	mtxps7jgawxoll	100	15.4	400	2					
+2026-09-11	mtxpzl9jpqtwdr	mtxpvrw9mwt18b	30	7.5	178	1					
+2026-09-11	mtxq6oeailvghj	mtuanfoz9qchcd	12	10.3	45	1					
+2026-09-11	mtxvs9behzliv7	mtwbwpsygqiaav	250	22.1	191	1					
+2026-09-11	mtxvsj9zncjmad	mtuanfoz9qchcd	12	10.3	45	1					
+2026-09-11	mtxvtocbop190p	cashew_tj	30	5	172	0.625					
+2026-09-11	mtxvx19h5de3th	custom		0	20		preserves				
+2026-09-12	mtyplvoh3wiq7p	mtvujpfoi0omnv	320	7	240	1					
+2026-09-12	mtypml9uww7xs4	mtwbwpsygqiaav	137.5	12.2	105	0.55					
+2026-09-12	mtypmuvwuvguxu	mtuanfoz9qchcd	12	10.3	45	1					
+2026-09-12	mtz02iln8papev	custom		21	480		Khachapuri				
+2026-09-12	mtz8f2lqb1864l	011152066301	180	4.8	258	1.2					
+2026-09-12	mtz8lp9oqnl1wc	mtz8lfe1sbdrlt	165	33.5	335	1	Tj samon				
+2026-09-12	mtz8xljawdm6c9	custom		3	45		Broccoli and cucumber 				
+2026-09-12	mtzbycgig18bk1	custom		4	270		Ice cream				
+2026-09-12	mtzdbrmh2ckvc3	custom		33.6	185		Chobani yogurt				
+2026-09-12	mtzdclabhjm6h3	custom		0	88		Preserves 				
+2026-09-12	mtzddf7qrl9asz	mtxps7jgawxoll	40	6.2	160	0.8					
+2026-09-12	mtzddv8sc928at	cashew_tj	20	3.3	115	0.4166666666666667					
+2026-09-13	mu0606vgw4ymnl	mu05yl2wccqn62	52	12	200	1					
+2026-09-13	mu06d383tr8cxc	mtvujpfoi0omnv	160	3.5	120	0.5					
+2026-09-13	mu0bwkgwuw7424	mu0bw4j5o9gywd	52	14	110	1					
+2026-09-13	mu0c4qr0p655l4	mu0c2w6c5qfu18	485	46	1025	1					
+2026-09-13	mu0d7b9v9ewhco	custom		4	250		Mango lassi				
+2026-09-13	mu0d7kzfvir2wu	custom		1	70		Cheese curls 				
+2026-09-13	mu0ih5krywzk8u	custom		8	240		Sourdough 				
+2026-09-13	mu0io5n5lericj	custom		0	115		Vegenaise				
+2026-09-13	mu0iu2wtoftnf9	mtuanfoz9qchcd	12	10.3	45	1					
+2026-09-13	mu0iuyk8unhpzn	829696000473	170	36	180	1					
+2026-09-13	mu0izoyokxnpey	mu0iz28ol6x55r	28	6	110	0.5					
+2026-09-13	mu0jcs1rki7y6z	mttmsoem3cn6rm	190	1.6	65	1					
+2026-09-13	mu0rieefvt3s5o	custom		1	70		Chocolate 				
+2026-09-14	mu1gbqoxsv6tjk	mtvujpfoi0omnv	320	4	150	1					
+2026-09-14	mu1gcunykb49xo	mts1t8nzcykk1w	55	10	220	1					
+2026-09-14	mu1ngarhnt3v1j	custom		1	70		merci chocolate 				
+2026-09-14	mu1r6p6eokqm69	705105357713	80	25.2	126	2					
+2026-09-14	mu1u8h15k8urw4	mu1r57ndni28dn	80	16	75	0.47058823529411764					
+2026-09-14	mu1voz5g1otmub	mtjhxp1v9so0uy	485	30	900	1					
+2026-09-14	mu1vq7l9mfgnu6	custom		5	620		Onion rings + ranch				
+2026-09-14	mu24kszxsg1b6j	mu0bw4j5o9gywd	52	14	110	1					
+2026-09-14	mu24kxrqd0vojn	mtvxofjjlzh8dn	48	6.1	69	1					
+2026-09-14	mu24yv2sk3lqxj	custom		0	60		Oil				
+2026-09-14	mu24z8vlzznkbw	custom		2.5	12		Eiweiss				
+2026-09-14	mu24zpkslhfbx5	mtvxjydkse5rvd	90	12	220	1					
+2026-09-14	mu2566gikyzlks	custom		0.7	15		Lettuce & tomato 				
+2026-09-14	mu257xlu8q3wzd	mu0iz28ol6x55r	56	12	220	1					
+2026-09-14	mu2bx5osfuywgz	custom		1.6	134		Banana (26-09-14)				
+2026-09-15	mu2w3bv4aueqsr	mu2w2ymalyhtvd	137.5	2.2	119	0.55					
+2026-09-15	mu2w4p81ggctsi	mtvxcwom9vbl4a	30	0	14	0.16216216216216217					
+2026-09-15	mu2w9u9i7hgpsg	mu2w8k0xs64ek4	52	12	180	1					
+2026-09-15	mu2wcknydq80xx	mtvujpfoi0omnv	320	4	160	1					
+2026-09-15	mu38hyeiv8eba6	mts1t8nzcykk1w	55	10	220	1					
+2026-09-15	mu39rkxvu0mf7d	mu1jrz4tq6ex91	400	20	850	1					
+2026-09-15	mu3gj1i200z98n	mtvujpfoi0omnv	320	4	160	1					
+2026-09-15	mu3gqpu9qvdylb	custom		6	310		Pineapple bun				
+2026-09-15	mu3h0ealn3tzer	mu3gzgj4dmy4fd	340	13	330	1					
+2026-09-15	mu3h23r9okkcvl	custom		8.5	138		Extra cheese 				
+2026-09-15	mu3h4tkrwg4fv3	mtuanfoz9qchcd	13.2	11.3	50	1.1					
+2026-09-15	mu3ha72x8nb04w	mtsxoyl73cnhrf	106	3.5	66	0.8833333333333333					
+2026-09-15	mu3hch8opybfe9	custom		3.5	210		Croutons 				
+2026-09-15	jdk260916093319	mtxpvrw9mwt18b	19.5	4.9	116	0.65					
+2026-09-15	jdk260916093318	mtuanfoz9qchcd	2.5	2.2	9	0.20916666666666664					
+2026-09-15	jdk260916093317	mu2w8k0xs64ek4	52	12	180	1					
+2026-09-16	mu4c6k6661833q	mtvujpfoi0omnv	320	4	160	1					
+2026-09-16	mu4d0f7ufskr1w	mu4czyj2pm8ewn	116	7	507	1					
+2026-09-16	mu4joev71ci7vm	mu4jo28u2oqg97	30	0.1	71	1					
+2026-09-16	mu4jusabstwxbf	mtuanfoz9qchcd	12	10.3	45	1					
+2026-09-16	mu4jv2wiyleuak	mtwbwpsygqiaav	275	24.3	210	1.1					
+2026-09-16	mu4k2sa2l5bya0	mu4k20sogp6lts	64	0.7	57	1					
+2026-09-16	mu4k40wkj95tp1	cashew_tj	26.4	4.4	151	0.55					
+2026-09-16	mu4oq6y701dfbz	mu0bw4j5o9gywd	67.6	18.2	143	1.3					
+2026-09-16	mu4r17klah37vo	mu4nxvq55vb54b	500	40	960	1					
+2026-09-16	mu4ycfmjogdcn6	011152066301	195	5.2	280	1.3					
+2026-09-16	mu4yuadm5c0knx	mu4yes57h9oauc	172	27.9	231	1.2285714285714286					
+2026-09-16	mu4ywg7izonejb	custom		2	24		Broccoli 				
+2026-09-16	mu4zv1mk7xt75i	mttmsoem3cn6rm	237.5	1	81	1.25					
+2026-09-17	mu611vq5lkv1lb	custom		25	900		Plantain bowl				
+2026-09-17	mu61yz9zr2hi1t	custom		2	200		Fries				
+2026-09-17	mu5xkhud69vqmn	mtvujpfoi0omnv	320	4	160	1					
+2026-09-17	mu5ytdpzao3qyg	mu05yl2wccqn62	52	12	200	1					
+2026-09-17	mu68nnbjpjdnah	mu68l0qudq25vp	74	18.5	370	1.85	2				
+2026-09-17	mu6ab555fwdlth	custom		4	250		IPCSE - Starbucks 				
+2026-09-17	mu6e0two3fnrf5	mu3gzgj4dmy4fd	340	13	330	1					
+2026-09-17	mu6ee1fxi5nidg	mu6e9wmo2u28hg	36	10.3	103	1.2					
+2026-09-17	mu6eesnrmvwsz7	mtsxoyl73cnhrf	50	1.7	31	0.4166666666666667					
+2026-09-17	mu6ehpd4mq90rf	custom		3	103						
+2026-09-17	mu6elg51azcbx4	mu6ekae5r4c7am	24	1.5	120	1					
+2026-09-17	mu6elohyicqsu6	mtuanfoz9qchcd	12	10.3	45	1					
+2026-09-18	mu787ag8m30wi9	mu77z4vndirqgy	20	1.3	25	1					
+2026-09-18	mu787azizi2a9g	mu785ni60uhw3n	20	1.5	67	1					
+2026-09-18	mu7a47iuju5e0d	mu7a44gmwjg5n7	6	0	20	1					
+2026-09-18	mu7boenfyqtrai	mu68l0qudq25vp	40	10	200	1					
+2026-09-18	mu7dtmhu46dtbw	custom		10	96		Buffalo sauce				
+2026-09-18	mu7m1ch2tgioth	mu7fkei78od23c		30	570	1					
+2026-09-18	mu7m1quo13b0l3	mu0iz28ol6x55r	56	12	220	1					
+2026-09-18	mu7m4kac1kbeaj	mtvxcwom9vbl4a	129.5	0	60	0.7					
+2026-09-18	mu7rf9phj1aagc	mtuanfoz9qchcd	13.8	11.8	52	1.15					
+2026-09-18	mu7rfpj0doq181	011152066301	172.5	4.6	247	1.15					
+2026-09-18	mu7ruwf36kfz9q	mu7rsb8llikbka	100	20	94	0.5882352941176471					
+2026-09-18	mu7sz8mxvg42ho	mu7syn4ahffmtb	50	5.4	125	1					
+2026-09-18	mu7t1xmerpgyph	mu7sgtf7o5i8tt	250	32.4	176	1					
+2026-09-18	mu7t2ynyc9yyi3	cashew_tj	24	4	138	0.5					
+2026-09-18	mu7t4d3gpc0jqy	mu4jo28u2oqg97	34.5	0.1	82	1.15					
+2026-09-18	mu7t9rnun47rq8	mu4k20sogp6lts	64	0.7	57	1					
+2026-09-19	mu8p9de19k59ui	mtvujpfoi0omnv	27	3.2	101	1.35					
+2026-09-19	mu8p9zzf09725z	mts1t8nzcykk1w	55	10	220	1					
+2026-09-19	mu8u0dxp5tvrea	mu68l0qudq25vp	44	11	220	1.1					
+2026-09-19	mu8w4uydtay7fl	mu8w4qb42ctj98	400	4	300	1					
+2026-09-19	mu8wnn5jauuc5n	mu8wniajv0huu3		43	770	1					
+2026-09-19	mu8xk6lxtdg9cw	011152066301	75	2	108	0.5					
+2026-09-19	mu98z5b83qv4kd	mtvxofjjlzh8dn	96	12.2	138	2					
+2026-09-19	mu98zfusg5ey5t	custom		8.5	42		Eiweiss 				
+2026-09-19	mu994ymdy7qvee	mtvxjydkse5rvd	90	12	220	1					
+2026-09-19	mu9952ajmzfob9	638031605026	55	17	120	1					
+2026-09-19	mu99bc9fz6664c	mu7syn4ahffmtb	55	5.9	138	1.1					
+2026-09-19	mu9bm2mst760ns	mu7sgtf7o5i8tt	92	11.9	65	0.368					
+2026-09-19	mu9bmh03a495yr	skyr_siggis	103	11.5	62	0.412					
+2026-09-19	mu9bnedw9rf6fy	mu4jo28u2oqg97	40	0.1	95	1.3333333333333333					
+2026-09-19	mu9bo3b2sz8wi5	cashew_tj	30	5	172	0.625					
+2026-09-20	mua9vaxx1n28za	mtvujpfoi0omnv	23	2.8	86	1.15					
+2026-09-20	muad8csbubby11	mu7a44gmwjg5n7	6	0	20	1					
+2026-09-20	muaigyqly5ogs9	mtvxofjjlzh8dn	96	12.2	138	2					
+2026-09-20	muaihp23d4h7iw	mu2w8k0xs64ek4	52	12	180	1					
+2026-09-20	mualcclyrfdobk	muaifvuwapq81t		26	950	1					
+2026-09-20	muaobktvn194x1	mu4yes57h9oauc	203	32.9	273	1.45					
+2026-09-20	muaobw7mo421t0	011152066301	143	3.8	205	0.9533333333333334					
+2026-09-20	muaoh3ff3ph8xa	mttmsoem3cn6rm	167	1.4	57	0.8789473684210526					
+2026-09-20	muark5frw9ib9x	skyr_siggis	268	30	161	1.072					
+2026-09-20	muarnj9q64wcil	muarn0uatsvj36	32	0	47	1					
+2026-09-20	muars10hf6qvb5	muarn0uatsvj36	25.6	0	38	0.8					
+2026-09-20	muarsxdok8asql	mtuanfoz9qchcd	12	10.3	45	1					
+2026-09-21	mubht277ghrmtu	mtvujpfoi0omnv	30	3.6	113	1.5					
+2026-09-21	mubhtbzdgbqf21	mts1t8nzcykk1w	55	10	220	1					
+2026-09-21	mubpln70fcy6rn	mu7a44gmwjg5n7	6	0	20	1					
+2026-09-21	mubsyi5esufvdk	mtvujpfoi0omnv	20	4	75	1	Chai				
+2026-09-21	mubu7pnp9x0b0j	custom		50	1500		Yarsa				
+2026-09-21	mubxmxldd35p7i	mubxmp67cfzlq9	12.5	1	70	0.5					
+2026-09-21	muc4yk693a3vhv	mubxmp67cfzlq9	12.5	1	70	0.5					
+2026-09-21	muc8164890z6s4	muarn0uatsvj36	36.8	0	54	1.15					
+2026-09-21	muc81lbif11xjm	skyr_siggis	305	34.2	183	1.22					
+2026-09-21	muc83uoln1748q	muc837xv6hhxwx	54	7.4	136	0.5684210526315789					
+2026-09-21	muc85gqwilyl3w	mtuanfoz9qchcd	12	10.3	45	1					
+2026-09-21	muc86bgrcf3iua	cashew_tj	31.2	5.2	179	0.65					
+2026-09-21	muc8a18kooi3vu	custom		3	123		Granola; Quaker 				
+2026-09-22	mucvdn71mmxiyt	mu05yl2wccqn62	52	12	200	1					
+2026-09-22	mucve89393vcnn	mtvujpfoi0omnv	28	3.4	105	1.4					
+2026-09-22	mucvg2pvbvfk1i	mu4k20sogp6lts	64	0.7	57	1					
+2026-09-22	muczj9vsygxfwt	mu7a44gmwjg5n7	6	0	20	1					
+2026-09-22	mud72khfrik6dn	mud71s8zlyetmy	800	32	1325	1					
+2026-09-22	mud74mvyzx7bu6	mu1r57ndni28dn	170	34	160	1					
+2026-09-22	mud74ttsu3z29b	mtuanfoz9qchcd	12	10.3	45	1					
+2026-09-22	mud79nhm6naw77	mud71s8zlyetmy	200	8	331	0.25					
+2026-09-22	mudm4r47nhox07	mu7sgtf7o5i8tt	250	26.3	184	1	Chobani				
+2026-09-22	mudm80k43xektq	mtuanfoz9qchcd	12	10.3	45	1					
+2026-09-22	mudm943z08ua2k	muarn0uatsvj36	30	0	44	0.9375					
+2026-09-22	mudn3do1tm3zpw	cashew_tj	24	4	138	0.5					
+2026-09-23	muec3czsol2ino	mtvujpfoi0omnv	30	3.6	113	1.5					
+2026-09-23	muec3qkuj0e6ds	mu68l0qudq25vp	32	8	160	0.8					
+2026-09-23	muedscsh9ibuob	mu7a44gmwjg5n7	6	0	20	1					
+2026-09-23	muevbgs7p4k2u9	mueltxjomregc3	400	28	900	1					
+2026-09-23	muevbthwyy1zp6	638031605026	35.8	11	78	0.65					
+2026-09-23	muevi33caw0170	muevh6ikrdepv1	480	3	340	1					
+2026-09-23	muevifi0gtj1b9	muevflpbghzfw6	0	3.5	200	1.5	3/4				
+2026-09-23	muf2iac2rwxkl4	mu4yes57h9oauc	190	42	300	1.3571428571428572	No sauce				
+2026-09-23	muf2olym2dbijp	011152066301	30	0.8	43	0.2					
+2026-09-23	muf2yyf9bupzuq	mu7syn4ahffmtb	50	5.4	125	1					
+2026-09-23	muf4xyk1qeum6e	muf4wxqmh5dnkd	250	26.3	184	1					
+2026-09-23	muf51tlwpcipy5	muarn0uatsvj36	20.8	0	31	0.65					
+2026-09-24	muft2o3lug3gip	mtvxjydkse5rvd	90	8	240	1	Sourdough 				
+2026-09-24	muft35iltduq3j	638031605026	55	17	120	1					
+2026-09-24	muft37mcpdvlse	mtvxofjjlzh8dn	48	6.1	69	1					
+2026-09-24	muft399paflyh4	mu0iz28ol6x55r	56	12	220	1					
+2026-09-24	muft51so0zbvmx	custom		1.5	75						
+2026-09-24	mug2jr9202qyph	mu7a44gmwjg5n7	6	0	20	1					
+2026-09-24	mug2mz7cdf3urp	mu68l0qudq25vp	40	10	200	1					
+2026-09-24	mug2qjj56b8vv2	mu2w2ymalyhtvd	158	2.5	137	0.632					
+2026-09-24	mug8z4zdo6ji7d	mug8vnp15wv5vr	42	9.8	135	0.75					
+2026-09-24	mug9cpv7y1avja	mug957ak8e31ie	155	28.8	137	1.3716814159292035					
+2026-09-24	mug9j3xkk7s3a0	mug9i2s66rorlm	160	4	240	1					
+2026-09-24	mug9nl0aojcsu8	muf4wxqmh5dnkd	38	4	28	0.152					
+2026-09-24	mug9svsyk7cuj9	mug9sh9pk2vmsf	15	0	120	1					
+2026-09-24	mugab7mrgs4pd8	custom		0	75		Tartar 				
+2026-09-24	mugi5m88ij315v	mu7sgtf7o5i8tt	162	21	114	0.648					
+2026-09-24	mugiatwsukko2o	muarn0uatsvj36	22	0	32	0.6875					
+2026-09-24	mugib3nvkigizh	mtuanfoz9qchcd	12	10.3	45	1					
+2026-09-24	mugibxyanpd9yv	custom		3.5	350		Whole Foods Berry Parfait 				
+2026-09-25	muhevzx30fp4df	mu7a44gmwjg5n7	6	0	20	1					
+2026-09-25	muhewfcdg106lx	mu68l0qudq25vp	40	10	200	1					
+2026-09-25	muhewui1n1r9n5	mtvujpfoi0omnv	30	3.6	113	1.5					
+2026-09-25	muhibuazjtk8b3	011152066301	225	6	323	1.5					
+2026-09-25	muhic3tdqq8du4	mug8vnp15wv5vr	64.4	15	207	1.15					
+2026-09-25	muhicdrgvt8hzj	custom		9	200		Breaded plant fish 				
+2026-09-25	muhihazpaqvcpn	mtuanfoz9qchcd	8	6.9	30	0.6666666666666666					
+2026-09-25	muho1wwezn4gry	custom		20	770		Coffee shake				
+2026-09-25	muhudn7pvqyobr	mts1t8nzcykk1w	55	10	220	1					
+2026-09-25	muhvl48u0zdyz5	muhvkb836hw3zc	152	29	300	1					
+2026-09-25	muhvwqwd4d08y0	custom		5	130		Potato breakfast hsh				
+2026-09-25	muhvxruss2j8i0	mu7syn4ahffmtb	75	8.1	188	1.5					
+2026-09-25	muhw02s5v3pqiu	011152066301	97.5	2.6	140	0.65					
+2026-09-25	mui014u64k9b5a	mttmsoem3cn6rm	190	1.6	65	1					
+2026-09-26	muipeip0hnr5js	mu77z4vndirqgy	30	2	38	1.5					
+2026-09-26	muipfevyk210hk	mtsxoyl73cnhrf	24	0.8	16	0.2					
+2026-09-26	muipi5s8m3jqa2	muiphw6m3166rc	7.5	0	28	1					
+2026-09-26	muipqa4urv823o	mu2w8k0xs64ek4	52	12	180	1					
+2026-09-26	muiymd2lp41eb7	mtuanfoz9qchcd	8.4	7.2	31	0.7					
+2026-09-26	muiyn1kc83prk1	muf4wxqmh5dnkd	25	2.6	18	0.1					
+2026-09-26	muiypte3ocx9us	custom		19	180		Lemon Salmon 				
+2026-09-26	muiysccmv4rsx7	mu0iz28ol6x55r	56	12	220	1					
+2026-09-26	muiyzkg4xj5duj	mts266nqclc1d3	500	46	1025	1					
+2026-09-26	muj15ibbzm9iav	muj14v9pycdi77	650	4.5	275	1					
+2026-09-26	muja1d56cwbvm0	011152066301	120	3.2	172	0.8					
+2026-09-26	mujaa5ac90l7ag	custom		20	140		Trout; TJ can				
+2026-09-26	mujaatyonqof8x	custom		0	45		Trout can oil				
+2026-09-26	mujampud2l6u0i	custom		1.7	25		Zucchini 				
+2026-09-26	mujap0uuv4rn50	mtuanfoz9qchcd	5	4.3	19	0.4166666666666667					
+2026-09-27	muk4uos82kmlfh	muk4tpcndticmf	22	0	66	1.1					
+2026-09-27	muk4vfo1fehyjs	mu785ni60uhw3n	40	3	134	2					
+2026-09-27	muk8a5lj582uzp	mts1t8nzcykk1w	55	10	220	1					
+2026-09-27	muk8bykc3ahnvw	mu7a44gmwjg5n7	6	0	20	1					
+2026-09-27	mukc5zmu4mw2qy	mukc5m41s92sfj	25	0	143	1					
+2026-09-27	mukc6tkh4knz1x	mtuanfoz9qchcd	9	7.7	34	0.75					
+2026-09-27	mukc77gdfi04xp	custom		0	180		Salmon oil				
+2026-09-27	mukcefe6zi86k6	custom		19	180		Salmon can				
+2026-09-27	muke21ywvn8rr6	custom		33	590		Subway veggie no sauces 				
+2026-09-27	mukhaitds2znwm	mu0iz28ol6x55r	56	12	220	1					
+2026-09-27	mukomyb20o6mfl	custom		15	360		TJ's Broc. Ched. Soup				
+2026-09-27	mukopuzno5szat	011152066301	97.5	2.6	140	0.65					
+2026-09-27	mukow2985juaf4	muhvkb836hw3zc	152	29	300	1					
+2026-09-27	mukowsek6pwu4y	mtsxoyl73cnhrf	50	1.7	31	0.4166666666666667					
+2026-09-27	mukozyfe9jfxh8	custom		0	80		Oil				
+2026-09-27	mukp51tuwjq9nq	muf4wxqmh5dnkd	25	2.6	18	0.1					
+2026-09-27	mukpg90wefrfd7	mukpejhakzfh9s	40	4.2	47	1					
+2026-09-28	muljoqn5ji00yp	muljnsinc1g6f2	60	3	200	1					
+2026-09-28	muljz2pdbxwkb9	mu7a44gmwjg5n7	6	0	20	1					
+2026-09-28	mulkdjaney4d4l	mu2w8k0xs64ek4	52	12	180	1					
+2026-09-28	mulqlk3akc9seq	mukpejhakzfh9s	48	5	56	1.2					
+2026-09-28	mulqogrfph38yr	mulqnr5o066303		23	700	1					
+2026-09-28	mulqowv6j3zzib	muhvkb836hw3zc	158	30.1	312	1.0394736842105263					
+2026-09-28	mulsach7rkx59r	mtuanfoz9qchcd	6	5.2	23	0.5					
+2026-09-28	mulsbr6ebtmha0	custom		23	280		Mixt salmon				
+2026-09-28	mulscevjmxqp90	muf4wxqmh5dnkd	20	2.1	15	0.08					
+2026-09-28	muluv4wcrl3co7	custom		4	325		Pandan matcha				
+2026-09-28	mum8u5hnfqckba	muf4wxqmh5dnkd	187.5	19.7	138	0.75					
+2026-09-28	mum8vu5b47wwhb	mtuanfoz9qchcd	7.5	6.4	28	0.625					
+2026-09-28	mum8xiaphzbn0s	muarn0uatsvj36	30	0	44	0.9375					
+2026-09-28	mum92x0zpbrmh1	mum923iud7x6in	26	1	12	0.10833333333333334					
+2026-09-29	mumydm5auyavip	mu785ni60uhw3n	22	1.7	74	1.1					
+2026-09-29	mumyer3h6z3yxg	mtsxoyl73cnhrf	4	0.1	3	0.03333333333333333					
+2026-09-29	mun043thgjfcjh	muiphw6m3166rc	7.5	0.003	21	0.375					
+2026-09-29	mun0hrc2djwci3	muk4tpcndticmf	11	0.29700000000000004	33	0.55					
+2026-09-29	mun5olb3vplifn	mts1t8nzcykk1w	55	10	220	1					
+2026-09-29	mun7h5vgqmb8z8	custom		19	180		Atlantic salmon 				
+2026-09-29	mun7huydrvf2na	mtuanfoz9qchcd	12	10.3	45	1					
+2026-09-29	mun7i8edx5qb81	mu4nxvq55vb54b	500	40	960	1					
+2026-09-29	mun9eweknco7cd	custom		5	325		Matcha blended 				
+2026-09-29	munhx8wcj4oyk5	cashew_tj	30	5.00001	172	0.625					
+2026-09-29	munj9gbdniu46a	munj8qyarbsxvx	50	1	80	1					
+2026-09-29	munj9xm15chm0p	mtvxofjjlzh8dn	57.6	7.3199999999999985	83	1.2					
+2026-09-29	munjblqdgycuc5	mu7syn4ahffmtb	60	6.48	150	1.2					
+2026-09-29	munje38f5nj8v2	mug9sh9pk2vmsf	4.5	8.1e-8	36	0.3					
+2026-09-29	munjrhatlekbbo	munj8qyarbsxvx	20	0.4	32	0.4					
+2026-09-29	munm7h81ypnynq	mtuanfoz9qchcd	6	5.15	23	0.5					
+2026-09-29	munmmanx7f0viu	mu7sgtf7o5i8tt	160	20.48	112	0.64					
+2026-09-29	muobyc9pgv0lwt	mu7a44gmwjg5n7	3	0.0012	10	0.5					
+2026-09-30	muof0ofw86ppn3	muljnsinc1g6f2	30	1.5	100	0.5					
+2026-09-30	muoj3msg1shuzb	mtuanfoz9qchcd	12	10.3	45	1					
+2026-09-30	muoj8qvkefhsfw	muoj847n0fluj9	64	0.7040000000000001	42	1.0666666666666667					
+2026-09-30	muojtyp66z86w4	muarn0uatsvj36	20	0.13333333333333333	33	0.625					
+2026-09-30	muojumln6ftq5u	mu7sgtf7o5i8tt	75	9.6	53	0.3					
+2026-09-30	muojy76jakuaz7	mum923iud7x6in	105	3.9375	48	0.4375					
+2026-09-30	muok4snxzbxjqx	muf4wxqmh5dnkd	105	11.025	77	0.42					
+2026-09-30	muoq9m6v6wnbks	mu1jrz4tq6ex91	400	20	850	1					
+2026-09-30	muoxr32zi5i6ra	829696000473	136.9	29.0000403657779	145	0.805555558					
+2026-09-30	muoxugpi0u7x87	mu7sgtf7o5i8tt	25	3.2	18	0.1					
+2026-09-30	muoxv6ftuaf0wn	011152066301	155	4.1333850000000005	222	1.0333333333333334					
+2026-09-30	muoy2gspj2vi3a	mukpejhakzfh9s	42	4.41	49	1.05					
+2026-09-30	muoyjub7qc4pkz	mtuanfoz9qchcd	12	10.3	45	1					
+2026-09-30	muoyrjq7uwxyhl	muoyg6amtei5ch	110	6.8	185	0.2					
+2026-09-30	mup11123v6cjx0	custom		2.8	280		Whole foods berry parfait 				
+2026-09-30	mup14wnniiviw8	mu7sgtf7o5i8tt	100	12.8	70	0.4					
+2026-09-30	mup160y256bsuu	muarn0uatsvj36	11	0.07333333333333333	18	0.34375					
+2026-10-01	muptl4dnvqrdp6	mu2w8k0xs64ek4	52	12	180	1					
+2026-10-01	muq17ma423x8sw	mttmbwxsk0k4l4	500	33	590	1					
+2026-10-01	muq1j3z78ul1bi	mum923iud7x6in	25	0.9375	11	0.10416666666666667					
+2026-10-01	muq1jfgyhwj1dy	mtuanfoz9qchcd	12	10.3	45	1					
+2026-10-01	muq1jss9zxrqot	mukc5m41s92sfj	3	0.04050000000000001	17	0.12					
+2026-10-01	muq1x3f7z4o0hs	mu0iz28ol6x55r	56	12	220	1					
+2026-10-01	muq59zx8ps8xs9	custom		19	160		Mackerel; matiz				
+2026-10-01	muq7tah8i8826l	custom		12	140		Herring				
+2026-10-01	muq7u25bot6ahf	638031605026	15	4.636363636363637	33	0.2727272727272727					
+2026-10-01	muq861d4utzhl2	mu785ni60uhw3n	32	2.4	107	1.6	HK tea				
+
+[mass_events]
+date	id	timestamp	event_type	body_mass_kg	water_volume_ml	mass_in_kg	water_loss	anchor_reset	deleted_at	delete_count	buried_at
+2026-09-20	mubmksg2f8gqwo	2026-09-20T18:15	post_restroom_weight	81.3							
+2026-09-21	mubled2ocl2vxi	2026-09-21T12:20	post_restroom_weight	82.8			false				
+2026-09-21	mublwymvyquxlx	2026-09-21T12:56	water		740	0.74					
+2026-09-21	mubmhexs6d1bj0	2026-09-21T11:12	pre_meal_weight	83.1							
+2026-09-21	mubmi4aa928o6z	2026-09-21T11:15	post_meal_weight	83.15							
+2026-09-21	mubputqs345m3t	2026-09-21T14:40	post_restroom_weight	82.3			true				
+2026-09-21	mubpv6vgy335ry	2026-09-21T14:46	post_restroom_weight	82.05			false				
+2026-09-21	mubqziuoto4xro	2026-09-21T15:15	pre_meal_weight	82.05							
+2026-09-21	mubqzwvm3v7ty0	2026-09-21T15:19	post_meal_weight	83.2				true			
+2026-09-21	mubr50kaufjisr	2026-09-21T15:23	water		740	0.74					
+2026-09-21	mubrg2iwdh7ode	2026-09-21T15:31	pre_meal_weight	83.55							
+2026-09-21	mubuv9r0xiyu4z	2026-09-21T17:07	water		450	0.45					
+2026-09-21	mubwio64h557gl	2026-09-21T17:53	water		140	0.14					
+2026-09-21	mubwjuzftzgf4g	2026-09-21T17:54	post_meal_weight	84.55				false			
+2026-09-21	mubwopx0myd2j3	2026-09-21T17:58	pre_meal_weight	84.55							
+2026-09-21	mubwrcvq96hs4v	2026-09-21T18:00	post_meal_weight	83.7				true			
+2026-09-21	muc221044jgtoa	2026-09-21T20:28	water		740	0.74					
+2026-09-21	muc29cmp4m9ll7	2026-09-21T20:34	post_restroom_weight	83.8			true				
+2026-09-21	muc7rs1agpypn7	2026-09-21T23:08	water		740	0.74					
+2026-09-21	mucan6cpphivmg	2026-09-21T23:50	water		314	0.314					
+2026-09-21	mucaqt416bjd8o	2026-09-21T22:29	pre_meal_weight	84.43							
+2026-09-21	mucarbd15zwbbn	2026-09-21T23:00	post_meal_weight	85.15				false			
+2026-09-21	mucawi2410a2hu	2026-09-21T23:55	post_restroom_weight	83.95			true				
+2026-09-21	mucaz3e1wr7st2	2026-09-21T23:58	post_meal_weight	83.55				true			
+2026-09-22	mucsk5806mv8ws	2026-09-22T08:50	post_restroom_weight	82.25			true				
+2026-09-22	mucsp5ncje4f4k	2026-09-22T08:49	post_meal_weight	83.55				false			
+2026-09-22	mucujvrja262d8	2026-09-22T09:46	water		560	0.56					
+2026-09-22	mucx3x64dvzwsm	2026-09-22T10:58	water		300	0.3					
+2026-09-22	mucylj72dk34zk	2026-09-22T11:39	post_restroom_weight	82.8			false				
+2026-09-22	mucyt4pgszc2ti	2026-09-22T11:40	post_restroom_weight	82.4			true				
+2026-09-22	mud2mlnpppq3k4	2026-09-22T09:10	food_mass			0.05					
+2026-09-22	mud2nfjz55oapw	2026-09-22T13:33	water		740	0.74					
+2026-09-22	mud2syc8slv809	2026-09-22T13:37	post_restroom_weight	82.3			true				
+2026-09-22	mud3sphy4h2tu9	2026-09-22T14:05	checkpoint_weight	83.5				true			
+2026-09-22	mud4z8hugvbzvt	2026-09-22T14:38	water		70	0.07					
+2026-09-22	mud5adrkdp8tr1	2026-09-22T14:46	pre_meal_weight	83.5							
+2026-09-22	mudcbwv9e599bh	2026-09-22T18:04	water		740	0.74					
+2026-09-22	mudcjyev3nsgpf	2026-09-22T18:10	post_meal_weight	84.95							
+2026-09-22	mudh1nshv3un8v	2026-09-22T20:16	water		740	0.74					
+2026-09-22	mudhine0tf661d	2026-09-22T20:18	checkpoint_weight	85.45				false			
+2026-09-22	mudhmcycbmaap0	2026-09-22T20:20	checkpoint_weight	84.6				true			
+2026-09-22	mudmejnh30th9x	2026-09-22T22:45	food_mass			0.295					
+2026-09-22	mudp00acq1lvts	2026-09-22T23:58	water		740	0.74					
+2026-09-22	mudppykh7wzf8g	2026-09-22T23:58	post_restroom_weight	84.8			true				
+2026-09-22	mudpsd3nf529im	2026-09-22T23:59	checkpoint_weight	84.35				true			
+2026-09-23	mudwf613e1639a	2026-09-23T03:26	post_restroom_weight	83.4			true				
+2026-09-23	mueasamp8ladxr	2026-09-23T10:08	water		580	0.58					
+2026-09-23	mueau0qxvzz5mh	2026-09-23T10:09	checkpoint_weight	83.45				false			
+2026-09-23	mueauplzsewgtj	2026-09-23T10:13	checkpoint_weight	82.9				true			
+2026-09-23	mueaxgozrr2dqx	2026-09-23T10:12	post_restroom_weight	82.75			true				
+2026-09-23	muedttdeu50xml	2026-09-23T11:33	water		300	0.3					
+2026-09-23	mueiz6hzy2d3hp	2026-09-23T13:57	checkpoint_weight	83.6				false			
+2026-09-23	muej9pjcuaprbi	2026-09-23T14:06	checkpoint_weight	83.4				false			
+2026-09-23	muejafy8akdnap	2026-09-23T14:06	post_restroom_weight	82.4			true				
+2026-09-23	mueju017qjoe5z	2026-09-23T14:21	checkpoint_weight	82.25				true			
+2026-09-23	mueksrmtllul39	2026-09-23T14:48	checkpoint_weight	82.8				true			
+2026-09-23	muel9q1louq8kf	2026-09-23T15:02	water		740	0.74					
+2026-09-23	muelagg8wgvsr3	2026-09-23T16:02	pre_meal_weight	82.95							
+2026-09-23	muev68zp12nz61	2026-09-23T18:30	water		740	0.74					
+2026-09-23	muev748j7ti8y4	2026-09-23T19:40	post_meal_weight	84							
+2026-09-23	muevb2fplfj13h	2026-09-23T19:43	checkpoint_weight	83.65				true			
+2026-09-23	muevj7pnff31nf	2026-09-23T16:05	water		480	0.48					
+2026-09-23	muf1ho5q741aab	2026-09-23T22:36	post_restroom_weight	82.8			true				
+2026-09-23	muf1k2ha04xivs	2026-09-23T22:37	checkpoint_weight	82.9				true			
+2026-09-23	muf4pxcapfnry8	2026-09-23T22:40	water		740	0.74					
+2026-09-23	muf6wrssyivyrc	2026-09-23T23:45	water		740	0.74					
+2026-09-23	muf6zlvlivpziv	2026-09-23T23:51	checkpoint_weight	84.45				false			
+2026-09-23	muf6zxab1rvc26	2026-09-23T23:55	checkpoint_weight	84.1				true			
+2026-09-23	muf72ci5eewmon	2026-09-23T22:30	food_mass			0.6					
+2026-09-24	muf76sxc0nwo8d	2026-09-24T01:15	checkpoint_weight	84.1				true			
+2026-09-24	mufaf7xdmk5lwi	2026-09-24T02:46	post_restroom_weight	83.25			true				
+2026-09-24	mufrbk9fsovhnw	2026-09-24T10:39	post_restroom_weight	82.35			true				
+2026-09-24	mufrbu8rgl0jak	2026-09-24T10:00	water		580	0.58					
+2026-09-24	muft1top1vt4uy	2026-09-24T11:27	food_mass			0.31					
+2026-09-24	mufuvnlf0vi0i4	2026-09-24T12:18	water		300	0.3					
+2026-09-24	mufzzyy2ts5fcw	2026-09-24T14:42	water		740	0.74					
+2026-09-24	mug0ibz5mqbs9h	2026-09-24T14:56	post_restroom_weight	83			false				
+2026-09-24	mugh1sko92fchb	2026-09-24T22:39	water		740	0.74					
+2026-09-24	mug7vrtr6r0oa3	2026-09-24T18:22	water		350	0.35					
+2026-09-24	mugeoeoyjqzxz7	2026-09-24T21:33	post_restroom_weight	83.3			true				
+2026-09-24	mugeok7s56wsl5	2026-09-24T21:33	checkpoint_weight	83.7				true			
+2026-09-24	mugerlwsxx0y2u	2026-09-24T19:35	food_mass			0.422					
+2026-09-24	mugk3e6i2zuooo	2026-09-24T23:55	water		740	0.74					
+2026-09-24	mugk62szggh26x	2026-09-24T23:40	food_mass			0.472					
+2026-09-24	mugk7465y6eyg5	2026-09-24T23:56	checkpoint_weight	84.55				false			
+2026-09-24	mugk87zgeolb1l	2026-09-24T23:58	checkpoint_weight	84.2				true			
+2026-09-25	mugpd4f95kqbd0	2026-09-25T01:05	checkpoint_weight	84.2				false			
+2026-09-25	mugpdegc0f1lng	2026-09-25T02:32	post_restroom_weight	83			true				
+2026-09-25	muh8hxgspzctk5	2026-09-25T11:27	post_restroom_weight	82.35			true				
+2026-09-25	muh8in5bliufua	2026-09-25T11:00	water		580	0.58					
+2026-09-25	muhf8r1vwnil2l	2026-09-25T12:36	water		300	0.3					
+2026-09-25	muhkygsrfu8npl	2026-09-25T16:00	water		740	0.74					
+2026-09-25	muhkzo6ufuc4jc	2026-09-25T17:17	water		470	0.47					
+2026-09-25	muhs1yl2uwtf3q	2026-09-25T20:35	water		370	0.37					
+2026-09-25	muhuzixvx387pm	2026-09-25T21:57	water		740	0.74					
+2026-09-26	mui1x0f0bj77na	2026-09-26T01:11	water		740	0.74					
+2026-09-26	muiok03mz9f9nr	2026-09-26T11:45	water		580	0.58					
+2026-09-26	muiol1p168ivhw	2026-09-26T11:45	checkpoint_weight	82.25				false			
+2026-09-26	muitajjc8wm1de	2026-09-26T13:22	water		300	0.3					
+2026-09-26	muiwrjk77lzpdx	2026-09-26T15:35	water		740	0.74					
+2026-09-26	muj9ar3s320imt	2026-09-26T21:25	water		400	0.4					
+2026-09-26	mujfhgctc2yrx8	2026-09-26T23:55	water		740	0.74					
+2026-09-26	mujfi7cdf7uqzq	2026-09-26T00:19	water		370	0.37					
+2026-09-27	muklp5ww1rlras	2026-09-27T20:00	water		740	0.74					
+2026-09-27	muk3uph5oza40e	2026-09-27T11:41	checkpoint_weight	82.15				false			
+2026-09-27	muk3vwz8e0ysvf	2026-09-27T08:35	checkpoint_weight	82.35				false			
+2026-09-27	muk8ari32bhr43	2026-09-27T11:30	water		300	0.3					
+2026-09-27	muk8bloxf5wn8o	2026-09-27T13:46	water		740	0.74					
+2026-09-27	muklqcb2xhk80b	2026-09-27T19:01	water		370	0.37					
+2026-09-27	mukvxxjws3mtkp	2026-09-27T15:47	water		370	0.37					
+2026-09-27	mukvyy2jp2ldrf	2026-09-27T23:59	water		740	0.74					
+2026-09-27	mukw1d8oiwnxc5	2026-09-27T11:42	post_restroom_weight	82.15			true				
+2026-09-28	muljiaodz1fdto	2026-09-28T11:47	checkpoint_weight	82.25				false			
+2026-09-28	mullkpanaosl7m	2026-09-28T12:45	water		300	0.3					
+2026-09-28	mulll74jh7axyl	2026-09-28T11:30	water		100	0.1					
+2026-09-28	mulogrt6hgv52o	2026-09-28T14:05	checkpoint_weight	82.1				false			
+2026-09-28	mulr8kg67rqnwq	2026-09-28T15:23	water		740	0.74					
+2026-09-28	mulzad4gqv2etl	2026-09-28T19:09	water		740	0.74					
+2026-09-28	mum4umodjdk301	2026-09-28T21:44	water		740	0.74					
+2026-09-28	mum8o7eeqms7v7	2026-09-28T23:31	water		740	0.74					
+2026-09-28	mumbtb5df4wde9	2026-09-29T00:59	water		440	0.44					
+2026-09-29	mumbxpbg3ve6pj	2026-09-29T01:02	checkpoint_weight	83.6				false			
+2026-09-29	mumr8irqh9qim9	2026-09-29T08:11	checkpoint_weight	82.1				false			
+2026-09-29	mumznaaw5omb5y	2026-09-29T11:06	water		440	0.44					
+2026-09-29	mun1vvgip5lgb3	2026-09-29T13:09	water		300	0.3					
+2026-09-29	muna84eupop3ga	2026-09-29T17:02	water		650	0.65					
+2026-09-29	muneuhf4zccom8	2026-09-29T19:12	water		740	0.74					
+2026-09-29	munew6cc511e45	2026-09-29T14:30	checkpoint_weight	81.9				false			
+2026-09-29	munqavz5btrekp	2026-09-30T00:33	water		740	0.74					
+2026-09-30	muobzneyd0ktfm	2026-09-30T10:40	checkpoint_weight	81.85				false			
+2026-09-30	muoc1wbf3epstg	2026-09-30T09:41	water		350	0.35					
+2026-09-30	muogl5sbkr5p3z	2026-09-30T12:48	water		740	0.74					
+2026-09-30	mup29xrod66pxe	2026-09-30T22:55	water		740	0.74					
+2026-09-30	mup2c4f9z92mxy	2026-09-30T16:30	water		470	0.47					
+2026-09-30	mup2hffln3z9xi	2026-09-30T23:01	checkpoint_weight	83.85				false			
+2026-10-01	mups1chltw7dn8	2026-10-01T10:57	water		580	0.58					
+2026-10-01	mups241bjslejl	2026-10-01T10:57	checkpoint_weight	82.9				false			
+2026-10-01	muptndl84rtwm9	2026-10-01T11:42	checkpoint_weight	82.5				false			
+2026-10-01	muq0yx7u46idl5	2026-10-01T14:45	checkpoint_weight	82.4				false			
+2026-10-01	muq0z13z230g1c	2026-10-01T15:07	water		740	0.74					
+2026-10-01	muq7yrpnnisl3m	2026-10-01T18:23	water		300	0.3					
+2026-10-01	muq80iaz1ou2y2	2026-10-01T18:24	water		650	0.65					
