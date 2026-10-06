@@ -4900,8 +4900,11 @@ function renderProteinKgScale(logged_protein)
   }
   let refresh_status = g_bodyweight_refresh_status ? `<span class="bodyweight-refresh-status">${esc(g_bodyweight_refresh_status)}</span>` : '';
 
-  let implied_mass = fmt2(7*(mean_kcal - targetKcalDay())/g_kcal_per_kg_bodyfat);
+  let implied_mass = (mean_kcal - targetKcalDay())/g_kcal_per_kg_bodyfat;
   let diff_sign = implied_mass >= 0 ? '+' : '';
+  let imw = `${diff_sign}${fmt1(7*implied_mass)}`;
+  let imm = `${diff_sign}${fmt1(30.44*implied_mass)}`;
+  let imy = `${diff_sign}${fmt0(365.24*implied_mass)}`;
 
   let h = '';
   h += `<div class="protein-kg-scale${range_class}">
@@ -4931,7 +4934,7 @@ function renderProteinKgScale(logged_protein)
       <span>(${fmtKcalProteinRatio(mean_kcal/mean_protein)}/g)</span>
       <br />
       <span class="protein-kg-note-bodyweight">${fmt1(mean_bodyweight_kg)} kg</span>
-      <span>(${diff_sign}${implied_mass} kg)</span>
+      <span>(${imw}/${imm}/${imy} kg)</span>
     </span>
   </div>`;
 
@@ -6027,14 +6030,12 @@ function renderScoopSection()
   let target_kcal = targetKcalDay();
   let kcal_difference = totals.kcal - target_kcal;
   let kcal_percent = target_kcal > 0 ? kcal_difference/target_kcal*100 : 0;
-  let weekly_mass_kg = kcal_difference*7/g_kcal_per_kg_bodyfat;
-  let kcal_balance_text;
-  let weekly_mass_text;
-  let kcal_remaining_text;
+  let delta_mass_kg = kcal_difference/g_kcal_per_kg_bodyfat;
 
-  kcal_balance_text = fmt0(kcal_percent) + '%';
-  weekly_mass_text = formatMassKg(weekly_mass_kg, 1, 0) + '/wk';
-  kcal_remaining_text = fmt0(Math.abs(kcal_difference));
+  let kcal_balance_text = fmt0(kcal_percent) + '%';
+  let weekly_mass_text = fmt1(7*delta_mass_kg, 1, 0) + ' kg/wk';
+  let delta_sign = (delta_mass_kg < 0) ? '' : '+';
+  let kcal_remaining_text = fmt0(Math.abs(kcal_difference));
 
   if (kcal_difference < 0)
   {
@@ -6066,7 +6067,8 @@ function renderScoopSection()
       <div class="val kval">${fmt_1(totals.kcal)}</div>
       <span class="pantry-macro-ratio" title="Assumes the kcal/day target is maintenance; uses 7,700 kcal/kg">
         ${kcal_remaining_text} (${kcal_balance_text})<br />
-        ${weekly_mass_text}
+        ${delta_sign}${weekly_mass_text}<br />
+        ${delta_sign}${fmt1(30.44*delta_mass_kg, 1, 0) + ' kg/m'}
       </span>
     </div>
   </div>`;
