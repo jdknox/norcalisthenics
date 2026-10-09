@@ -1279,6 +1279,8 @@ function massEventLabel(event_type)
   {
     case 'water': return 'Water';
     case 'food_mass': return 'Food mass';
+    case 'steps': return 'Steps';
+    case 'ebike_time': return 'E-bike time';
     case 'checkpoint_weight': return 'Checkpoint';
     case 'pre_meal_weight': return 'Pre meal';
     case 'post_meal_weight': return 'Post meal';
@@ -1342,6 +1344,8 @@ function openMassEntryDraft(event_type)
     timestamp:currentTimeText(),
     body_mass_raw:defaultMassEntryRaw(),
     mass_in_raw:'',
+    steps_raw:'',
+    ebike_minutes_raw:'',
     known_mass_in:false,
     water_loss:event_type == 'post_restroom_weight',
     anchor_reset:false
@@ -1350,7 +1354,7 @@ function openMassEntryDraft(event_type)
   render();
   setTimeout(function()
   {
-    let input = document.querySelector('[data-massdraft="body_mass"],[data-massdraft="mass_in"]');
+    let input = document.querySelector('[data-massdraft="body_mass"],[data-massdraft="mass_in"],[data-massdraft="steps"],[data-massdraft="ebike_minutes"]');
     let end;
     if (!input) return;
     input.focus();
@@ -1391,6 +1395,56 @@ function saveMassEntryDraft()
       timestamp:massTimestampForNewEvent(d.timestamp, d.timestamp_date),
       event_type:'food_mass',
       mass_in_kg:grams/1000
+    });
+
+    g_mass_entry_draft = null;
+    render();
+    save();
+    return;
+  }
+
+  if (d.event_type == 'steps')
+  {
+    let steps = Math.round(parseFloat(d.steps_raw));
+    if (isNaN(steps) || steps <= 0) return;
+
+    day = g_mass_events[g_view_date];
+    if (!day)
+    {
+      day = [];
+      g_mass_events[g_view_date] = day;
+    }
+
+    day.push({
+      id:uid(),
+      timestamp:massTimestampForNewEvent(d.timestamp, d.timestamp_date),
+      event_type:'steps',
+      steps:steps
+    });
+
+    g_mass_entry_draft = null;
+    render();
+    save();
+    return;
+  }
+
+  if (d.event_type == 'ebike_time')
+  {
+    let minutes = Math.round(parseFloat(d.ebike_minutes_raw));
+    if (isNaN(minutes) || minutes <= 0) return;
+
+    day = g_mass_events[g_view_date];
+    if (!day)
+    {
+      day = [];
+      g_mass_events[g_view_date] = day;
+    }
+
+    day.push({
+      id:uid(),
+      timestamp:massTimestampForNewEvent(d.timestamp, d.timestamp_date),
+      event_type:'ebike_time',
+      ebike_minutes:minutes
     });
 
     g_mass_entry_draft = null;
@@ -1451,6 +1505,8 @@ function openMassEventEdit(event_id)
     body_mass_raw:event.body_mass_kg != null ? fmt2(Number(event.body_mass_kg)) : '',
     mass_in_raw:event.mass_in_kg != null && event.event_type == 'food_mass' ? String(Math.round(Number(event.mass_in_kg)*1000)) : '',
     water_volume_raw:event.water_volume_ml != null ? String(Math.round(Number(event.water_volume_ml))) : '',
+    steps_raw:event.steps != null ? String(Math.round(Number(event.steps))) : '',
+    ebike_minutes_raw:event.ebike_minutes != null ? String(Math.round(Number(event.ebike_minutes))) : '',
     water_loss:massEventCountsAsWaterLoss(event),
     anchor_reset:!!event.anchor_reset
   };
@@ -1489,6 +1545,20 @@ function saveMassEventEdit()
     if (isNaN(num) || num <= 0) return;
 
     event.mass_in_kg = num/1000;
+  }
+  else if (event.event_type == 'steps')
+  {
+    num = Math.round(parseFloat(d.steps_raw));
+    if (isNaN(num) || num <= 0) return;
+
+    event.steps = num;
+  }
+  else if (event.event_type == 'ebike_time')
+  {
+    num = Math.round(parseFloat(d.ebike_minutes_raw));
+    if (isNaN(num) || num <= 0) return;
+
+    event.ebike_minutes = num;
   }
   else
   {
@@ -1556,6 +1626,8 @@ function computeMassLedger(date)
     total_mass_in_kg:0,
     inferred_mass_out_kg:0,
     assumed_water_loss_kg:0,
+    steps:0,
+    ebike_minutes:0,
     first_mass_kg:null,
     latest_mass_kg:null,
     min_mass_kg:1000,
@@ -1579,6 +1651,14 @@ function computeMassLedger(date)
     {
       info.mass_in_kg = Number(event.mass_in_kg) || 0;
       totals.net_bracket_mass_in_kg += info.mass_in_kg;
+    }
+    else if (event.event_type == 'steps')
+    {
+      totals.steps += Math.round(Number(event.steps) || 0);
+    }
+    else if (event.event_type == 'ebike_time')
+    {
+      totals.ebike_minutes += Math.round(Number(event.ebike_minutes) || 0);
     }
     else if (event.event_type == 'pre_meal_weight' && body_mass != null)
     {
@@ -1715,6 +1795,8 @@ function massSummaryForDate(date)
     total_mass_in_g:Math.round(t.total_mass_in_kg*1000),
     inferred_mass_out_g:Math.round(t.inferred_mass_out_kg*1000),
     assumed_water_loss_kg:t.assumed_water_loss_kg,
+    steps:t.steps,
+    ebike_minutes:t.ebike_minutes,
     first_mass_kg:t.first_mass_kg,
     last_mass_kg:t.latest_mass_kg,
     min_mass_kg:t.min_mass_kg,
@@ -2970,7 +3052,7 @@ function buildBackupTSV()
     }
   }
 
-  pushBackupTsvSection(lines, 'mass_events', ['date', 'id', 'timestamp', 'event_type', 'body_mass_kg', 'water_volume_ml', 'mass_in_kg', 'water_loss', 'anchor_reset', 'deleted_at', 'delete_count', 'buried_at'], state);
+  pushBackupTsvSection(lines, 'mass_events', ['date', 'id', 'timestamp', 'event_type', 'body_mass_kg', 'water_volume_ml', 'mass_in_kg', 'steps', 'ebike_minutes', 'water_loss', 'anchor_reset', 'deleted_at', 'delete_count', 'buried_at'], state);
   for (let date in g_mass_events)
   {
     let day = g_mass_events[date];
@@ -2979,7 +3061,7 @@ function buildBackupTSV()
     for (let i = 0; i < day.length; ++i)
     {
       let event = day[i];
-      pushBackupTsvRow(lines, [date, event.id, event.timestamp, event.event_type, event.body_mass_kg, event.water_volume_ml, event.mass_in_kg, backupTsvBool(event.water_loss), backupTsvBool(event.anchor_reset), event.deleted_at, event.delete_count, event.buried_at], state);
+      pushBackupTsvRow(lines, [date, event.id, event.timestamp, event.event_type, event.body_mass_kg, event.water_volume_ml, event.mass_in_kg, event.steps, event.ebike_minutes, backupTsvBool(event.water_loss), backupTsvBool(event.anchor_reset), event.deleted_at, event.delete_count, event.buried_at], state);
     }
   }
 
@@ -3010,7 +3092,7 @@ function massEventExportTimestamp(date, event)
 function buildMassEventsCSV()
 {
   let dates = [];
-  let lines = ['timestamp,body_mass_kg,water_delta_kg,event'];
+  let lines = ['timestamp,body_mass_kg,water_delta_kg,steps,ebike_minutes,event'];
 
   for (let date in g_mass_events)
   {
@@ -3031,10 +3113,20 @@ function buildMassEventsCSV()
       let info = ledger.event_info[event.id] || {};
       let body_mass = massEventBodyMass(event);
       let water_delta = '';
+      let steps = '';
+      let ebike_minutes = '';
 
       if (event.event_type == 'water')
       {
         water_delta = fmt3(waterEventMassKg(event));
+      }
+      else if (event.event_type == 'steps')
+      {
+        steps = String(Math.round(Number(event.steps) || 0));
+      }
+      else if (event.event_type == 'ebike_time')
+      {
+        ebike_minutes = String(Math.round(Number(event.ebike_minutes) || 0));
       }
       else if (massEventCountsAsWaterLoss(event) && info.mass_out_kg != null)
       {
@@ -3044,6 +3136,8 @@ function buildMassEventsCSV()
       lines.push(csvCell(massEventExportTimestamp(date, event))
         + ',' + csvCell(body_mass != null ? fmt2(body_mass) : '')
         + ',' + csvCell(water_delta)
+        + ',' + csvCell(steps)
+        + ',' + csvCell(ebike_minutes)
         + ',' + csvCell(massEventLabel(event.event_type)));
     }
   }
@@ -3057,6 +3151,155 @@ function csvCell(value)
 
   if (text.indexOf('"') < 0 && text.indexOf(',') < 0 && text.indexOf('\n') < 0 && text.indexOf('\r') < 0) return text;
   return '"' + text.replace(/"/g, '""') + '"';
+}
+
+function splitImportRow(line, delimiter)
+{
+  let cells = [];
+  let cell = '';
+  let quoted = false;
+
+  for (let i = 0; i < line.length; ++i)
+  {
+    let ch = line.charAt(i);
+
+    if (ch == '"')
+    {
+      if (quoted && line.charAt(i + 1) == '"')
+      {
+        cell += '"';
+        ++i;
+      }
+      else
+      {
+        quoted = !quoted;
+      }
+    }
+    else if (ch == delimiter && !quoted)
+    {
+      cells.push(cell);
+      cell = '';
+    }
+    else
+    {
+      cell += ch;
+    }
+  }
+
+  cells.push(cell);
+  return cells;
+}
+
+function activityImportNumber(text)
+{
+  let value = String(text == null ? '' : text).trim();
+  let n;
+
+  if (!value || value == '—') return null;
+  n = Math.round(Number(value));
+  return isNaN(n) || n <= 0 ? null : n;
+}
+
+function parseBodyweightKcalActivityImport(text)
+{
+  let source = String(text || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  let lines = source.split('\n');
+  let header_line = '';
+  let delimiter = ',';
+  let headers = [];
+  let date_index = -1;
+  let steps_index = -1;
+  let ebike_index = -1;
+  let mass_events = {};
+
+  for (let i = 0; i < lines.length; ++i)
+  {
+    if (String(lines[i]).trim())
+    {
+      header_line = lines[i];
+      break;
+    }
+  }
+
+  if (!header_line) return { ok:false, error:'paste bodymass/kcal CSV or TSV first', payload:null };
+  if (header_line.indexOf('\t') >= 0) delimiter = '\t';
+
+  headers = splitImportRow(header_line, delimiter);
+  for (let i = 0; i < headers.length; ++i)
+  {
+    let header = String(headers[i] || '').trim().toLowerCase();
+
+    switch (header)
+    {
+      case 'date':
+        date_index = i;
+        break;
+      case 'steps':
+        steps_index = i;
+        break;
+      case 'ebike_minutes':
+        ebike_index = i;
+        break;
+    }
+  }
+
+  if (date_index < 0) return { ok:false, error:'missing date column', payload:null };
+  if (steps_index < 0 && ebike_index < 0) return { ok:false, error:'missing steps or ebike_minutes column', payload:null };
+
+  for (let i = 0; i < lines.length; ++i)
+  {
+    let line = lines[i];
+    let cells;
+    let date;
+    let steps;
+    let ebike_minutes;
+
+    if (!String(line).trim()) continue;
+    if (line == header_line) continue;
+
+    cells = splitImportRow(line, delimiter);
+    date = String(cells[date_index] || '').trim();
+
+    if (!/^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]$/.test(date)) continue;
+    if (!Array.isArray(mass_events[date])) mass_events[date] = [];
+
+    if (steps_index >= 0)
+    {
+      steps = activityImportNumber(cells[steps_index]);
+      if (steps != null)
+      {
+        mass_events[date].push({
+          id:'daily_steps_' + date,
+          timestamp:date + 'T12:00',
+          event_type:'steps',
+          steps:steps
+        });
+      }
+    }
+
+    if (ebike_index >= 0)
+    {
+      ebike_minutes = activityImportNumber(cells[ebike_index]);
+      if (ebike_minutes != null)
+      {
+        mass_events[date].push({
+          id:'daily_ebike_' + date,
+          timestamp:date + 'T12:01',
+          event_type:'ebike_time',
+          ebike_minutes:ebike_minutes
+        });
+      }
+    }
+  }
+
+  return {
+    ok:true,
+    error:'',
+    payload:{
+      export_type:'protein-loadout-bodyweight-kcal-activity',
+      mass_events:mass_events
+    }
+  };
 }
 
 function sortedBodyweightKcalExportDates()
@@ -3077,7 +3320,7 @@ function sortedBodyweightKcalExportDates()
 function buildBodyweightKcalCSV()
 {
   let dates = sortedBodyweightKcalExportDates();
-  let lines = ['date,body_mass_kg,daily_kcal,water_in_kg,assumed_water_loss_kg'];
+  let lines = ['date,body_mass_kg,daily_kcal,water_in_kg,assumed_water_loss_kg,steps,ebike_minutes'];
 
   for (let i = 0; i < dates.length; ++i)
   {
@@ -3085,7 +3328,7 @@ function buildBodyweightKcalCSV()
     let bodyweight_kg = g_bodyweight_by_date[date];
     let totals = dayTotals(date);
     let mass_summary = massSummaryForDate(date);
-    let has_mass_data = mass_summary.checkpoint_count || mass_summary.water_in_ml || mass_summary.total_mass_in_g;
+    let has_mass_data = mass_summary.checkpoint_count || mass_summary.water_in_ml || mass_summary.total_mass_in_g || mass_summary.steps || mass_summary.ebike_minutes;
 
     if (bodyweight_kg == null) bodyweight_kg = mass_summary.last_mass_kg;
     if (bodyweight_kg == null && totals.kcal <= 0 && !has_mass_data) continue;
@@ -3094,7 +3337,9 @@ function buildBodyweightKcalCSV()
       + ',' + csvCell(bodyweight_kg != null ? fmt2(bodyweight_kg) : '')
       + ',' + csvCell(fmt0(totals.kcal))
       + ',' + csvCell(mass_summary.water_in_kg ? fmt3(mass_summary.water_in_kg) : '')
-      + ',' + csvCell(mass_summary.assumed_water_loss_kg ? fmt3(mass_summary.assumed_water_loss_kg) : '');
+      + ',' + csvCell(mass_summary.assumed_water_loss_kg ? fmt3(mass_summary.assumed_water_loss_kg) : '')
+      + ',' + csvCell(mass_summary.steps ? Math.round(mass_summary.steps) : '')
+      + ',' + csvCell(mass_summary.ebike_minutes ? Math.round(mass_summary.ebike_minutes) : '');
     lines.push(line);
   }
 
@@ -3426,6 +3671,8 @@ function parseBackupTSV(text)
       setIfNumber(event, 'body_mass_kg', row.body_mass_kg);
       setIfNumber(event, 'water_volume_ml', row.water_volume_ml);
       setIfNumber(event, 'mass_in_kg', row.mass_in_kg);
+      setIfNumber(event, 'steps', row.steps);
+      setIfNumber(event, 'ebike_minutes', row.ebike_minutes);
       setIfBool(event, 'water_loss', row.water_loss);
       setIfBool(event, 'anchor_reset', row.anchor_reset);
       setIfText(event, 'deleted_at', row.deleted_at);
@@ -3656,32 +3903,51 @@ function parseImportText()
 function parseMassImportText()
 {
   let parsed;
+  let trimmed;
 
   g_mass_import_pending = null;
 
-  if (!g_mass_import_text.trim())
+  trimmed = g_mass_import_text.trim();
+
+  if (!trimmed)
   {
-    g_mass_import_status = 'paste mass JSON or choose a file first';
+    g_mass_import_status = 'paste mass JSON, bodymass/kcal CSV, or bodymass/kcal TSV first';
     render();
     return;
   }
 
-  try
+  if (trimmed.charAt(0) == '{')
   {
-    parsed = JSON.parse(g_mass_import_text);
-  }
-  catch (e)
-  {
-    g_mass_import_status = 'not valid JSON — ' + e.message;
-    render();
-    return;
-  }
+    try
+    {
+      parsed = JSON.parse(g_mass_import_text);
+    }
+    catch (e)
+    {
+      g_mass_import_status = 'not valid JSON — ' + e.message;
+      render();
+      return;
+    }
 
-  if (!parsed || typeof parsed != 'object' || !parsed.mass_events || typeof parsed.mass_events != 'object')
+    if (!parsed || typeof parsed != 'object' || !parsed.mass_events || typeof parsed.mass_events != 'object')
+    {
+      g_mass_import_status = 'this doesn\'t look like a water/mass export — missing mass_events';
+      render();
+      return;
+    }
+  }
+  else
   {
-    g_mass_import_status = 'this doesn\'t look like a water/mass export — missing mass_events';
-    render();
-    return;
+    parsed = parseBodyweightKcalActivityImport(g_mass_import_text);
+
+    if (!parsed.ok)
+    {
+      g_mass_import_status = 'not valid bodymass/kcal table — ' + parsed.error;
+      render();
+      return;
+    }
+
+    parsed = parsed.payload;
   }
 
   g_mass_import_pending = parsed;
@@ -4462,6 +4728,18 @@ function mergeMassEventState(local_event, remote_event)
 
   if (remote_count > local_count) local_event.delete_count = remote_count;
   if (remote_event.buried_at && massEventDeleteCount(local_event) < 2) local_event.delete_count = 2;
+
+  if (local_event.event_type == 'steps' && remote_event.event_type == 'steps' && remote_event.steps != null)
+  {
+    local_event.steps = Math.round(Number(remote_event.steps) || 0);
+    if (remote_event.timestamp) local_event.timestamp = remote_event.timestamp;
+  }
+
+  if (local_event.event_type == 'ebike_time' && remote_event.event_type == 'ebike_time' && remote_event.ebike_minutes != null)
+  {
+    local_event.ebike_minutes = Math.round(Number(remote_event.ebike_minutes) || 0);
+    if (remote_event.timestamp) local_event.timestamp = remote_event.timestamp;
+  }
 }
 
 function mergeMassEvents(remote_events)
@@ -4524,6 +4802,14 @@ function migrateMassEvents()
       if (event.event_type == 'food_mass')
       {
         event.mass_in_kg = Math.round((Number(event.mass_in_kg) || 0)*1000)/1000;
+      }
+      if (event.event_type == 'steps')
+      {
+        event.steps = Math.round(Number(event.steps) || 0);
+      }
+      if (event.event_type == 'ebike_time')
+      {
+        event.ebike_minutes = Math.round(Number(event.ebike_minutes) || 0);
       }
       if (isMassCheckpoint(event) && event.body_mass_kg != null)
       {
@@ -5034,6 +5320,8 @@ function renderMassQuickActions()
     <button class="mass-action" data-a="mass-entry-open" data-type="post_meal_weight"${disabled}>Post Meal</button>
     <button class="mass-action" data-a="mass-entry-open" data-type="checkpoint_weight"${disabled}>Checkpoint</button>
     <button class="mass-action" data-a="mass-entry-open" data-type="post_restroom_weight"${disabled}>Post Latrine</button>
+    <button class="mass-action" data-a="mass-entry-open" data-type="steps"${disabled}>Steps</button>
+    <button class="mass-action" data-a="mass-entry-open" data-type="ebike_time"${disabled}>E-bike</button>
   </div>`;
 
   h += `<div class="mass-water-slider">
@@ -5069,6 +5357,20 @@ function renderMassEntryDraft()
     h += `<span class="unitinput mass-kg-input">
       <input type="text" inputmode="numeric" data-massdraft="mass_in" placeholder="50" value="${esc(d.mass_in_raw)}">
       <span class="unitghost">g</span>
+    </span>`;
+  }
+  else if (d.event_type == 'steps')
+  {
+    h += `<span class="unitinput mass-kg-input">
+      <input type="text" inputmode="numeric" data-massdraft="steps" placeholder="8500" value="${esc(d.steps_raw)}">
+      <span class="unitghost">steps</span>
+    </span>`;
+  }
+  else if (d.event_type == 'ebike_time')
+  {
+    h += `<span class="unitinput mass-kg-input">
+      <input type="text" inputmode="numeric" data-massdraft="ebike_minutes" placeholder="35" value="${esc(d.ebike_minutes_raw)}">
+      <span class="unitghost">min</span>
     </span>`;
   }
   else
@@ -5129,6 +5431,9 @@ function renderMassSummary()
     <div class="cell"><div class="lab">inferred mass out</div><div class="val under">${formatMassKg(t.inferred_mass_out_kg, false)}</div></div>
     <div class="cell"><div class="lab">latest body mass</div><div class="val bodymass">${latest}</div></div>
     <div class="cell"><div class="lab">net mass balance</div><div class="val">${formatMassKg(net, true)}</div></div>
+
+    <div class="cell"><div class="lab">steps</div><div class="val">${esc(Math.round(t.steps))}</div></div>
+    <div class="cell"><div class="lab">e-bike</div><div class="val">${esc(Math.round(t.ebike_minutes))} min</div></div>
   </div>`;
 
   return h;
@@ -5156,6 +5461,20 @@ function renderMassEventEditRow(event)
     h += `<span class="unitinput mass-kg-input">
       <input type="text" inputmode="numeric" data-massedit="mass_in" value="${esc(d.mass_in_raw)}">
       <span class="unitghost">g</span>
+    </span>`;
+  }
+  else if (event.event_type == 'steps')
+  {
+    h += `<span class="unitinput mass-kg-input">
+      <input type="text" inputmode="numeric" data-massedit="steps" value="${esc(d.steps_raw)}">
+      <span class="unitghost">steps</span>
+    </span>`;
+  }
+  else if (event.event_type == 'ebike_time')
+  {
+    h += `<span class="unitinput mass-kg-input">
+      <input type="text" inputmode="numeric" data-massedit="ebike_minutes" value="${esc(d.ebike_minutes_raw)}">
+      <span class="unitghost">min</span>
     </span>`;
   }
   else
@@ -5223,6 +5542,14 @@ function renderMassEventLog()
     else if (event.event_type == 'food_mass')
     {
       primary = '+' + Math.round((Number(event.mass_in_kg) || 0)*1000) + ' g';
+    }
+    else if (event.event_type == 'steps')
+    {
+      primary = Math.round(Number(event.steps) || 0) + ' steps';
+    }
+    else if (event.event_type == 'ebike_time')
+    {
+      primary = Math.round(Number(event.ebike_minutes) || 0) + ' min';
     }
     else
     {
@@ -5294,6 +5621,8 @@ function renderMassDailySummaries()
       <th class="num">in</th>
       <th class="num">out</th>
       <th class="num">delta</th>
+      <th class="num">steps</th>
+      <th class="num">e-bike</th>
       <th class="num">first</th>
       <th class="num">last</th>
       <th class="num">change</th>
@@ -5303,7 +5632,7 @@ function renderMassDailySummaries()
   for (let i = 0; i < list.length; ++i)
   {
     let s = massSummaryForDate(list[i]);
-    if (!s.checkpoint_count && !s.water_in_ml && !s.total_mass_in_g) continue;
+    if (!s.checkpoint_count && !s.water_in_ml && !s.total_mass_in_g && !s.steps && !s.ebike_minutes) continue;
 
     let delta_kg = (s.total_mass_in_g - s.inferred_mass_out_g)/1000.0;
     h += `<tr>
@@ -5313,6 +5642,8 @@ function renderMassDailySummaries()
       <td class="num">${formatMassKg(s.total_mass_in_g/1000)}</td>
       <td class="num">${formatMassKg(s.inferred_mass_out_g/1000)}</td>
       <td class="num">${formatMassKg(delta_kg)}</td>
+      <td class="num">${s.steps ? esc(Math.round(s.steps)) : '—'}</td>
+      <td class="num">${s.ebike_minutes ? esc(Math.round(s.ebike_minutes)) + ' min' : '—'}</td>
       <td class="num">${esc(s.first_mass_kg != null ? fmt2(s.first_mass_kg) : '—')}</td>
       <td class="num">${esc(s.last_mass_kg != null ? fmt2(s.last_mass_kg) : '—')}</td>
       <td class="num">${esc(s.mass_change_kg != null ? formatMassKg(s.mass_change_kg, true) : '—')}</td>
@@ -5353,9 +5684,9 @@ function renderMassExportPanel()
       <button class="smallbtn" data-a="mass-csv-copy">copy</button>
       <button class="smallbtn" data-a="mass-csv-download">download</button>
     </div>
-    <div class="hint" style="margin-top:10px">Import only water/mass-balance events. Full backups are accepted here too; pantry, protein, and kcal logs are ignored.</div>
-    <input type="file" accept=".json,application/json" data-a="mass-import-file">
-    <textarea class="exp-out mass-exp-out" placeholder="…or paste water/mass JSON here" data-field="mass-import-text">${esc(g_mass_import_text)}</textarea>
+    <div class="hint" style="margin-top:10px">Import only water/mass-balance events. Full backups are accepted here too; pantry, protein, and kcal logs are ignored. Bodymass/kcal CSV or TSV may include date, steps, and ebike_minutes columns.</div>
+    <input type="file" accept=".json,.csv,.tsv,application/json,text/csv,text/tab-separated-values" data-a="mass-import-file">
+    <textarea class="exp-out mass-exp-out" placeholder="…or paste water/mass JSON, bodymass/kcal CSV, or bodymass/kcal TSV here" data-field="mass-import-text">${esc(g_mass_import_text)}</textarea>
     <div class="btnrow2">
       <button class="smallbtn" data-a="mass-import-parse">check</button>`;
 
@@ -6419,6 +6750,8 @@ document.addEventListener('input', function(ev)
     if (target.dataset.massdraft == 'timestamp') g_mass_entry_draft.timestamp = target.value;
     if (target.dataset.massdraft == 'body_mass') g_mass_entry_draft.body_mass_raw = target.value;
     if (target.dataset.massdraft == 'mass_in') g_mass_entry_draft.mass_in_raw = target.value;
+    if (target.dataset.massdraft == 'steps') g_mass_entry_draft.steps_raw = target.value;
+    if (target.dataset.massdraft == 'ebike_minutes') g_mass_entry_draft.ebike_minutes_raw = target.value;
     if (target.dataset.massdraft == 'water_loss') g_mass_entry_draft.water_loss = !!target.checked;
     if (target.dataset.massdraft == 'anchor_reset') g_mass_entry_draft.anchor_reset = !!target.checked;
     if (target.dataset.massdraft == 'known_mass_in') g_mass_entry_draft.known_mass_in = !!target.checked;
@@ -6431,6 +6764,8 @@ document.addEventListener('input', function(ev)
     if (target.dataset.massedit == 'body_mass') g_mass_edit_draft.body_mass_raw = target.value;
     if (target.dataset.massedit == 'mass_in') g_mass_edit_draft.mass_in_raw = target.value;
     if (target.dataset.massedit == 'water_volume') g_mass_edit_draft.water_volume_raw = target.value;
+    if (target.dataset.massedit == 'steps') g_mass_edit_draft.steps_raw = target.value;
+    if (target.dataset.massedit == 'ebike_minutes') g_mass_edit_draft.ebike_minutes_raw = target.value;
     if (target.dataset.massedit == 'water_loss') g_mass_edit_draft.water_loss = !!target.checked;
     if (target.dataset.massedit == 'anchor_reset') g_mass_edit_draft.anchor_reset = !!target.checked;
     return;
