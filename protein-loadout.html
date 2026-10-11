@@ -3332,7 +3332,7 @@ function parseBodyweightKcalActivityImport(text)
       {
         mass_events[date].push({
           id:'daily_steps_' + date,
-          timestamp:date + 'T12:00',
+          timestamp:date + 'T23:00',
           event_type:'steps',
           steps:steps
         });
@@ -3346,7 +3346,7 @@ function parseBodyweightKcalActivityImport(text)
       {
         mass_events[date].push({
           id:'daily_ebike_' + date,
-          timestamp:date + 'T12:01',
+          timestamp:date + 'T23:01',
           event_type:'ebike_time',
           ebike_minutes:ebike_minutes
         });
@@ -3360,7 +3360,7 @@ function parseBodyweightKcalActivityImport(text)
       {
         mass_events[date].push({
           id:'daily_ebike_km_' + date,
-          timestamp:date + 'T12:02',
+          timestamp:date + 'T23:02',
           event_type:'ebike_km',
           ebike_km:ebike_km
         });
@@ -4066,6 +4066,89 @@ function renderMassImportPreview(mode)
   return h;
 }
 
+function dailyActivityImportEvent(date, event)
+{
+  if (!event || !event.id) return false;
+
+  switch (event.event_type)
+  {
+    case 'steps':
+      return event.id == 'daily_steps_' + date;
+    case 'ebike_time':
+      return event.id == 'daily_ebike_' + date;
+    case 'ebike_km':
+      return event.id == 'daily_ebike_km_' + date;
+  }
+
+  return false;
+}
+
+function clearMassEventDeletion(event)
+{
+  if (!event) return;
+
+  delete event.deleted_at;
+  delete event.delete_count;
+  delete event.buried_at;
+}
+
+function reconcileDailyActivityImport(date, local_day, remote_day)
+{
+  let replace_types = {};
+  let expected_ids = {};
+
+  if (!Array.isArray(local_day) || !Array.isArray(remote_day)) return;
+
+  for (let i = 0; i < remote_day.length; ++i)
+  {
+    let event = remote_day[i];
+
+    if (!dailyActivityImportEvent(date, event)) continue;
+
+    replace_types[event.event_type] = true;
+    expected_ids[event.id] = true;
+  }
+
+  for (let i = 0; i < local_day.length; ++i)
+  {
+    let event = local_day[i];
+
+    if (!event || !replace_types[event.event_type]) continue;
+
+    if (expected_ids[event.id])
+    {
+      clearMassEventDeletion(event);
+    }
+    else if (!massEventIsDeleted(event))
+    {
+      markMassEventDeleted(event);
+    }
+  }
+}
+
+function mergeDailyActivityImport(remote_events)
+{
+  if (!remote_events || typeof remote_events != 'object') return;
+
+  for (let date in remote_events)
+  {
+    let remote_day = remote_events[date];
+    let local_day = g_mass_events[date];
+
+    if (!Array.isArray(remote_day)) continue;
+
+    if (!Array.isArray(local_day))
+    {
+      local_day = [];
+      g_mass_events[date] = local_day;
+    }
+
+    reconcileDailyActivityImport(date, local_day, remote_day);
+  }
+
+  mergeMassEvents(remote_events);
+}
+
 function applyReplaceMassImport()
 {
   let parsed = g_mass_import_pending;
@@ -4091,7 +4174,8 @@ function applyMergeMassImport()
 
   if (!parsed) return;
 
-  mergeMassEvents(parsed.mass_events);
+  if (parsed.export_type == 'protein-loadout-bodyweight-kcal-activity') mergeDailyActivityImport(parsed.mass_events);
+  else mergeMassEvents(parsed.mass_events);
   migrateMassEvents();
   applyLegacyDeletedMassEvents(parsed.deleted_mass_event_ids);
 
@@ -4904,6 +4988,8 @@ function migrateMassEvents()
         event.body_mass_kg = Math.round((Number(event.body_mass_kg) || 0)*100)/100;
       }
     }
+
+    reconcileDailyActivityImport(date, day, day);
   }
 }
 
