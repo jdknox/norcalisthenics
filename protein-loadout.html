@@ -3332,7 +3332,7 @@ function parseBodyweightKcalActivityImport(text)
       {
         mass_events[date].push({
           id:'daily_steps_' + date,
-          timestamp:date + 'T23:00',
+          timestamp:dailyActivityImportTimestamp(date, 'steps'),
           event_type:'steps',
           steps:steps
         });
@@ -3346,7 +3346,7 @@ function parseBodyweightKcalActivityImport(text)
       {
         mass_events[date].push({
           id:'daily_ebike_' + date,
-          timestamp:date + 'T23:01',
+          timestamp:dailyActivityImportTimestamp(date, 'ebike_time'),
           event_type:'ebike_time',
           ebike_minutes:ebike_minutes
         });
@@ -3360,7 +3360,7 @@ function parseBodyweightKcalActivityImport(text)
       {
         mass_events[date].push({
           id:'daily_ebike_km_' + date,
-          timestamp:date + 'T23:02',
+          timestamp:dailyActivityImportTimestamp(date, 'ebike_km'),
           event_type:'ebike_km',
           ebike_km:ebike_km
         });
@@ -4081,6 +4081,28 @@ function dailyActivityImportEvent(date, event)
   }
 
   return false;
+}
+
+function dailyActivityImportTimestamp(date, event_type)
+{
+  switch (event_type)
+  {
+    case 'steps':
+      return date + 'T23:00';
+    case 'ebike_time':
+      return date + 'T23:01';
+    case 'ebike_km':
+      return date + 'T23:02';
+  }
+
+  return date + 'T23:00';
+}
+
+function normalizeDailyActivityImportEvent(date, event)
+{
+  if (!dailyActivityImportEvent(date, event)) return;
+
+  event.timestamp = dailyActivityImportTimestamp(date, event.event_type);
 }
 
 function clearMassEventDeletion(event)
@@ -4983,6 +5005,7 @@ function migrateMassEvents()
       {
         event.ebike_km = Math.round((Number(event.ebike_km) || 0)*100)/100;
       }
+      normalizeDailyActivityImportEvent(date, event);
       if (isMassCheckpoint(event) && event.body_mass_kg != null)
       {
         event.body_mass_kg = Math.round((Number(event.body_mass_kg) || 0)*100)/100;
