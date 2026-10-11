@@ -1140,6 +1140,28 @@ function massEventIsBuried(event)
   return massEventDeleteCount(event) >= 2 || !!(event && event.buried_at);
 }
 
+function massEventDeleteMillis(event)
+{
+  let millis = 0;
+  let deleted_millis;
+  let buried_millis;
+
+  if (!event) return 0;
+
+  deleted_millis = timestampMillis(event.deleted_at);
+  buried_millis = timestampMillis(event.buried_at);
+  if (deleted_millis > millis) millis = deleted_millis;
+  if (buried_millis > millis) millis = buried_millis;
+
+  return millis;
+}
+
+function massEventRestoreMillis(event)
+{
+  if (!event || massEventIsDeleted(event)) return 0;
+  return timestampMillis(event.restored_at);
+}
+
 function markMassEventDeleted(event)
 {
   if (!event) return;
@@ -1148,11 +1170,28 @@ function markMassEventDeleted(event)
   {
     event.delete_count = Math.max(massEventDeleteCount(event) + 1, 2);
     if (!event.buried_at) event.buried_at = new Date().toISOString();
+    delete event.restored_at;
     return;
   }
 
   event.deleted_at = new Date().toISOString();
   event.delete_count = 1;
+  delete event.restored_at;
+}
+
+function setMassEventRestored(event, restored_at)
+{
+  if (!event) return;
+
+  delete event.deleted_at;
+  delete event.buried_at;
+  event.delete_count = 0;
+  event.restored_at = restored_at;
+}
+
+function markMassEventRestored(event)
+{
+  setMassEventRestored(event, new Date().toISOString());
 }
 
 function rawMassEventsForDate(date)
@@ -1623,6 +1662,24 @@ function deleteMassEvent(event_id)
     {
       markMassEventDeleted(day[i]);
       if (g_mass_edit_id == event_id) cancelMassEventEdit();
+      render();
+      save();
+      return;
+    }
+  }
+}
+
+function restoreMassEvent(event_id)
+{
+  let day = rawMassEventsForDate(g_view_date);
+
+  if (!viewDateIsEditable()) return;
+
+  for (let i = 0; i < day.length; ++i)
+  {
+    if (day[i].id == event_id)
+    {
+      markMassEventRestored(day[i]);
       render();
       save();
       return;
@@ -3093,7 +3150,7 @@ function buildBackupTSV()
     }
   }
 
-  pushBackupTsvSection(lines, 'mass_events', ['date', 'id', 'timestamp', 'event_type', 'body_mass_kg', 'water_volume_ml', 'mass_in_kg', 'steps', 'ebike_minutes', 'ebike_km', 'water_loss', 'anchor_reset', 'deleted_at', 'delete_count', 'buried_at'], state);
+  pushBackupTsvSection(lines, 'mass_events', ['date', 'id', 'timestamp', 'event_type', 'body_mass_kg', 'water_volume_ml', 'mass_in_kg', 'steps', 'ebike_minutes', 'ebike_km', 'water_loss', 'anchor_reset', 'deleted_at', 'delete_count', 'buried_at', 'restored_at'], state);
   for (let date in g_mass_events)
   {
     let day = g_mass_events[date];
@@ -3102,7 +3159,7 @@ function buildBackupTSV()
     for (let i = 0; i < day.length; ++i)
     {
       let event = day[i];
-      pushBackupTsvRow(lines, [date, event.id, event.timestamp, event.event_type, event.body_mass_kg, event.water_volume_ml, event.mass_in_kg, event.steps, event.ebike_minutes, event.ebike_km, backupTsvBool(event.water_loss), backupTsvBool(event.anchor_reset), event.deleted_at, event.delete_count, event.buried_at], state);
+      pushBackupTsvRow(lines, [date, event.id, event.timestamp, event.event_type, event.body_mass_kg, event.water_volume_ml, event.mass_in_kg, event.steps, event.ebike_minutes, event.ebike_km, backupTsvBool(event.water_loss), backupTsvBool(event.anchor_reset), event.deleted_at, event.delete_count, event.buried_at, event.restored_at], state);
     }
   }
 
@@ -3756,6 +3813,7 @@ function parseBackupTSV(text)
       setIfText(event, 'deleted_at', row.deleted_at);
       setIfNumber(event, 'delete_count', row.delete_count);
       setIfText(event, 'buried_at', row.buried_at);
+      setIfText(event, 'restored_at', row.restored_at);
 
       if (date && event.id && event.event_type)
       {
@@ -4901,17 +4959,37 @@ function mergeMassEventState(local_event, remote_event)
 {
   let local_count;
   let remote_count;
+  let local_delete_millis;
+  let local_restore_millis;
+  let remote_delete_millis;
+  let remote_restore_millis;
 
   if (!local_event || !remote_event) return;
 
   local_count = massEventDeleteCount(local_event);
   remote_count = massEventDeleteCount(remote_event);
+  local_delete_millis = massEventDeleteMillis(local_event);
+  remote_delete_millis = massEventDeleteMillis(remote_event);
+  local_restore_millis = massEventRestoreMillis(local_event);
+  remote_restore_millis = massEventRestoreMillis(remote_event);
+
+  if (remote_restore_millis > local_delete_millis)
+  {
+    setMassEventRestored(local_event, remote_event.restored_at);
+    return;
+  }
+
+  if (local_restore_millis > remote_delete_millis)
+  {
+    return;
+  }
 
   if (remote_event.deleted_at && !local_event.deleted_at) local_event.deleted_at = remote_event.deleted_at;
   if (remote_event.buried_at && !local_event.buried_at) local_event.buried_at = remote_event.buried_at;
 
   if (remote_count > local_count) local_event.delete_count = remote_count;
   if (remote_event.buried_at && massEventDeleteCount(local_event) < 2) local_event.delete_count = 2;
+  if (massEventIsDeleted(local_event)) delete local_event.restored_at;
 
   if (local_event.event_type == 'steps' && remote_event.event_type == 'steps' && remote_event.steps != null)
   {
@@ -5743,6 +5821,7 @@ function renderMassEventLog()
     let primary = '';
     let detail = '';
     let extra = '';
+    let restore_button = '';
     let edit = !is_deleted && g_mass_edit_id == event.id ? renderMassEventEditRow(event) : '';
     let disabled = !viewDateIsEditable() || is_deleted ? ' disabled' : '';
     let deleted_class = is_deleted ? ' deleted' : '';
@@ -5788,6 +5867,11 @@ function renderMassEventLog()
       extra = 'Mass out ' + formatMassKg(info.mass_out_kg, false);
     }
 
+    if (is_deleted && viewDateIsEditable())
+    {
+      restore_button = `<button class="logged-food-remove" data-a="mass-event-restore" data-event="${esc(event.id)}" title="restore mass event">+</button>`;
+    }
+
     h += `<div class="mass-event${deleted_class}">
       <div class="mass-event-time">${esc(massEventTimeText(event))}
         <button class="editbtn mass-event-editbtn" data-a="mass-event-edit"
@@ -5803,6 +5887,7 @@ function renderMassEventLog()
       </div>
       <div class="mass-event-actions">
         <button class="logged-food-remove" data-a="mass-event-delete" data-event="${esc(event.id)}" title="${is_deleted ? 'hide deleted mass event' : 'delete mass event'}"${!viewDateIsEditable() ? ' disabled' : ''}>−</button>
+        ${restore_button}
       </div>
     </div>`;
   }
@@ -7441,6 +7526,10 @@ document.addEventListener('click', function(ev)
 
     case 'mass-event-delete':
       deleteMassEvent(target.dataset.event);
+      return;
+
+    case 'mass-event-restore':
+      restoreMassEvent(target.dataset.event);
       return;
 
     case 'group-toggle':
