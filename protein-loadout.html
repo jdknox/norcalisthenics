@@ -3274,6 +3274,34 @@ function activityImportKm(text)
   return isNaN(n) || n <= 0 ? null : Math.round(n*100)/100;
 }
 
+function importPositiveNumber(text)
+{
+  let value = String(text == null ? '' : text).trim();
+  let n;
+
+  if (!value || value == '—') return null;
+  n = Number(value);
+  return isNaN(n) || n <= 0 ? null : n;
+}
+
+function bodyweightKcalImportId(date)
+{
+  return 'bodyweight_kcal_import_' + date;
+}
+
+function bodyweightKcalImportEntry(date, kcal)
+{
+  return {
+    id:bodyweightKcalImportId(date),
+    item_key:'custom',
+    grams:null,
+    protein_g:null,
+    kcal:Math.round(kcal),
+    scale:null,
+    note:'bodymass/kcal import'
+  };
+}
+
 function parseBodyweightKcalActivityImport(text)
 {
   let source = String(text || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
@@ -3282,9 +3310,13 @@ function parseBodyweightKcalActivityImport(text)
   let delimiter = ',';
   let headers = [];
   let date_index = -1;
+  let bodyweight_index = -1;
+  let kcal_index = -1;
   let steps_index = -1;
   let ebike_index = -1;
   let ebike_km_index = -1;
+  let bodyweight_by_date = {};
+  let log = {};
   let daily_activity = {};
 
   for (let i = 0; i < lines.length; ++i)
@@ -3309,6 +3341,12 @@ function parseBodyweightKcalActivityImport(text)
       case 'date':
         date_index = i;
         break;
+      case 'body_mass_kg':
+        bodyweight_index = i;
+        break;
+      case 'daily_kcal':
+        kcal_index = i;
+        break;
       case 'steps':
         steps_index = i;
         break;
@@ -3322,7 +3360,7 @@ function parseBodyweightKcalActivityImport(text)
   }
 
   if (date_index < 0) return { ok:false, error:'missing date column', payload:null };
-  if (steps_index < 0 && ebike_index < 0 && ebike_km_index < 0) return { ok:false, error:'missing steps, ebike_minutes, or ebike_km column', payload:null };
+  if (bodyweight_index < 0 && kcal_index < 0 && steps_index < 0 && ebike_index < 0 && ebike_km_index < 0) return { ok:false, error:'missing body_mass_kg, daily_kcal, steps, ebike_minutes, or ebike_km column', payload:null };
 
   for (let i = 0; i < lines.length; ++i)
   {
@@ -3332,6 +3370,8 @@ function parseBodyweightKcalActivityImport(text)
     let steps;
     let ebike_minutes;
     let ebike_km;
+    let bodyweight_kg;
+    let kcal;
     let activity;
 
     if (!String(line).trim()) continue;
@@ -3341,6 +3381,19 @@ function parseBodyweightKcalActivityImport(text)
     date = String(cells[date_index] || '').trim();
 
     if (!/^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]$/.test(date)) continue;
+
+    if (bodyweight_index >= 0)
+    {
+      bodyweight_kg = importPositiveNumber(cells[bodyweight_index]);
+      if (bodyweight_kg != null) bodyweight_by_date[date] = Math.round(bodyweight_kg*100)/100;
+    }
+
+    if (kcal_index >= 0)
+    {
+      kcal = activityImportNumber(cells[kcal_index]);
+      if (kcal != null) log[date] = [bodyweightKcalImportEntry(date, kcal)];
+    }
+
     activity = emptyDailyActivity();
 
     if (steps_index >= 0)
@@ -3369,6 +3422,8 @@ function parseBodyweightKcalActivityImport(text)
     error:'',
     payload:{
       export_type:'protein-loadout-bodyweight-kcal-activity',
+      bodyweight_by_date:bodyweight_by_date,
+      log:log,
       daily_activity:daily_activity
     }
   };
@@ -3950,6 +4005,51 @@ function importDailyActivityChangeStats(import_activity, replace)
   return result;
 }
 
+function importBodyweightChangeStats(import_bodyweight, replace)
+{
+  let current_dates = {};
+  let import_dates = {};
+  let result;
+
+  for (let date in g_bodyweight_by_date)
+  {
+    if ((Number(g_bodyweight_by_date[date]) || 0) > 0) current_dates[date] = true;
+  }
+
+  if (import_bodyweight && typeof import_bodyweight == 'object')
+  {
+    for (let date in import_bodyweight)
+    {
+      if ((Number(import_bodyweight[date]) || 0) > 0) import_dates[date] = true;
+    }
+  }
+
+  result = {
+    total:replace ? countObjectKeys(import_dates) : countObjectKeys(current_dates),
+    added:0,
+    removed:0
+  };
+
+  for (let date in import_dates)
+  {
+    if (!current_dates[date])
+    {
+      ++result.added;
+      if (!replace) ++result.total;
+    }
+  }
+
+  if (replace)
+  {
+    for (let date in current_dates)
+    {
+      if (!import_dates[date]) ++result.removed;
+    }
+  }
+
+  return result;
+}
+
 function importChangeHtml(label, stats)
 {
   let h = '';
@@ -4115,17 +4215,23 @@ function renderMassImportPreview(mode)
   let replace = mode == 'replace';
   let mass_stats;
   let activity_stats;
+  let bodyweight_stats;
+  let kcal_stats;
   let h = '';
 
   if (!parsed) return '';
 
   mass_stats = importMassEventChangeStats(parsed.mass_events || {}, replace);
   activity_stats = importDailyActivityChangeStats(parsed.daily_activity || {}, replace);
+  bodyweight_stats = importBodyweightChangeStats(parsed.bodyweight_by_date || {}, replace);
+  kcal_stats = importLogDayChangeStats(parsed.log || {}, replace);
 
   h += `<div class="import-preview">
     <div class="import-preview-title">${replace ? 'replace mass data' : 'merge mass data'}</div>
     ${importChangeHtml('mass events', mass_stats)}
     ${importChangeHtml('daily activity days', activity_stats)}
+    ${importChangeHtml('bodyweight days', bodyweight_stats)}
+    ${importChangeHtml('kcal import days', kcal_stats)}
   </div>`;
 
   return h;
@@ -4146,6 +4252,8 @@ function applyReplaceMassImport()
     g_daily_activity = {};
     replaceDailyActivityDates(parsed.daily_activity, true);
   }
+  replaceBodyweightDates(parsed.bodyweight_by_date, true);
+  replaceBodyweightKcalImportLogEntries(parsed.log);
 
   migrateMassEvents();
   applyLegacyDeletedMassEvents(parsed.deleted_mass_event_ids);
@@ -4164,6 +4272,8 @@ function applyMergeMassImport()
   if (!parsed) return;
 
   replaceDailyActivityDates(parsed.daily_activity, true);
+  replaceBodyweightDates(parsed.bodyweight_by_date, true);
+  replaceBodyweightKcalImportLogEntries(parsed.log);
   mergeMassEvents(parsed.mass_events);
   migrateMassEvents();
   applyLegacyDeletedMassEvents(parsed.deleted_mass_event_ids);
@@ -4674,6 +4784,24 @@ function mergeBodyweightByDate(remote_bodyweight_by_date)
   }
 }
 
+function replaceBodyweightDates(remote_bodyweight_by_date, mark_dirty)
+{
+  if (!remote_bodyweight_by_date || typeof remote_bodyweight_by_date != 'object') return;
+
+  for (let date in remote_bodyweight_by_date)
+  {
+    let bodyweight_kg = Number(remote_bodyweight_by_date[date]);
+
+    if (isNaN(bodyweight_kg) || bodyweight_kg <= 0) continue;
+
+    bodyweight_kg = Math.round(bodyweight_kg*100)/100;
+    g_bodyweight_by_date[date] = bodyweight_kg;
+    delete g_bodyweight_raw_by_date[date];
+    if (date == todayISO()) g_bodyweight_kg = bodyweight_kg;
+    if (mark_dirty) g_bodyweight_dirty_dates[date] = true;
+  }
+}
+
 function clearBodyweightDirtyDates()
 {
   g_bodyweight_dirty_dates = {};
@@ -4834,6 +4962,70 @@ function mergeLogEntries(remote_log)
       local_day.push(entry);
       local_entries[entry.id] = entry;
     }
+  }
+}
+
+function dayHasNonImportKcal(date)
+{
+  let day = g_log[date];
+  let import_id = bodyweightKcalImportId(date);
+
+  if (!Array.isArray(day)) return false;
+
+  for (let i = 0; i < day.length; ++i)
+  {
+    let entry = day[i];
+
+    if (!entry || entry.id == import_id || logEntryIsDeleted(entry)) continue;
+    if ((Number(entry.kcal) || 0) > 0) return true;
+  }
+
+  return false;
+}
+
+function replaceBodyweightKcalImportLogEntries(import_log)
+{
+  if (!import_log || typeof import_log != 'object') return;
+
+  for (let date in import_log)
+  {
+    let remote_day = import_log[date];
+    let local_day = g_log[date];
+    let import_id = bodyweightKcalImportId(date);
+    let import_entry = null;
+    let existing_index = -1;
+
+    if (!Array.isArray(remote_day)) continue;
+
+    for (let i = 0; i < remote_day.length; ++i)
+    {
+      if (remote_day[i] && remote_day[i].id == import_id)
+      {
+        import_entry = remote_day[i];
+        break;
+      }
+    }
+
+    if (!import_entry) continue;
+    if (dayHasNonImportKcal(date)) continue;
+
+    if (!Array.isArray(local_day))
+    {
+      local_day = [];
+      g_log[date] = local_day;
+    }
+
+    for (let i = 0; i < local_day.length; ++i)
+    {
+      if (local_day[i] && local_day[i].id == import_id)
+      {
+        existing_index = i;
+        break;
+      }
+    }
+
+    if (existing_index >= 0) local_day[existing_index] = import_entry;
+    else local_day.push(import_entry);
   }
 }
 
