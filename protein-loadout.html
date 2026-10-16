@@ -1104,17 +1104,19 @@ function dayTotals(date)
   let day = g_log[date];
   let protein = 0;
   let kcal = 0;
+  let grams = 0;
 
-  if (!day) return { protein:0, kcal:0 };
+  if (!day) return { protein:0, kcal:0, grams:0 };
 
   for (let i = 0; i < day.length; ++i)
   {
     if (logEntryIsDeleted(day[i])) continue;
     if (day[i].protein_g != null) protein += day[i].protein_g;
     if (day[i].kcal != null) kcal += day[i].kcal;
+    if (day[i].grams != null) grams += Number(day[i].grams);
   }
 
-  return { protein:protein, kcal:kcal };
+  return { protein:protein, kcal:kcal, grams:grams };
 }
 
 function pad2(n)
@@ -1533,7 +1535,6 @@ function openMassEntryDraft(event_type)
     timestamp:currentTimeText(),
     body_mass_raw:defaultMassEntryRaw(),
     mass_in_raw:'',
-    known_mass_in:false,
     water_loss:event_type == 'post_restroom_weight',
     anchor_reset:false
   };
@@ -1565,7 +1566,7 @@ function saveMassEntryDraft()
 
   if (!d || !viewDateIsEditable()) return;
 
-  if (d.event_type == 'post_meal_weight' && d.known_mass_in)
+  if (d.event_type == 'food_mass')
   {
     grams = Math.round(parseFloat(d.mass_in_raw));
     if (isNaN(grams) || grams <= 0) return;
@@ -1741,6 +1742,7 @@ function computeMassLedger(date)
   let unmatched_pres = [];
   let checkpoints = [];
   let totals = {
+    pantry_mass_in_kg:dayTotals(date).grams/1000,
     water_mass_in_kg:0,
     water_in_ml:0,
     net_bracket_mass_in_kg:0,
@@ -1864,8 +1866,10 @@ function computeMassLedger(date)
     if (massEventCountsAsWaterLoss(cur.event)) totals.assumed_water_loss_kg += cur_info.mass_out_kg;
   }
 
-  totals.total_mass_in_kg = totals.water_mass_in_kg + totals.net_bracket_mass_in_kg;
+  totals.total_mass_in_kg = totals.water_mass_in_kg + totals.net_bracket_mass_in_kg + totals.pantry_mass_in_kg;
   if (totals.first_mass_kg != null && totals.latest_mass_kg != null) totals.mass_change_kg = totals.latest_mass_kg - totals.first_mass_kg;
+  // Pantry grams have no timestamps; daily out uses the whole day's intake and weight change.
+  if (totals.checkpoint_count > 1) totals.inferred_mass_out_kg = totals.total_mass_in_kg - totals.mass_change_kg;
 
   return { events:events, event_info:event_info, totals:totals };
 }
@@ -1904,6 +1908,7 @@ function massSummaryForDate(date)
     water_in_ml:t.water_in_ml,
     water_in_kg:t.water_mass_in_kg,
     net_bracket_mass_in_g:Math.round(t.net_bracket_mass_in_kg*1000),
+    food_mass_in_g:Math.round((t.net_bracket_mass_in_kg + t.pantry_mass_in_kg)*1000),
     total_mass_in_g:Math.round(t.total_mass_in_kg*1000),
     inferred_mass_out_g:Math.round(t.inferred_mass_out_kg*1000),
     assumed_water_loss_kg:t.assumed_water_loss_kg,
@@ -5906,10 +5911,8 @@ function renderMassQuickActions()
 
   h += `<div class="mass-actions">
     <button class="mass-primary-action" data-a="mass-water-add" data-ml="${g_default_water_ml}"${disabled}>+${g_default_water_ml} mL</button>
-    <button class="mass-action" data-a="mass-entry-open" data-type="pre_meal_weight"${disabled}>Pre Meal</button>
-    <button class="mass-action" data-a="mass-entry-open" data-type="post_meal_weight"${disabled}>Post Meal</button>
+    <button class="mass-action" data-a="mass-entry-open" data-type="food_mass"${disabled}>Mass delta</button>
     <button class="mass-action" data-a="mass-entry-open" data-type="checkpoint_weight"${disabled}>Checkpoint</button>
-    <button class="mass-action" data-a="mass-entry-open" data-type="post_restroom_weight"${disabled}>Post Latrine</button>
   </div>`;
 
   h += `<div class="mass-water-slider">
@@ -5964,7 +5967,7 @@ function renderMassEntryDraft()
     <div class="mass-entry-title">${esc(massEventLabel(d.event_type))}</div>
     <input type="time" data-massdraft="timestamp" value="${esc(d.timestamp)}">`;
 
-  if (d.event_type == 'post_meal_weight' && d.known_mass_in)
+  if (d.event_type == 'food_mass')
   {
     h += `<span class="unitinput mass-kg-input">
       <input type="text" inputmode="numeric" data-massdraft="mass_in" placeholder="50" value="${esc(d.mass_in_raw)}">
@@ -5998,14 +6001,6 @@ function renderMassEntryDraft()
     </label>`;
   }
 
-  if (d.event_type == 'post_meal_weight')
-  {
-    h += `<label class="mass-flag-toggle">
-      <input type="checkbox" data-massdraft="known_mass_in"${d.known_mass_in ? ' checked' : ''}>
-      <span>delta g</span>
-    </label>`;
-  }
-
   h += `<button class="smallbtn" data-a="mass-entry-save">save</button>
     <button class="smallbtn" data-a="mass-entry-cancel">cancel</button>
   </div>`;
@@ -6025,7 +6020,7 @@ function renderMassSummary()
   h += `<div class="summary mass-summary">
     <div class="cell"><div class="lab">water in</div><div class="val water">${Math.round(t.water_in_ml)} mL</div></div>
     <div class="cell"><div class="lab">total mass in</div><div class="val">${formatMassKg(t.total_mass_in_kg, false)}</div></div>
-    <div class="cell"><div class="lab">food mass in</div><div class="val">${formatMassKg(t.net_bracket_mass_in_kg, false)}</div></div>
+    <div class="cell"><div class="lab">food mass in</div><div class="val">${formatMassKg(t.net_bracket_mass_in_kg + t.pantry_mass_in_kg, false)}</div></div>
 
     <div class="cell"><div class="lab">inferred mass out</div><div class="val under">${formatMassKg(t.inferred_mass_out_kg, false)}</div></div>
     <div class="cell"><div class="lab">latest body mass</div><div class="val bodymass">${latest}</div></div>
@@ -6102,7 +6097,13 @@ function renderMassEventLog()
   let h = '';
 
   h += `<div class="mass-log">
-    <div class="mass-section-head">event log</div>`;
+    <div class="mass-section-head">event log</div>
+    <div class="mass-event">
+      <div class="mass-event-main">
+        <div class="mass-event-title">Pantry mass</div>
+        <div class="mass-event-detail">${esc(formatMassKg(ledger.totals.pantry_mass_in_kg, false))}</div>
+      </div>
+    </div>`;
 
   for (let i = 0; i < events.length; ++i)
   {
@@ -6166,7 +6167,7 @@ function renderMassEventLog()
     </div>`;
   }
 
-  if (!rendered_count)
+  if (!rendered_count && !ledger.totals.pantry_mass_in_kg)
   {
     h += `<div class="logged-foods-empty">no mass events logged</div>`;
   }
@@ -6185,6 +6186,10 @@ function renderMassDailySummaries()
   for (let date in g_mass_events)
   {
     if (massEventsForDate(date).length) dates[date] = true;
+  }
+  for (let date in g_log)
+  {
+    if (dayTotals(date).grams) dates[date] = true;
   }
   for (let date in g_daily_activity)
   {
@@ -6224,7 +6229,7 @@ function renderMassDailySummaries()
     h += `<tr>
       <td>${esc(s.date)}</td>
       <td class="num">${esc(Math.round(s.water_in_ml))} mL</td>
-      <td class="num">${esc(s.net_bracket_mass_in_g)} g</td>
+      <td class="num">${esc(s.food_mass_in_g)} g</td>
       <td class="num">${formatMassKg(s.total_mass_in_g/1000)}</td>
       <td class="num">${formatMassKg(s.inferred_mass_out_g/1000)}</td>
       <td class="num">${formatMassKg(delta_kg)}</td>
@@ -7454,7 +7459,6 @@ document.addEventListener('input', function(ev)
     if (target.dataset.massdraft == 'mass_in') g_mass_entry_draft.mass_in_raw = target.value;
     if (target.dataset.massdraft == 'water_loss') g_mass_entry_draft.water_loss = !!target.checked;
     if (target.dataset.massdraft == 'anchor_reset') g_mass_entry_draft.anchor_reset = !!target.checked;
-    if (target.dataset.massdraft == 'known_mass_in') g_mass_entry_draft.known_mass_in = !!target.checked;
     return;
   }
 
@@ -7643,13 +7647,6 @@ document.addEventListener('change', function(ev)
   if (target.dataset && target.dataset.massdraft == 'anchor_reset' && g_mass_entry_draft)
   {
     g_mass_entry_draft.anchor_reset = !!target.checked;
-    return;
-  }
-
-  if (target.dataset && target.dataset.massdraft == 'known_mass_in' && g_mass_entry_draft)
-  {
-    g_mass_entry_draft.known_mass_in = !!target.checked;
-    renderPreservingFocus();
     return;
   }
 
