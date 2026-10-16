@@ -215,6 +215,12 @@ tfoot td{border-top:2px solid var(--line2);font-family:var(--mono);font-weight:6
   background:#2d3023;cursor:pointer}
 .tagfilterbtn:hover{color:var(--text);border-color:var(--line2)}
 .tagfilterbtn.on{background:var(--green);color:#132014;border-color:var(--green);font-weight:666}
+.tagfilterbtn.tagheat {
+  background: color-mix(in srgb, #23201a, #324953 var(--heat));
+  color: var(--tag-text);
+  border-color: color-mix(in srgb, #524a3a, #486572 var(--heat))
+}
+.tagfilterbtn.tagheat.on{outline:2px solid var(--muted);outline-offset:1px}
 .tagfilterbtn.flattenbtn{margin-left:6px}
 .tagfilterbtn.pantryviewbtn{color:var(--blue);border-color:var(--blue);border-radius:4px;background:var(--panel2)}
 .tagfilterbtn.pantryviewbtn:hover,.tagfilterbtn.pantryviewbtn.on{background:var(--blue);color:var(--bg);border-color:var(--blue)}

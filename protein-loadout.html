@@ -6828,9 +6828,55 @@ function renderScoopSearch()
   return h;
 }
 
+function readTagUsage(today)
+{
+  let stored = localStorage.getItem(g_storage_key + ':tag-usage');
+  let usage = stored ? JSON.parse(stored) : {};
+  let oldest = shiftDateISO(today, -29);
+  for (let date in usage)
+  {
+    if (date < oldest || date > today) delete usage[date];
+  }
+  return usage;
+}
+
+function recordTagPress(key)
+{
+  if (key == g_other.toLowerCase()) return;
+  let today = todayISO();
+  let usage = readTagUsage(today);
+  if (!usage[today]) usage[today] = {};
+  usage[today][key] = (usage[today][key] || 0) + 1;
+  localStorage.setItem(g_storage_key + ':tag-usage', JSON.stringify(usage));
+}
+
+function charVal(string, index)
+{
+  let a = 97;
+  return (string.charCodeAt(index) - a)/26;
+}
+
+function tagTextColor(name)
+{
+  let letters = name.toLowerCase().replace(/[^a-z]/g, '');
+  if (!letters) return 'var(--text)';
+  let hue = charVal(letters, 0)*360;
+
+  let lightness = 80;
+  if (letters.length > 1)
+  {
+    let charval = charVal(letters, 1);
+    charval += (letters.length > 2) ? charVal(letters, 2) : 0;
+    lightness = 65 + charval/2*30;
+  }
+
+  return 'hsl(' + hue + ' 25% ' + lightness + '%)';
+}
+
 function renderTagFilterBar()
 {
   let names = distinctDisplayTagNames();
+  let usage = readTagUsage(todayISO());
   let h = '';
   let sort_class = g_flatten_sort == 'ratio_asc' ? ' on' : '';
 
@@ -6840,13 +6886,24 @@ function renderTagFilterBar()
   {
     let key = names[i].toLowerCase();
     let active_class = g_active_tags[key] ? ' on' : '';
+    let heat_class = '';
+    let heat_style = '';
+    if (key != g_other.toLowerCase())
+    {
+      let presses = 0;
+      for (let date in usage) presses += usage[date][key] || 0;
+      heat_class = ' tagheat';
+      heat_style = ` style="--heat:${100*presses/(presses + 8)}%;
+        --tag-text:${tagTextColor(names[i])}"`;
+    }
 
-    h += `<button class="tagfilterbtn${active_class}" data-a="tag-filter-toggle" data-tag="${esc(key)}">${esc(names[i])}</button>`;
+    h += `<button class="tagfilterbtn${active_class}${heat_class}"${heat_style} data-a="tag-filter-toggle" data-tag="${esc(key)}">${esc(names[i])}</button>`;
   }
 
   h += `<button class="tagfilterbtn pantryviewbtn flattenbtn${g_flatten_view ? ' on' : ''}" data-a="flatten-toggle">${g_flatten_view ? 'show grouped' : 'show all'}</button>
   ${!g_flatten_view ? '<button class="tagfilterbtn pantryviewbtn" data-a="group-collapse-all">collapse all</button>' : ''}
   ${g_flatten_view ? `<button class="tagfilterbtn${sort_class}" data-a="flatten-sort-ratio" title="sort by kcal per protein gram, highest first">kcal/g ↓</button>` : ''}
+  ${g_admin_mode ? '<button class="smallbtn" data-a="tag-colors-clear" title="Reset tag press counts in this browser">clear tag colors</button>' : ''}
   </div>`;
 
   return h;
@@ -7866,7 +7923,14 @@ document.addEventListener('click', function(ev)
       pickTagSuggestion(target.dataset.tag, target);
       return;
 
+    case 'tag-colors-clear':
+      if (!g_admin_mode) return;
+      localStorage.removeItem(g_storage_key + ':tag-usage');
+      render();
+      return;
+
     case 'tag-filter-toggle':
+      recordTagPress(target.dataset.tag);
       if (g_active_tags[target.dataset.tag]) delete g_active_tags[target.dataset.tag];
       else g_active_tags[target.dataset.tag] = true;
       render();
