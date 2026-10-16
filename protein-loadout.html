@@ -399,7 +399,7 @@ function currentTagFragment(value)
 
 function updateTagSuggestions(el)
 {
-  let list = document.getElementById('tag-suggest');
+  let list = el.closest('.tagwrap').querySelector('.tagsuggest');
   let fragment;
   let names;
   let matches;
@@ -435,16 +435,18 @@ function updateTagSuggestions(el)
   list.classList.add('open');
 }
 
-function pickTagSuggestion(tag)
+function pickTagSuggestion(tag, button)
 {
-  let input = document.querySelector('[data-editdraft="tags"]');
-  let list = document.getElementById('tag-suggest');
+  let wrapper = button.closest('.tagwrap');
+  let input = wrapper.querySelector('input');
+  let list = wrapper.querySelector('.tagsuggest');
+  let draft = input.dataset.recipedraft ? g_recipe_draft : g_edit_draft;
   let value;
   let idx;
   let prefix;
   let new_value;
 
-  if (!input || !g_edit_draft) return;
+  if (!draft) return;
 
   value = input.value;
   idx = value.lastIndexOf(',');
@@ -452,7 +454,7 @@ function pickTagSuggestion(tag)
   new_value = prefix + tag + ', ';
 
   input.value = new_value;
-  g_edit_draft.tags = new_value;
+  draft.tags = new_value;
 
   if (list)
   {
@@ -720,6 +722,7 @@ let g_fetch_context = {};       /* item_key -> which rendered context ('standalo
 let g_fetch_barcode = {};       /* item_key -> barcode used by a draft-triggered lookup */
 let g_scoop_search_raw = '';
 let g_scoop_add_draft = null;   /* { barcode, name, brand, scoop_g, macro_mode, macro_protein, macro_kcal } while the add-item form is open */
+let g_recipe_draft = null;
 let g_add_item_status = '';     /* transient feedback for the add-item form's O.F.F. lookup */
 let g_last_lookup_debug = null; /* raw response text when the web-search fallback returns something unparseable/unexpected, not persisted */
 let g_print_status = null;      /* transient feedback for the print button, not persisted */
@@ -955,6 +958,11 @@ function addScoop(key)
 
 function pushLogEntry(key, grams, protein_g, kcal, scale)
 {
+  if (g_recipe_draft)
+  {
+    addRecipeIngredient(key, grams);
+    return;
+  }
   let day = g_log[g_view_date];
 
   if (!day)
@@ -2268,10 +2276,191 @@ function lookupOFFForAddItem()
   });
 }
 
+function openRecipeDraft(item)
+{
+  g_recipe_draft = {
+    key:item ? item.key : '',
+    name:item ? item.name : '',
+    yield_g:item ? String(item.yield_g) : '',
+    scoop_g:item ? String(item.scoop_g) : '100',
+    tags:item ? itemTags(item).join(', ') : '',
+    ingredients:[]
+  };
+  if (item)
+  {
+    for (let ingredient of item.ingredients)
+    {
+      g_recipe_draft.ingredients.push({item_key:ingredient.item_key, grams:String(ingredient.grams)});
+    }
+  }
+  g_edit_item_key = null;
+  g_edit_draft = null;
+  closeScaleEdit();
+}
+
+function recipeGramsForItem(key)
+{
+  for (let ingredient of g_recipe_draft.ingredients)
+  {
+    if (ingredient.item_key == key) return Number(ingredient.grams) || 0;
+  }
+  return 0;
+}
+
+function addRecipeIngredient(key, grams)
+{
+  let item = findScoopItem(key);
+  if (!item || itemIsArchived(item) || Array.isArray(item.ingredients)) return;
+  if (!Number.isFinite(grams) || grams <= 0) return;
+
+  for (let ingredient of g_recipe_draft.ingredients)
+  {
+    if (ingredient.item_key != key) continue;
+    ingredient.grams = String(round1((Number(ingredient.grams) || 0) + grams));
+    return;
+  }
+  g_recipe_draft.ingredients.push({item_key:key, grams:String(grams)});
+}
+
+function recipeNutrition(draft)
+{
+  let grams = 0;
+  let protein = 0;
+  let kcal = 0;
+
+  if (!draft.ingredients.length) return {error:'Add an ingredient.'};
+  for (let ingredient of draft.ingredients)
+  {
+    let item = findScoopItem(ingredient.item_key);
+    let amount = Number(ingredient.grams);
+    if (!item || Array.isArray(item.ingredients)) return {error:'Choose a pantry food for every ingredient.'};
+    if (!Number.isFinite(amount) || amount <= 0) return {error:'Enter positive ingredient grams.'};
+    let protein_100g = item.protein_100g;
+    let kcal_100g = item.kcal_100g;
+    if (item.scoop_g > 0)
+    {
+      if (protein_100g == null && item.protein_g != null) protein_100g = item.protein_g/item.scoop_g*100;
+      if (kcal_100g == null && item.kcal != null) kcal_100g = item.kcal/item.scoop_g*100;
+    }
+    if (protein_100g == null || kcal_100g == null) return {error:'Ingredient nutrition is missing: ' + item.name};
+    grams += amount;
+    protein += Number(protein_100g)*amount/100;
+    kcal += Number(kcal_100g)*amount/100;
+  }
+  let yield_g = draft.yield_g.trim() ? Number(draft.yield_g) : grams;
+  let scoop_g = Number(draft.scoop_g);
+  if (!Number.isFinite(yield_g) || yield_g <= 0) return {error:'Enter a positive finished weight.'};
+  if (!Number.isFinite(scoop_g) || scoop_g <= 0) return {error:'Enter positive serving grams.'};
+  if (!Number.isFinite(protein) || !Number.isFinite(kcal)) return {error:'Ingredient nutrition is invalid.'};
+  return {error:'', yield_g:yield_g, scoop_g:scoop_g, protein_100g:protein/yield_g*100, kcal_100g:kcal/yield_g*100};
+}
+
+function recipeMassDiffers(draft)
+{
+  if (!draft.yield_g.trim()) return false;
+  let ingredient_g = 0;
+  for (let ingredient of draft.ingredients)
+  {
+    ingredient_g += Number(ingredient.grams) || 0;
+  }
+  return Math.abs(Number(draft.yield_g) - ingredient_g) > 1;
+}
+
+function recipePreviewText()
+{
+  let nutrition = recipeNutrition(g_recipe_draft);
+  if (nutrition.error) return nutrition.error;
+  return fmt1(nutrition.yield_g) + ' g batch · ' + fmt1(nutrition.protein_100g) + ' g protein / ' + fmt0(nutrition.kcal_100g) + ' kcal per 100 g';
+}
+
+function refreshRecipeDisplays()
+{
+  document.getElementById('recipe-preview').textContent = recipePreviewText();
+  document.querySelector('[data-recipedraft="yield_g"]').classList.toggle('recipe-mass-diff', recipeMassDiffers(g_recipe_draft));
+  for (let cell of document.querySelectorAll('[data-recipe-grams]'))
+  {
+    cell.textContent = fmt1(recipeGramsForItem(cell.dataset.recipeGrams));
+  }
+  let rows = document.querySelectorAll('[data-recipe-group]');
+  for (let node of groupedNodes())
+  {
+    if (node.type != 'group') continue;
+    let totals = pantryGroupTotals(node.group);
+    for (let row of rows)
+    {
+      if (row.dataset.recipeGroup != node.group.key) continue;
+      row.querySelector('.grouptoggle .unit').textContent = '(' + totals.count + '/' + node.group.members.length + ')';
+      row.querySelector('.protein').textContent = fmt0(totals.protein);
+      row.querySelector('.kcal').textContent = fmt_1(totals.kcal);
+    }
+  }
+}
+
+function saveRecipeDraft()
+{
+  let draft = g_recipe_draft;
+  if (!draft) return;
+  let nutrition = recipeNutrition(draft);
+  if (!draft.name.trim() || nutrition.error)
+  {
+    document.getElementById('recipe-preview').textContent = !draft.name.trim() ? 'Enter a recipe name.' : nutrition.error;
+    return;
+  }
+  let item = draft.key ? findScoopItem(draft.key) : {key:uid()};
+  item.name = draft.name.trim();
+  item.tags = parseTagsInput(draft.tags);
+  item.yield_g = nutrition.yield_g;
+  item.scoop_g = nutrition.scoop_g;
+  item.protein_100g = nutrition.protein_100g;
+  item.kcal_100g = nutrition.kcal_100g;
+  item.protein_g = nutrition.protein_100g*nutrition.scoop_g/100;
+  item.kcal = nutrition.kcal_100g*nutrition.scoop_g/100;
+  item.ingredients = [];
+  for (let ingredient of draft.ingredients)
+  {
+    item.ingredients.push({item_key:ingredient.item_key, grams:Number(ingredient.grams)});
+  }
+  copyScoopRawFields(item);
+  if (!draft.key) g_scoop_items.push(item);
+  g_recipe_draft = null;
+  closeScaleEdit();
+  save();
+}
+
+function renderRecipeDraft()
+{
+  let draft = g_recipe_draft;
+  if (!draft) return '';
+  let h = `<div class="recipe-editor">
+    <div class="mass-section-head">${draft.key ? 'Edit recipe' : 'New recipe'}</div>
+    <label>Recipe name<input data-recipedraft="name" value="${esc(draft.name)}"></label>`;
+  h += `<div class="recipe-ingredients">`;
+  for (let i = 0; i < draft.ingredients.length; ++i)
+  {
+    let ingredient = draft.ingredients[i];
+    let item = findScoopItem(ingredient.item_key);
+    h += `<div class="recipe-ingredient"><span>${esc(item ? item.name : 'Missing ingredient: ' + ingredient.item_key)}</span>
+      <label>Grams<input inputmode="decimal" data-recipeindex="${i}" data-recipefield="grams" value="${esc(ingredient.grams)}"></label>
+      <button class="smallbtn" data-a="recipe-remove" data-index="${i}" title="Remove ingredient" aria-label="Remove ingredient">−</button></div>`;
+  }
+  h += `</div>
+    <div class="recipe-weights"><label>Finished batch (g)<input class="${recipeMassDiffers(draft) ? 'recipe-mass-diff' : ''}" inputmode="decimal" data-recipedraft="yield_g" placeholder="Ingredient total" value="${esc(draft.yield_g)}"></label>
+    <label>Serving (g)<input inputmode="decimal" data-recipedraft="scoop_g" value="${esc(draft.scoop_g)}"></label></div>
+    <label class="tagwrap">Tags<input data-recipedraft="tags" autocomplete="off" value="${esc(draft.tags)}"><span class="tagsuggest"></span></label>
+    <div id="recipe-preview" role="status">${esc(recipePreviewText())}</div>
+    <div class="btnrow2"><button class="smallbtn" data-a="recipe-save">save recipe</button><button class="smallbtn" data-a="recipe-cancel">cancel</button></div></div>`;
+  return h;
+}
+
 function openScoopEdit(key, context)
 {
   let item = findScoopItem(key);
   if (!item) return;
+  if (Array.isArray(item.ingredients))
+  {
+    openRecipeDraft(item);
+    return;
+  }
 
   g_edit_item_key = key;
   g_edit_context = context || 'standalone';
@@ -2387,7 +2576,7 @@ function renderScoopEditRow(item)
       </span>
       <span class="tagwrap">
         <input type="text" data-editdraft="tags" autocomplete="off" placeholder="tags, comma separated (e.g. Skyr bowl, Snack mix)" value="${esc(d.tags)}">
-        <div class="tagsuggest" id="tag-suggest"></div>
+        <div class="tagsuggest"></div>
       </span>`;
 
   let possible_barcode = d.barcode.trim();
@@ -2569,7 +2758,7 @@ function logScaledEntry()
   let kcal;
 
   if (!item || !d) return;
-  if (!viewDateIsEditable()) return;
+  if (!g_recipe_draft && !viewDateIsEditable()) return;
 
   grams = parseFloat(d.grams_raw);
   protein_g = d.protein_g_raw.trim() === '' ? null : d.protein_g;
@@ -2579,14 +2768,14 @@ function logScaledEntry()
 
   resetScaleDraft();
   render();
-  save();
+  if (!g_recipe_draft) save();
 }
 
 function renderScalePanel(item)
 {
   let d = g_scale_draft;
-  let is_today = viewDateIsEditable();
-  let today_entries = entriesForItem(g_view_date, item.key);
+  let is_today = g_recipe_draft || viewDateIsEditable();
+  let today_entries = g_recipe_draft ? [] : entriesForItem(g_view_date, item.key);
   let volume_preview;
   let h = '';
   let e;
@@ -2623,16 +2812,16 @@ function renderScalePanel(item)
         </span>
         <span class="scaleunitbox">
           <input type="text" inputmode="decimal" data-scaledraft="protein_g"
-            value="${esc(d.protein_g_raw)}"><span>protein g</span>
+            value="${esc(d.protein_g_raw)}"${g_recipe_draft ? ' readonly' : ''}><span>protein g</span>
         </span>
         <span class="scaleunitbox">
           <input type="text" inputmode="decimal" data-scaledraft="kcal"
-            value="${esc(d.kcal_raw)}"><span>kcal</span>
+            value="${esc(d.kcal_raw)}"${g_recipe_draft ? ' readonly' : ''}><span>kcal</span>
         </span>
       </div>
 
       <div class="btnrow2">
-        <button class="smallbtn" data-a="scoop-scale-log"${disabled}>log this</button>
+        <button class="smallbtn" data-a="scoop-scale-log"${disabled}>${g_recipe_draft ? 'add to recipe' : 'log this'}</button>
         <button class="smallbtn" data-a="scoop-scale-reset">reset to 1×</button>
         <button class="smallbtn" data-a="scoop-scale-close">close</button>
       </div>`;
@@ -3095,11 +3284,21 @@ function buildBackupTSV()
     pushBackupTsvRow(lines, [food.key, food.name, food.kind, food.unit_grams, food.unit_protein, food.package_grams, food.package_protein, food.daily, food.price, food.package_units], state);
   }
 
-  pushBackupTsvSection(lines, 'pantry_items', ['key', 'name', 'brand', 'barcode', 'scoop_g', 'protein_g', 'kcal', 'protein_100g', 'kcal_100g', 'volume_ml', 'volume_label', 'archived'], state);
+  pushBackupTsvSection(lines, 'pantry_items', ['key', 'name', 'brand', 'barcode', 'scoop_g', 'protein_g', 'kcal', 'protein_100g', 'kcal_100g', 'volume_ml', 'volume_label', 'archived', 'yield_g'], state);
   for (let i = 0; i < g_scoop_items.length; ++i)
   {
     let item = g_scoop_items[i];
-    pushBackupTsvRow(lines, [item.key, item.name, item.brand, item.barcode, item.scoop_g, item.protein_g, item.kcal, item.protein_100g, item.kcal_100g, item.volume_ml, item.volume_label, backupTsvBool(item.archived)], state);
+    pushBackupTsvRow(lines, [item.key, item.name, item.brand, item.barcode, item.scoop_g, item.protein_g, item.kcal, item.protein_100g, item.kcal_100g, item.volume_ml, item.volume_label, backupTsvBool(item.archived), item.yield_g], state);
+  }
+
+  pushBackupTsvSection(lines, 'recipe_ingredients', ['recipe_key', 'item_key', 'grams'], state);
+  for (let item of g_scoop_items)
+  {
+    if (!Array.isArray(item.ingredients)) continue;
+    for (let ingredient of item.ingredients)
+    {
+      pushBackupTsvRow(lines, [item.key, ingredient.item_key, ingredient.grams], state);
+    }
   }
 
   pushBackupTsvSection(lines, 'pantry_item_tags', ['item_key', 'tag'], state);
@@ -3755,6 +3954,8 @@ function parseBackupTSV(text)
       setIfNumber(item, 'protein_100g', row.protein_100g);
       setIfNumber(item, 'kcal_100g', row.kcal_100g);
       setIfNumber(item, 'volume_ml', row.volume_ml);
+      setIfNumber(item, 'yield_g', row.yield_g);
+      if (item.yield_g != null) item.ingredients = [];
       setIfBool(item, 'archived', row.archived);
 
       if (item.key)
@@ -3762,6 +3963,19 @@ function parseBackupTSV(text)
         payload.scoop_items.push(item);
         item_by_key[item.key] = item;
       }
+    }
+  }
+
+  let recipe_ingredients = parsed.sections.recipe_ingredients;
+  if (recipe_ingredients)
+  {
+    for (let cells of recipe_ingredients.rows)
+    {
+      let row = tsvRowObject(recipe_ingredients.headers, cells);
+      let item = item_by_key[row.recipe_key];
+      let grams = parseTsvNumber(row.grams);
+      if (!item || !Array.isArray(item.ingredients) || !row.item_key || grams == null || grams <= 0) continue;
+      item.ingredients.push({item_key:row.item_key, grams:grams});
     }
   }
 
@@ -6114,7 +6328,7 @@ function render()
 
 function renderItemRow(item, is_today, indent, context)
 {
-  let count = logCount(g_view_date, item.key);
+  let count = g_recipe_draft ? fmt1(recipeGramsForItem(item.key)) : logCount(g_view_date, item.key);
   let h = '';
   let is_match = itemMatchesSearch(item);
   let archived = itemIsArchived(item);
@@ -6124,24 +6338,25 @@ function renderItemRow(item, is_today, indent, context)
   let kcal = item.kcal != null ? fmt_1(item.kcal) : '—';
   let ratio = itemKcalProteinRatio(item);
   let macro_ratio = ratio != null ? fmtKcalProteinRatio(ratio) + '/g' : '';
-  let disabled = !is_today || archived ? ' disabled' : '';
-  let scale_disabled = archived ? ' disabled' : '';
+  let recipe_item = g_recipe_draft && Array.isArray(item.ingredients);
+  let disabled = (!g_recipe_draft && !is_today) || archived || recipe_item ? ' disabled' : '';
+  let scale_disabled = archived || recipe_item ? ' disabled' : '';
 
   /* barcode could be shown beside the brand with: item.barcode ? ' · ' + esc(item.barcode) : '' */
   h += `<tr class="scooprow${row_class}">
     <td>
-      <span class="foodname">${esc(item.name)}&nbsp;<button class="editbtn" data-a="scoop-edit-open" data-key="${item.key}" data-context="${esc(context)}" title="edit name/brand/barcode/volume/scoop/protein/kcal/tags">✎</button>
+      <span class="foodname">${esc(item.name)}&nbsp;<button class="editbtn" data-a="scoop-edit-open" data-key="${item.key}" data-context="${esc(context)}" title="edit name/brand/barcode/volume/scoop/protein/kcal/tags"${recipe_item ? ' disabled' : ''}>✎</button>
         <span class="unit">${esc(item.brand || '')}</span>
       </span>
     </td>
     <td class="num pack-out measurestack"><span>${esc(formatVolume(item))}</span><span>${scoop_g}</span></td>
     <td class="num pack-out protein">${protein}</td>
     <td class="num pack-out kcal"><span>${kcal}</span><span class="pantry-macro-ratio">${macro_ratio}</span></td>
-    <td class="num scoopcount">${count}</td>
+    <td class="num scoopcount"${g_recipe_draft ? ' data-recipe-grams="' + esc(item.key) + '"' : ''}>${count}</td>
     <td class="scoopactions">
       <div class="scoopactionstack">
-        <button class="smallbtn" data-a="scoop-add" data-key="${item.key}" title="log one scoop"${disabled}>+</button>
-        <button class="smallbtn" data-a="scoop-scale-open" data-key="${item.key}" data-context="${esc(context)}" title="edit logged amount"${scale_disabled}>✎</button>
+        <button class="smallbtn" data-a="scoop-add" data-key="${item.key}" title="${g_recipe_draft ? 'Add serving to recipe' : 'log one scoop'}"${disabled}>+</button>
+        <button class="smallbtn" data-a="scoop-scale-open" data-key="${item.key}" data-context="${esc(context)}" title="${g_recipe_draft ? 'Choose ingredient grams' : 'edit logged amount'}"${scale_disabled}>✎</button>
       </div>
     </td>
   </tr>`;
@@ -6168,44 +6383,47 @@ function renderItemRow(item, is_today, indent, context)
   return h;
 }
 
-function renderGroupHeader(g)
+function pantryGroupTotals(g)
 {
-  let collapsed = !!g_collapsed_groups[g.key];
-  let h = '';
   let total_protein = 0;
   let total_kcal = 0;
-  let total_g = 0;
   let total_count = 0;
-  let is_match = groupMatchesSearch(g);
 
   for (let i = 0; i < g.members.length; ++i)
   {
     let item = g.members[i];
-    let count = logCount(g_view_date, item.key);
+    let count = g_recipe_draft ? recipeGramsForItem(item.key)/(item.scoop_g || 1) : logCount(g_view_date, item.key);
 
     if (!count) continue;
 
     if (!isNaN(Number(item.protein_g))) total_protein += count*Number(item.protein_g);
     if (!isNaN(Number(item.kcal))) total_kcal += count*Number(item.kcal);
-    if (!isNaN(Number(item.scoop_g))) total_g += count*Number(item.scoop_g);
     total_count   += count;
   }
+  return {protein:total_protein, kcal:total_kcal, count:total_count};
+}
+
+function renderGroupHeader(g)
+{
+  let collapsed = !!g_collapsed_groups[g.key];
+  let h = '';
+  let totals = pantryGroupTotals(g);
+  let is_match = groupMatchesSearch(g);
 
   let icon = (collapsed ? '▸' : '▾');
   let searchmatch = (is_match ? ' searchmatch' : '');
-  h += `<tr class="groupheader${searchmatch}">
+  h += `<tr class="groupheader${searchmatch}"${g_recipe_draft ? ' data-recipe-group="' + esc(g.key) + '"' : ''}>
   <td colspan="3">
     <button class="grouptoggle" data-a="group-toggle" data-group="${esc(g.key)}">
-      ${icon} ${esc(g.name)}<span class="unit">(${total_count}/${g.members.length})</span>
+      ${icon} ${esc(g.name)}<span class="unit">(${totals.count}/${g.members.length})</span>
     </button>
     ${g.key != g_other ? `<button class="editbtn" data-a="group-rename-open" data-group="${esc(g.key)}"
       data-name="${esc(g.name)}" title="rename group">✎</button>` : ''}
   </td>
-    <td class="num pack-out protein">${fmt0(total_protein)}</td>
-    <td class="num pack-out kcal">${fmt_1(total_kcal)}</td>
+    <td class="num pack-out protein">${fmt0(totals.protein)}</td>
+    <td class="num pack-out kcal">${fmt_1(totals.kcal)}</td>
     <td class="num pack-out grams"></td>
   </tr>`;
-  /* ${fmt_1(total_g)} */
 
   if (g_group_rename_key == g.key)
   {
@@ -6656,7 +6874,7 @@ function calculateMeanLoggedProtein(start_date, ndays)
   return result;
 }
 
-function renderScoopSection()
+function renderPantryDaySummary()
 {
   let h = '';
   let is_today = g_view_date == todayISO();
@@ -6746,8 +6964,17 @@ function renderScoopSection()
 
   h += renderCustomPanel();
 
+  return h;
+}
+
+function renderScoopSection()
+{
+  let h = g_recipe_draft ? '' : renderPantryDaySummary();
+  let is_editable = viewDateIsEditable();
+
   h+= `<div class="btnrow2">
     <button class="smallbtn" data-a="scoop-add-item-open">+ add pantry item</button>
+    ${g_recipe_draft ? '' : '<button class="smallbtn" data-a="recipe-new">+ new recipe</button>'}
   </div>`;
 
   if (g_scoop_add_draft)
@@ -6787,6 +7014,7 @@ function renderScoopSection()
     </div>`;
   }
 
+  h += renderRecipeDraft();
   h += renderScoopSearch();
 
   h += renderTagFilterBar();
@@ -6807,7 +7035,7 @@ function renderScoopSection()
       <th class="num">volume</th>
       <th class="num" style="display: block; margin-left: -16px;">protein&nbsp;g</th>
       <th class="num">kcal</th>
-      <th class="num">today</th>
+      <th class="num">${g_recipe_draft ? 'recipe g' : 'today'}</th>
       <th></th>
     </tr></thead><tbody>`;
 
@@ -6935,6 +7163,7 @@ function renderPreservingFocus()
   let massdraft_field = active && active.dataset ? active.dataset.massdraft : null;
   let massedit_field = active && active.dataset ? active.dataset.massedit : null;
   let dailyactivity_field = active && active.dataset ? active.dataset.dailyactivity : null;
+  let recipe_index = active && active.dataset ? active.dataset.recipeindex : null;
   let id = active ? active.id : null;
   let sel_start = active && active.selectionStart != null ? active.selectionStart : null;
   let sel_end = active && active.selectionEnd != null ? active.selectionEnd : null;
@@ -6955,6 +7184,7 @@ function renderPreservingFocus()
   else if (massdraft_field) restored = document.querySelector('[data-massdraft="'+massdraft_field+'"]');
   else if (massedit_field) restored = document.querySelector('[data-massedit="'+massedit_field+'"]');
   else if (dailyactivity_field) restored = document.querySelector('[data-dailyactivity="'+dailyactivity_field+'"]');
+  else if (recipe_index != null) restored = document.querySelector('[data-recipeindex="'+recipe_index+'"][data-recipefield="grams"]');
   else restored = null;
 
   if (!restored) return;
@@ -7005,6 +7235,25 @@ document.addEventListener('input', function(ev)
 {
   let target = ev.target;
   let num;
+
+  if (g_recipe_draft && (target.dataset.recipedraft || target.dataset.recipefield))
+  {
+    if (target.dataset.recipedraft)
+    {
+      let field = target.dataset.recipedraft;
+      g_recipe_draft[field] = target.value;
+      if (field == 'yield_g') target.classList.toggle('recipe-mass-diff', recipeMassDiffers(g_recipe_draft));
+      if (field == 'tags') updateTagSuggestions(target);
+    }
+    else
+    {
+      g_recipe_draft.ingredients[Number(target.dataset.recipeindex)][target.dataset.recipefield] = target.value;
+      refreshRecipeDisplays();
+      return;
+    }
+    document.getElementById('recipe-preview').textContent = recipePreviewText();
+    return;
+  }
 
   if (target.dataset && target.dataset.lognote)
   {
@@ -7249,16 +7498,16 @@ document.addEventListener('input', function(ev)
 
 document.addEventListener('focusin', function(ev)
 {
-  if (ev.target && ev.target.dataset && ev.target.dataset.editdraft == 'tags') updateTagSuggestions(ev.target);
+  if (ev.target && ev.target.dataset && (ev.target.dataset.editdraft == 'tags' || ev.target.dataset.recipedraft == 'tags')) updateTagSuggestions(ev.target);
 });
 
 document.addEventListener('focusout', function(ev)
 {
-  if (!ev.target || !ev.target.dataset || ev.target.dataset.editdraft != 'tags') return;
+  if (!ev.target || !ev.target.dataset || (ev.target.dataset.editdraft != 'tags' && ev.target.dataset.recipedraft != 'tags')) return;
 
+  let list = ev.target.closest('.tagwrap').querySelector('.tagsuggest');
   setTimeout(function()
   {
-    let list = document.getElementById('tag-suggest');
     if (list) list.classList.remove('open');
   }, 160);
 });
@@ -7408,10 +7657,10 @@ document.addEventListener('click', function(ev)
       return;
 
     case 'scoop-add':
-      if (!viewDateIsEditable()) return;
+      if (!g_recipe_draft && !viewDateIsEditable()) return;
       addScoop(target.dataset.key);
       render();
-      save();
+      if (!g_recipe_draft) save();
       return;
 
     case 'scoop-remove':
@@ -7431,6 +7680,24 @@ document.addEventListener('click', function(ev)
 
     case 'scoop-fetch-cancel':
       cancelFetchOFF(target.dataset.key);
+      return;
+
+    case 'recipe-new':
+      openRecipeDraft(null);
+      return;
+
+    case 'recipe-remove':
+      g_recipe_draft.ingredients.splice(Number(target.dataset.index), 1);
+      render();
+      return;
+
+    case 'recipe-save':
+      saveRecipeDraft();
+      return;
+
+    case 'recipe-cancel':
+      g_recipe_draft = null;
+      closeScaleEdit();
       return;
 
     case 'scoop-add-item-open':
@@ -7577,7 +7844,7 @@ document.addEventListener('click', function(ev)
       return;
 
     case 'tag-suggest-pick':
-      pickTagSuggestion(target.dataset.tag);
+      pickTagSuggestion(target.dataset.tag, target);
       return;
 
     case 'tag-filter-toggle':

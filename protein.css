@@ -378,6 +378,14 @@ tfoot td{border-top:2px solid var(--line2);font-family:var(--mono);font-weight:6
 .mass-water-input input{width:100%;height:100%;color:var(--blue);font-size:24px;font-weight:666;text-align:right;padding:7px 42px 7px 10px}
 .mass-water-input .unitghost{top:50%;bottom:auto;transform:translateY(-50%);font-size:14px}
 .mass-slider-log{grid-area:log;width:100%;height:100%}
+.recipe-editor{display:flex;flex-direction:column;align-items:stretch;gap:10px;margin:12px 0;padding:12px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.recipe-editor label{display:flex;flex-direction:column;gap:4px;min-width:0}
+.recipe-editor input{width:100%;min-width:0;box-sizing:border-box}
+.recipe-editor input.recipe-mass-diff{color:var(--red);border-color:var(--red)}
+.recipe-ingredients{display:grid;gap:8px}
+.recipe-ingredient{display:grid;grid-template-columns:minmax(0,1fr) 90px 36px;align-items:end;gap:8px}
+.recipe-ingredient>span{align-self:center;overflow-wrap:anywhere}
+.recipe-weights{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
 .mass-activity-panel{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:10px 0}
 .mass-activity-input{display:block;min-height:54px}
 .mass-activity-input .mass-slider-label{display:block;margin:0 0 4px}
