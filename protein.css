@@ -215,8 +215,11 @@ tfoot td{border-top:2px solid var(--line2);font-family:var(--mono);font-weight:6
   background:#2d3023;cursor:pointer}
 .tagfilterbtn:hover{color:var(--text);border-color:var(--line2)}
 .tagfilterbtn.on{background:var(--green);color:#132014;border-color:var(--green);font-weight:666}
-.tagfilterbtn.flattenbtn{margin-left:6px;border-style:dashed}
-.tagfilterbtn.flattenbtn.on{background:var(--orange);color:var(--orange-ink);border-color:var(--orange);border-style:solid}
+.tagfilterbtn.flattenbtn{margin-left:6px}
+.tagfilterbtn.pantryviewbtn{color:var(--blue);border-color:var(--blue);border-radius:4px;background:var(--panel2)}
+.tagfilterbtn.pantryviewbtn:hover,.tagfilterbtn.pantryviewbtn.on{background:var(--blue);color:var(--bg);border-color:var(--blue)}
+.tagfilterbtn[data-tag="~other"]{color:var(--search-hi);border-color:var(--search-hi);border-radius:4px;background:var(--panel2)}
+.tagfilterbtn[data-tag="~other"]:hover,.tagfilterbtn[data-tag="~other"].on{background:var(--coral);color:var(--bg);border-color:var(--coral)}
 .datelabel{font-family:var(--mono);font-size:13px;color:var(--muted)}
 .scoopactions{vertical-align:top}
 .scoopactionstack{display:flex;flex-direction:column;align-items:stretch;gap:5px;width:100%;min-width:0}
@@ -309,6 +312,8 @@ tfoot td{border-top:2px solid var(--line2);font-family:var(--mono);font-weight:6
   display:inline-flex;align-items:center;justify-content:flex-start;gap:6px;
   text-align:left;}
 .grouptoggle:hover{color:var(--green)}
+.grouptoggle[data-group="~OTHER"]{color:var(--coral);border:1px solid var(--coral);border-radius:4px;padding:3px 6px}
+.grouptoggle[data-group="~OTHER"]:hover{background:var(--coral);color:var(--bg)}
 .groupmember td:first-child{padding-left:22px}
 .groupmember td:first-child .foodname{font-weight:500}
 .customrow td{background:#23201a;border-bottom:1px solid #4a3a24}

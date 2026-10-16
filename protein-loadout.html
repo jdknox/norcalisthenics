@@ -441,6 +441,7 @@ function pickTagSuggestion(tag, button)
   let input = wrapper.querySelector('input');
   let list = wrapper.querySelector('.tagsuggest');
   let draft = input.dataset.recipedraft ? g_recipe_draft : g_edit_draft;
+  if (input.dataset.adddraft) draft = g_scoop_add_draft;
   let value;
   let idx;
   let prefix;
@@ -721,7 +722,7 @@ let g_fetch_pending = {};       /* item_key -> true while awaiting in-page overw
 let g_fetch_context = {};       /* item_key -> which rendered context ('standalone' or a group key) triggered the fetch */
 let g_fetch_barcode = {};       /* item_key -> barcode used by a draft-triggered lookup */
 let g_scoop_search_raw = '';
-let g_scoop_add_draft = null;   /* { barcode, name, brand, scoop_g, macro_mode, macro_protein, macro_kcal } while the add-item form is open */
+let g_scoop_add_draft = null;   /* { barcode, name, brand, tags, scoop_g, macro_mode, macro_protein, macro_kcal } while the add-item form is open */
 let g_recipe_draft = null;
 let g_add_item_status = '';     /* transient feedback for the add-item form's O.F.F. lookup */
 let g_last_lookup_debug = null; /* raw response text when the web-search fallback returns something unparseable/unexpected, not persisted */
@@ -2214,7 +2215,7 @@ function saveAddItemDraft()
     kcal: fields.kcal,
     protein_100g: fields.protein_100g,
     kcal_100g: fields.kcal_100g,
-    tags: []
+    tags: parseTagsInput(d.tags)
   };
   item.scoop_g_raw = item.scoop_g != null ? String(item.scoop_g) : '';
   item.protein_g_raw = item.protein_g != null ? String(item.protein_g) : '';
@@ -6551,6 +6552,17 @@ function toggleGroupCollapse(key)
   save();
 }
 
+function collapseAllGroups()
+{
+  for (let node of groupedNodes())
+  {
+    if (node.type == 'group') g_collapsed_groups[node.group.key] = true;
+  }
+  g_collapsed_groups.__archived = true;
+  render();
+  save();
+}
+
 function openGroupRename(key, currentName)
 {
   if (key == g_other) return;
@@ -6832,7 +6844,8 @@ function renderTagFilterBar()
     h += `<button class="tagfilterbtn${active_class}" data-a="tag-filter-toggle" data-tag="${esc(key)}">${esc(names[i])}</button>`;
   }
 
-  h += `<button class="tagfilterbtn flattenbtn${g_flatten_view ? ' on' : ''}" data-a="flatten-toggle">${g_flatten_view ? 'show grouped' : 'show all'}</button>
+  h += `<button class="tagfilterbtn pantryviewbtn flattenbtn${g_flatten_view ? ' on' : ''}" data-a="flatten-toggle">${g_flatten_view ? 'show grouped' : 'show all'}</button>
+  ${!g_flatten_view ? '<button class="tagfilterbtn pantryviewbtn" data-a="group-collapse-all">collapse all</button>' : ''}
   ${g_flatten_view ? `<button class="tagfilterbtn${sort_class}" data-a="flatten-sort-ratio" title="sort by kcal per protein gram, highest first">kcal/g ↓</button>` : ''}
   </div>`;
 
@@ -6989,6 +7002,7 @@ function renderScoopSection()
       <button class="smallbtn" data-a="addex-lookup-off">look up on O.F.F.</button>
       <textarea rows="1" data-adddraft="name" placeholder="name">${esc(d.name)}</textarea>
       <textarea rows="1" data-adddraft="brand" placeholder="brand">${esc(d.brand)}</textarea>
+      <span class="tagwrap"><input type="text" data-adddraft="tags" autocomplete="off" placeholder="tags, comma separated" aria-label="Tags" value="${esc(d.tags)}"><span class="tagsuggest"></span></span>
       <input type="text" inputmode="decimal" data-adddraft="scoop_g" placeholder="scoop g" value="${esc(d.scoop_g)}">`;
 
     h += renderMacroModeControl('add', mode);
@@ -7439,6 +7453,7 @@ document.addEventListener('input', function(ev)
   {
     g_scoop_add_draft[adddraft_field] = target.value;
     fitDraftTextarea(target);
+    if (adddraft_field == 'tags') updateTagSuggestions(target);
     if (adddraft_field == 'scoop_g' || adddraft_field == 'macro_protein' || adddraft_field == 'macro_kcal')
     {
       renderPreservingFocus();
@@ -7498,12 +7513,12 @@ document.addEventListener('input', function(ev)
 
 document.addEventListener('focusin', function(ev)
 {
-  if (ev.target && ev.target.dataset && (ev.target.dataset.editdraft == 'tags' || ev.target.dataset.recipedraft == 'tags')) updateTagSuggestions(ev.target);
+  if (ev.target && ev.target.dataset && (ev.target.dataset.editdraft == 'tags' || ev.target.dataset.recipedraft == 'tags' || ev.target.dataset.adddraft == 'tags')) updateTagSuggestions(ev.target);
 });
 
 document.addEventListener('focusout', function(ev)
 {
-  if (!ev.target || !ev.target.dataset || (ev.target.dataset.editdraft != 'tags' && ev.target.dataset.recipedraft != 'tags')) return;
+  if (!ev.target || !ev.target.dataset || (ev.target.dataset.editdraft != 'tags' && ev.target.dataset.recipedraft != 'tags' && ev.target.dataset.adddraft != 'tags')) return;
 
   let list = ev.target.closest('.tagwrap').querySelector('.tagsuggest');
   setTimeout(function()
@@ -7701,7 +7716,7 @@ document.addEventListener('click', function(ev)
       return;
 
     case 'scoop-add-item-open':
-      g_scoop_add_draft = { barcode:'', name:'', brand:'', scoop_g:'', macro_mode:'100g', macro_protein:'', macro_kcal:'' };
+      g_scoop_add_draft = { barcode:'', name:'', brand:'', tags:'', scoop_g:'', macro_mode:'100g', macro_protein:'', macro_kcal:'' };
       g_add_item_status = '';
       render();
       return;
@@ -7829,6 +7844,10 @@ document.addEventListener('click', function(ev)
 
     case 'group-toggle':
       toggleGroupCollapse(target.dataset.group);
+      return;
+
+    case 'group-collapse-all':
+      collapseAllGroups();
       return;
 
     case 'group-rename-open':
