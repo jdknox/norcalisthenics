@@ -10,6 +10,8 @@
 <body>
 <main id="app"></main>
 <div id="printlist"></div>
+<div id="add-feedback" role="status" aria-live="polite" aria-atomic="true"></div>
+<div id="add-flash" aria-hidden="true"></div>
 
 <script src="protein-shared-storage.js"></script>
 <script>
@@ -949,20 +951,53 @@ function adminBannerHTML()
   return `<div class="admin-banner">ADMIN MODE · editing ${esc(g_view_date)}</div>`;
 }
 
+let g_add_feedback_timer = null;
+
+function showAddFeedback(bounds, message)
+{
+  if (!message) return;
+  let flash = document.getElementById('add-flash');
+  for (let animation of flash.getAnimations()) animation.cancel();
+  flash.style.left = bounds.left + 'px';
+  flash.style.top = bounds.top + 'px';
+  flash.style.width = bounds.width + 'px';
+  flash.style.height = bounds.height + 'px';
+  if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches)
+  {
+    flash.animate([{opacity:0.28}, {opacity:0}], {duration:500, easing:'ease-out'});
+  }
+  let node = document.getElementById('add-feedback');
+  clearTimeout(g_add_feedback_timer);
+  node.classList.remove('visible');
+  node.textContent = message;
+  let width = node.offsetWidth;
+  let height = node.offsetHeight;
+  let left = Math.max(8, Math.min(bounds.right - width, document.documentElement.clientWidth - width - 8));
+  let top = bounds.top - height - 6;
+  if (top < 8) top = bounds.bottom + 6;
+  node.style.left = left + 'px';
+  node.style.top = Math.max(8, Math.min(top, window.innerHeight - height - 8)) + 'px';
+  node.classList.add('visible');
+  g_add_feedback_timer = setTimeout(function()
+  {
+    node.classList.remove('visible');
+  }, 1000);
+}
+
 function addScoop(key)
 {
   let item = findScoopItem(key);
   if (!item) return;
 
-  pushLogEntry(key, item.scoop_g, item.protein_g, item.kcal, 1);
+  return pushLogEntry(key, item.scoop_g, item.protein_g, item.kcal, 1);
 }
 
 function pushLogEntry(key, grams, protein_g, kcal, scale)
 {
   if (g_recipe_draft)
   {
-    addRecipeIngredient(key, grams);
-    return;
+    if (addRecipeIngredient(key, grams)) return 'Added to recipe';
+    return '';
   }
   let day = g_log[g_view_date];
 
@@ -973,6 +1008,7 @@ function pushLogEntry(key, grams, protein_g, kcal, scale)
   }
 
   day.push({ id:uid(), item_key:key, grams:grams, protein_g:protein_g, kcal:kcal, scale:scale });
+  return grams != null ? 'Added ' + fmt1(grams) + ' g' : 'Added to log';
 }
 
 function removeScoop(key)
@@ -1466,6 +1502,7 @@ function addMassWater(volume_ml)
 
   render();
   save();
+  return 'Added ' + ml + ' mL';
 }
 
 function parseWaterSliderText()
@@ -2318,9 +2355,10 @@ function addRecipeIngredient(key, grams)
   {
     if (ingredient.item_key != key) continue;
     ingredient.grams = String(round1((Number(ingredient.grams) || 0) + grams));
-    return;
+    return true;
   }
   g_recipe_draft.ingredients.push({item_key:key, grams:String(grams)});
+  return true;
 }
 
 function recipeNutrition(draft)
@@ -2765,11 +2803,12 @@ function logScaledEntry()
   protein_g = d.protein_g_raw.trim() === '' ? null : d.protein_g;
   kcal = d.kcal_raw.trim() === '' ? null : parseFloat(d.kcal_raw);
 
-  pushLogEntry(g_scale_item_key, isNaN(grams) ? null : grams, isNaN(protein_g) ? null : protein_g, isNaN(kcal) ? null : kcal, d.scale);
+  let message = pushLogEntry(g_scale_item_key, isNaN(grams) ? null : grams, isNaN(protein_g) ? null : protein_g, isNaN(kcal) ? null : kcal, d.scale);
 
   resetScaleDraft();
-  render();
+  render(true);
   if (!g_recipe_draft) save();
+  return message;
 }
 
 function renderScalePanel(item)
@@ -6299,14 +6338,16 @@ function renderMassSection()
   return h;
 }
 
-function render()
+function render(preserve_pantry_position = false)
 {
   let app = document.getElementById('app');
+  let pantry_top = preserve_pantry_position ? document.querySelector('.pantrytable').getBoundingClientRect().top : 0;
   let admin_class = g_admin_mode ? ' admin-on' : '';
   let admin_label = g_admin_mode ? 'ADMIN ON' : 'admin mode';
   let h = '';
 
   document.body.classList.toggle('admin-mode', g_admin_mode);
+  document.body.classList.toggle('recipe-mode', g_recipe_draft != null && g_active_tab == 'pantry');
   h += adminBannerHTML();
 
   h += `<div class="eyebrow">// daily protein loadout
@@ -6325,6 +6366,11 @@ function render()
   app.innerHTML = h;
   renderPrintList();
   fitDraftTextareas();
+  if (preserve_pantry_position)
+  {
+    let new_top = document.querySelector('.pantrytable').getBoundingClientRect().top;
+    window.scrollBy({top:new_top - pantry_top, behavior:'instant'});
+  }
 }
 
 function renderItemRow(item, is_today, indent, context)
@@ -7646,6 +7692,8 @@ document.addEventListener('click', function(ev)
   let target = ev.target.closest('[data-a]');
   let action;
   let defs;
+  let feedback_bounds;
+  let feedback_message;
 
   if (!target) return;
   action = target.dataset.a;
@@ -7656,6 +7704,7 @@ document.addEventListener('click', function(ev)
       g_active_tab = target.dataset.tab == 'loadout' || target.dataset.tab == 'mass' ? target.dataset.tab : 'pantry';
       render();
       load();
+      document.querySelector('.apptabs').scrollIntoView({behavior:'instant', block:'start'});
       return;
 
     case 'reset':
@@ -7730,9 +7779,11 @@ document.addEventListener('click', function(ev)
 
     case 'scoop-add':
       if (!g_recipe_draft && !viewDateIsEditable()) return;
-      addScoop(target.dataset.key);
-      render();
+      feedback_bounds = target.getBoundingClientRect();
+      feedback_message = addScoop(target.dataset.key);
+      render(true);
       if (!g_recipe_draft) save();
+      showAddFeedback(feedback_bounds, feedback_message);
       return;
 
     case 'scoop-remove':
@@ -7835,7 +7886,9 @@ document.addEventListener('click', function(ev)
       return;
 
     case 'scoop-scale-log':
-      logScaledEntry();
+      feedback_bounds = target.getBoundingClientRect();
+      feedback_message = logScaledEntry();
+      showAddFeedback(feedback_bounds, feedback_message);
       return;
 
     case 'scoop-entry-delete':
@@ -7864,11 +7917,15 @@ document.addEventListener('click', function(ev)
       return;
 
     case 'mass-water-add':
-      addMassWater(target.dataset.ml);
+      feedback_bounds = target.getBoundingClientRect();
+      feedback_message = addMassWater(target.dataset.ml);
+      showAddFeedback(feedback_bounds, feedback_message);
       return;
 
     case 'mass-water-slider-log':
-      addMassWater(parseWaterSliderText() || g_water_slider_ml);
+      feedback_bounds = target.getBoundingClientRect();
+      feedback_message = addMassWater(parseWaterSliderText() || g_water_slider_ml);
+      showAddFeedback(feedback_bounds, feedback_message);
       return;
 
     case 'mass-entry-open':

@@ -39,7 +39,7 @@ function evaluate(code)
 
 function click(action, extra = {})
 {
-  let target = {dataset:{a:action, ...extra}};
+  let target = {dataset:{a:action, ...extra}, getBoundingClientRect:function() { return {}; }};
   listeners.click({target:{closest:function() { return target; }}});
 }
 
@@ -56,6 +56,7 @@ function flushSync()
 async function run()
 {
   evaluate(`let render_count = 0;
+    showAddFeedback = function() {};
     render = function() { ++render_count; };
     g_scoop_items = [
       {key:'a', name:'Food A', scoop_g:100, protein_g:10, kcal:200, tags:[]},
