@@ -5736,7 +5736,7 @@ function renderTabBar()
   let loadout_on = g_active_tab == 'loadout' ? ' on' : '';
   let mass_on = g_active_tab == 'mass' ? ' on' : '';
 
-  h += `<div class="apptabs">
+  h += `<div id="tab-top" aria-hidden="true"></div><div class="apptabs">
     <button class="tabbtn${pantry_on}" data-a="tab-open" data-tab="pantry">pantry log</button>
     <button class="tabbtn${mass_on}" data-a="tab-open" data-tab="mass">hydration &amp; mass balance</button>
     <button class="tabbtn${loadout_on}" data-a="tab-open" data-tab="loadout">weekly loadout</button>
@@ -7701,7 +7701,7 @@ document.addEventListener('click', function(ev)
       g_active_tab = target.dataset.tab == 'loadout' || target.dataset.tab == 'mass' ? target.dataset.tab : 'pantry';
       render();
       load();
-      document.querySelector('.apptabs').scrollIntoView({behavior:'instant', block:'start'});
+      document.getElementById('tab-top').scrollIntoView({behavior:'instant', block:'start'});
       return;
 
     case 'reset':
