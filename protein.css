@@ -285,8 +285,13 @@ body.admin-mode #tab-top{scroll-margin-top:calc(58px + env(safe-area-inset-top,0
 .logged-food-custom-name{font-weight:666;color:var(--text)}
 .logged-food-detail{
   text-align-last: left;
-  padding-left: 4.5em;
-  font-family:var(--mono);font-size:11px;color:var(--muted);white-space:pre;overflow:hidden;text-overflow:ellipsis;
+  padding-left: 1.5em;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--muted);
+  white-space: pre;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .logged-food-protein{color:var(--search-hi);font-weight:666}
 .logged-food-kcal{color:var(--blue);font-weight:666}

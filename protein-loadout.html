@@ -2090,6 +2090,9 @@ function diaryEntryLabel(entry)
 function loggedEntryDetail(entry)
 {
   let detail = '';
+  let value = (entry.grams != null) ? entry.grams : '-';
+  let mass = (fmt0(value) + 'g').padStart(4);
+  detail += `<span class="logged-food-grams">${mass.padEnd(6)}</span>`;
 
   if (entry.protein_g != null)
   {
@@ -6833,15 +6836,19 @@ function renderLoggedFoodList()
 
   if (g_logged_foods_open)
   {
-    details_button = `<button class="logged-foods-headbtn" data-a="logged-food-details-toggle">${g_logged_food_details_open ? 'hide details' : 'details'}</button>`;
+    details_button = `<button class="logged-foods-headbtn" data-a="logged-food-details-toggle">
+      ${g_logged_food_details_open ? 'hide details' : 'details'}
+    </button>`;
   }
 
   h += `<div class="logged-foods">
     <div class="logged-foods-head">
-      <button class="logged-foods-headbtn logged-foods-collapse" data-a="logged-foods-toggle">${collapse_toggle}
-        <span class="logged-foods-title">logged foods</span>
+      <button class="logged-foods-headbtn logged-foods-collapse" data-a="logged-foods-toggle">
+        ${collapse_toggle} <span class="logged-foods-title">logged foods</span>
       </button>
-      <div class="logged-foods-title info"><span>(avg&nbsp;${fmtKcalProteinRatio(kcal_g).padStart(4)} kcal/g)</span></div>
+      <div class="logged-foods-title info"><span>
+        (avg&nbsp;${fmtKcalProteinRatio(kcal_g).padStart(4)} kcal/g)
+      </span></div>
       <div class="logged-foods-controls">${details_button}</div>
     </div>`;
 
@@ -6922,7 +6929,9 @@ function renderLoggedFoodList()
 
       h += `<div class="logged-food-item${deleted_class}">
         <div class="logged-food-main">
-          <div class="logged-food-titleline${empty_note_class}">${title_content}${inline_note_input}</div>
+          <div class="logged-food-titleline${empty_note_class}">
+            ${title_content}${inline_note_input}
+          </div>
           ${note_line_input}
           ${detail_line}
         </div>
