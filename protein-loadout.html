@@ -1907,6 +1907,7 @@ function massSummaryForDate(date)
     date:date,
     water_in_ml:t.water_in_ml,
     water_in_kg:t.water_mass_in_kg,
+    pantry_mass_in_kg:t.pantry_mass_in_kg,
     net_bracket_mass_in_g:Math.round(t.net_bracket_mass_in_kg*1000),
     food_mass_in_g:Math.round((t.net_bracket_mass_in_kg + t.pantry_mass_in_kg)*1000),
     total_mass_in_g:Math.round(t.total_mass_in_kg*1000),
@@ -3765,7 +3766,7 @@ function sortedBodyweightKcalExportDates()
 function buildBodyweightKcalCSV()
 {
   let dates = sortedBodyweightKcalExportDates();
-  let lines = ['date,body_mass_kg,daily_kcal,water_in_kg,assumed_water_loss_kg,steps,ebike_minutes,ebike_km'];
+  let lines = ['date,body_mass_kg,daily_kcal,water_in_kg,mass_in_kg,steps,ebike_minutes,ebike_km'];
 
   for (let i = 0; i < dates.length; ++i)
   {
@@ -3782,7 +3783,7 @@ function buildBodyweightKcalCSV()
       + ',' + csvCell(bodyweight_kg != null ? fmt2(bodyweight_kg) : '')
       + ',' + csvCell(fmt0(totals.kcal))
       + ',' + csvCell(mass_summary.water_in_kg ? fmt3(mass_summary.water_in_kg) : '')
-      + ',' + csvCell(mass_summary.assumed_water_loss_kg ? fmt3(mass_summary.assumed_water_loss_kg) : '')
+      + ',' + csvCell(mass_summary.pantry_mass_in_kg ? fmt3(mass_summary.pantry_mass_in_kg) : '')
       + ',' + csvCell(mass_summary.steps ? Math.round(mass_summary.steps) : '')
       + ',' + csvCell(mass_summary.ebike_minutes ? Math.round(mass_summary.ebike_minutes) : '')
       + ',' + csvCell(mass_summary.ebike_km ? fmt2(mass_summary.ebike_km) : '');
