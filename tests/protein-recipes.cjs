@@ -66,6 +66,7 @@ async function run()
     g_admin_mode = false;
     g_view_date = '2020-01-01';`);
   click('recipe-new');
+  assert.equal(evaluate('g_recipe_draft.scoop_g'), '', 'new recipes default to the whole batch');
   input({recipedraft:'name'}, 'Test recipe');
   click('scoop-add', {key:'a'});
   click('scoop-add', {key:'a'});
@@ -78,13 +79,16 @@ async function run()
   assert.equal(shared, null, 'adding ingredients must not save or sync the draft');
   assert.equal(evaluate('dayTotals(g_view_date).kcal'), 0, 'draft must not log ingredients');
   assert.equal(evaluate('recipeNutrition(g_recipe_draft).yield_g'), 300);
+  assert.equal(evaluate('recipeNutrition(g_recipe_draft).scoop_g'), 300);
   input({recipedraft:'yield_g'}, '250');
+  assert.equal(evaluate('recipeNutrition(g_recipe_draft).scoop_g'), 250, 'blank serving follows the finished batch mass');
   click('recipe-save');
   await flushSync();
   let recipe = JSON.parse(shared).scoop_items[2];
   assert.equal(recipe.protein_100g, 16);
   assert.equal(recipe.kcal_100g, 200);
   assert.equal(recipe.ingredients.length, 2);
+  assert.equal(recipe.scoop_g, 250);
   let key = recipe.key;
   evaluate('g_admin_mode = true;');
   click('scoop-scale-open', {key:key});
@@ -95,6 +99,8 @@ async function run()
   assert.equal(evaluate('dayTotals(g_view_date).kcal'), 150);
 
   click('scoop-edit-open', {key:key});
+  input({recipedraft:'scoop_g'}, '');
+  assert.equal(evaluate('recipeNutrition(g_recipe_draft).scoop_g'), 250, 'clearing serving restores the whole batch');
   click('scoop-add', {key:key});
   assert.equal(evaluate('g_recipe_draft.ingredients.length'), 2, 'nested recipes must be rejected');
   assert.equal(evaluate('g_recipe_draft.ingredients[1].grams'), '100');
@@ -132,7 +138,46 @@ async function run()
   click('scoop-add', {key:'a'});
   await flushSync();
   assert.equal(evaluate('dayTotals(g_view_date).kcal'), 350, 'normal logging must resume after cancel');
-  console.log('Recipe workflow, shared save/reload, history, validation, and TSV round trip passed.');
+
+  evaluate(`g_view_date = '2020-01-02';
+    g_admin_mode = false;
+    let meal_saves = 0;
+    let original_save = save;
+    save = function() { ++meal_saves; original_save(); };`);
+  let pantry_before = evaluate('JSON.stringify(g_scoop_items)');
+  click('recipe-new');
+  click('recipe-log');
+  assert.notEqual(evaluate('g_recipe_draft'), null, 'past dates require Admin mode to log');
+  evaluate(`g_admin_mode = true;`);
+  click('recipe-log');
+  assert.match(preview.textContent, /Add an ingredient/);
+  evaluate(`g_recipe_draft.ingredients = [{item_key:'a',grams:'125.5'},{item_key:'b',grams:'0'}];`);
+  click('recipe-log');
+  assert.match(preview.textContent, /positive ingredient grams/);
+  assert.equal(evaluate('dayTotals(g_view_date).grams'), 0, 'invalid meals must not log any ingredients');
+  assert.equal(evaluate('meal_saves'), 0);
+  input({recipeindex:'1', recipefield:'grams'}, '75');
+  input({recipedraft:'yield_g'}, 'invalid');
+  input({recipedraft:'scoop_g'}, '');
+  click('recipe-log');
+  await flushSync();
+  assert.equal(evaluate('g_recipe_draft'), null, 'meal logging must leave recipe mode');
+  assert.equal(evaluate('g_scale_draft'), null);
+  assert.equal(evaluate('meal_saves'), 1, 'save the complete meal once');
+  assert.equal(evaluate('g_log[g_view_date].length'), 2);
+  assert.equal(evaluate('dayTotals(g_view_date).grams'), 200.5);
+  assert.equal(evaluate('dayTotals(g_view_date).kcal'), 326);
+  assert.equal(evaluate('g_log[g_view_date][0].protein_g'), 12.55);
+  assert.equal(evaluate('g_log[g_view_date][1].scale'), 1.5);
+  assert.equal(evaluate('JSON.stringify(g_scoop_items)'), pantry_before, 'meal logging must not save a recipe or change pantry items');
+  assert.equal(JSON.parse(shared).log['2020-01-02'].length, 2);
+  click('recipe-log');
+  assert.equal(evaluate('g_log[g_view_date].length'), 2, 'a completed draft cannot log twice');
+  click('scoop-edit-open', {key:key});
+  input({recipeindex:'0', recipefield:'grams'}, '300');
+  click('recipe-log');
+  assert.equal(evaluate('JSON.stringify(g_scoop_items)'), pantry_before, 'logging an edited recipe draft must not modify the saved recipe');
+  console.log('Recipe workflow, meal logging, shared save/reload, history, validation, and TSV round trip passed.');
 }
 
 run().catch(function(error) { console.error(error); process.exitCode = 1; });
