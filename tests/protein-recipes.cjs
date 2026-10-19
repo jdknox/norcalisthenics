@@ -55,6 +55,15 @@ function flushSync()
 
 async function run()
 {
+  let imported_detail = evaluate("loggedEntryDetail({grams:'48', protein_g:'5.4', kcal:'125'})");
+  assert.match(imported_detail, /48g/);
+  assert.match(imported_detail, />\s+5</);
+  assert.match(imported_detail, />\s+130</);
+  assert.match(imported_detail, /23\.1\/g/);
+  let custom_detail = evaluate("loggedEntryDetail({grams:null, protein_g:'5', kcal:'50'})");
+  assert.match(custom_detail, /—/);
+  assert.match(custom_detail, /10\.0\/g/);
+
   evaluate(`let render_count = 0;
     showAddFeedback = function() {};
     render = function() { ++render_count; };

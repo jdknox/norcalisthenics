@@ -2091,26 +2091,28 @@ function diaryEntryLabel(entry)
 function loggedEntryDetail(entry)
 {
   let detail = '';
-  let value = (entry.grams != null) ? entry.grams : '-';
-  let mass = (fmt0(value) + 'g').padStart(4);
+  let grams = entry.grams != null ? Number(entry.grams) : null;
+  let protein_g = entry.protein_g != null ? Number(entry.protein_g) : null;
+  let kcal = entry.kcal != null ? Number(entry.kcal) : null;
+  let mass = (Number.isFinite(grams) ? fmt0(grams) + 'g' : '—').padStart(4);
   detail += `<span class="logged-food-grams">${mass.padEnd(6)}</span>`;
 
-  if (entry.protein_g != null)
+  if (Number.isFinite(protein_g))
   {
-    let value = fmt0(entry.protein_g).padStart(3);
+    let value = fmt0(protein_g).padStart(3);
     detail += `<span class="logged-food-protein">${value}</span>`;
   }
 
-  if (entry.kcal != null)
+  if (Number.isFinite(kcal))
   {
-    let value = (fmt_1(entry.kcal)).padStart(6);
+    let value = fmt_1(kcal).padStart(6);
     detail += `<span class="logged-food-kcal">${value}</span>`;
   }
   detail = detail.padEnd(6);
 
-  if (entry.protein_g)
+  if (protein_g > 0 && Number.isFinite(kcal))
   {
-    let kcal_g = entry.kcal/entry.protein_g;
+    let kcal_g = kcal/protein_g;
     let formatted = fmtKcalProteinRatio(kcal_g);
     let value = `(${formatted.padStart(4)}/g)`.padStart(10);
     detail += `<span class="logged-food-grams">${value}</span>`;
