@@ -760,6 +760,8 @@ let g_active_tab = 'pantry';
 let g_adjusted_log_open = false;
 let g_logged_foods_open = true;
 let g_logged_food_details_open = false;
+let g_temporary_meals = [];     /* session-only selections of logged entry IDs, grouped by date */
+let g_temporary_meal_edit = null;
 let g_mass_entry_draft = null;  /* { event_type, timestamp, body_mass_raw } while adding a checkpoint */
 let g_mass_edit_id = null;
 let g_mass_edit_draft = null;   /* { timestamp, event_type, body_mass_raw, water_volume_raw } while editing */
@@ -6856,12 +6858,60 @@ function renderAdjustedLogDetails()
   return h;
 }
 
+function temporaryMealTotals(meal)
+{
+  let totals = {grams:0, protein_g:0, kcal:0};
+  let day = g_log[meal.date] || [];
+  for (let entry of day)
+  {
+    if (!meal.entry_ids.includes(entry.id) || logEntryIsDeleted(entry)) continue;
+    for (let field of ['grams', 'protein_g', 'kcal'])
+    {
+      let value = entry[field] != null ? Number(entry[field]) : null;
+      if (!Number.isFinite(value)) totals[field] = null;
+      else if (totals[field] != null) totals[field] += value;
+    }
+  }
+  return totals;
+}
+
+function renderTemporaryMeals()
+{
+  let h = '';
+  for (let i = 0; i < g_temporary_meals.length; ++i)
+  {
+    let meal = g_temporary_meals[i];
+    if (meal.date != g_view_date) continue;
+    let totals = temporaryMealTotals(meal);
+    let ratio = itemKcalProteinRatio(totals);
+    let editing = meal == g_temporary_meal_edit;
+    h += `<div class="temporary-meal${editing ? ' editing' : ''}">
+      <div class="temporary-meal-head">
+        <span class="temporary-meal-name">Meal ${meal.number}</span>
+        <div class="temporary-meal-controls">
+          ${editing ? '<button class="logged-foods-headbtn" data-a="meal-done">Done</button>' : `<button class="logged-food-remove" data-a="meal-edit" data-meal="${i}" title="Edit Meal ${meal.number} selection" aria-label="Edit Meal ${meal.number} selection">✎</button>`}
+          <button class="logged-food-remove" data-a="meal-remove" data-meal="${i}" title="Remove Meal ${meal.number} subtotal" aria-label="Remove Meal ${meal.number} subtotal">&times;</button>
+        </div>
+      </div>
+      <div class="temporary-meal-values">
+        <span class="logged-food-grams">${totals.grams != null ? fmt0(totals.grams) : '—'} g</span>
+        <span class="logged-food-protein">${totals.protein_g != null ? fmt1(totals.protein_g) : '—'} g protein</span>
+        <span class="logged-food-kcal">${totals.kcal != null ? fmt0(totals.kcal) : '—'} kcal</span>
+        <span>${ratio != null ? fmtKcalProteinRatio(ratio) : '—'} kcal/g protein</span>
+      </div>
+    </div>`;
+  }
+  return h;
+}
+
 function renderLoggedFoodList()
 {
   let day = g_log[g_view_date] || [];
   let is_today = viewDateIsEditable();
   let collapse_toggle = g_logged_foods_open ? '▾' : '▸';
   let details_button = '';
+  let selecting_meal = g_temporary_meal_edit && g_temporary_meal_edit.date == g_view_date;
+  let selectable_count = 0;
   let h = '';
 
   let kcal_g = 0;
@@ -6873,6 +6923,8 @@ function renderLoggedFoodList()
     let entry = day[i];
     if (g_admin_mode || !logEntryIsBuried(entry)) ++visible_count;
     if (logEntryIsDeleted(entry)) continue;
+
+    if (g_admin_mode || !logEntryIsBuried(entry)) ++selectable_count;
 
     total_kcal += entry.kcal;
     total_protein += entry.protein_g;
@@ -6894,8 +6946,11 @@ function renderLoggedFoodList()
       <div class="logged-foods-title info"><span>
         (avg&nbsp;${fmtKcalProteinRatio(kcal_g).padStart(4)} kcal/g)
       </span></div>
-      <div class="logged-foods-controls">${details_button}</div>
-    </div>`;
+      <div class="logged-foods-controls">${details_button}
+        <button class="logged-foods-headbtn" data-a="meal-new" title="New temporary meal; cleared on refresh"${selecting_meal || !selectable_count ? ' disabled' : ''}>+ meal</button>
+      </div>
+    </div>
+    <div id="temporary-meals">${renderTemporaryMeals()}</div>`;
 
   if (!g_logged_foods_open)
   {
@@ -6973,6 +7028,7 @@ function renderLoggedFoodList()
       }
 
       h += `<div class="logged-food-item${deleted_class}">
+        ${selecting_meal ? `<label class="meal-pick" title="Include ${esc(loggedEntryLabel(entry))} in Meal ${g_temporary_meal_edit.number}"><input type="checkbox" data-mealentry="${esc(entry.id)}" aria-label="Include ${esc(loggedEntryLabel(entry))} in Meal ${g_temporary_meal_edit.number}"${g_temporary_meal_edit.entry_ids.includes(entry.id) ? ' checked' : ''}${is_deleted ? ' disabled' : ''}></label>` : ''}
         <div class="logged-food-main">
           <div class="logged-food-titleline${empty_note_class}">
             ${title_content}${inline_note_input}
@@ -7773,6 +7829,17 @@ document.addEventListener('change', function(ev)
 {
   let target = ev.target;
 
+  if (target.dataset.mealentry)
+  {
+    let meal = g_temporary_meal_edit;
+    if (!meal || meal.date != g_view_date) return;
+    let index = meal.entry_ids.indexOf(target.dataset.mealentry);
+    if (target.checked && index < 0) meal.entry_ids.push(target.dataset.mealentry);
+    if (!target.checked && index >= 0) meal.entry_ids.splice(index, 1);
+    document.getElementById('temporary-meals').innerHTML = renderTemporaryMeals();
+    return;
+  }
+
   if (target.dataset && target.dataset.massdraft == 'water_loss' && g_mass_entry_draft)
   {
     g_mass_entry_draft.water_loss = !!target.checked;
@@ -7909,6 +7976,40 @@ document.addEventListener('click', function(ev)
     case 'logged-foods-toggle':
       g_logged_foods_open = !g_logged_foods_open;
       render();
+      return;
+
+    case 'meal-new':
+      {
+        let number = 1;
+        for (let meal of g_temporary_meals)
+        {
+          if (meal.date == g_view_date) number = Math.max(number, meal.number + 1);
+        }
+        g_temporary_meal_edit = {date:g_view_date, number:number, entry_ids:[]};
+        g_temporary_meals.push(g_temporary_meal_edit);
+        g_logged_foods_open = true;
+        render();
+      }
+      return;
+
+    case 'meal-done':
+      g_temporary_meal_edit = null;
+      render();
+      return;
+
+    case 'meal-edit':
+      g_temporary_meal_edit = g_temporary_meals[Number(target.dataset.meal)];
+      g_logged_foods_open = true;
+      render();
+      return;
+
+    case 'meal-remove':
+      {
+        let index = Number(target.dataset.meal);
+        if (g_temporary_meal_edit == g_temporary_meals[index]) g_temporary_meal_edit = null;
+        g_temporary_meals.splice(index, 1);
+        render();
+      }
       return;
 
     case 'scoop-add':
