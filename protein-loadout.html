@@ -4931,6 +4931,7 @@ function storagePayloadFromValue(value)
 function updateSyncChrome()
 {
   let node;
+  let title;
 
   if (!document.body) return;
 
@@ -4945,10 +4946,13 @@ function updateSyncChrome()
 
   if (!node)
   {
+    title = document.querySelector('#app h1');
+    if (!title) return;
+
     node = document.createElement('div');
     node.id = 'sync-status';
     node.className = 'sync-status';
-    document.body.appendChild(node);
+    title.after(node);
   }
 
   node.textContent = g_sync_status || 'local only / sync failed';
@@ -6436,6 +6440,8 @@ function render(preserve_pantry_position = false)
       ${admin_label}</button>
   </div>
   <h1>protein_loadout</h1>`;
+
+  if (g_sync_failed) h += `<div id="sync-status" class="sync-status">${esc(g_sync_status || 'local only / sync failed')}</div>`;
 
   if (g_active_tab != 'mass') h += renderTargetRow();
   h += renderTabBar();
