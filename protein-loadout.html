@@ -2356,10 +2356,29 @@ function recipeGramsForItem(key)
   return 0;
 }
 
+function recipeWouldCycle(recipe_key, ingredient_key)
+{
+  if (!recipe_key) return false;
+  let pending = [ingredient_key];
+  let visited = new Set();
+
+  while (pending.length)
+  {
+    let key = pending.pop();
+    if (key == recipe_key) return true;
+    if (visited.has(key)) continue;
+    visited.add(key);
+    let item = findScoopItem(key);
+    if (!item || !Array.isArray(item.ingredients)) continue;
+    for (let ingredient of item.ingredients) pending.push(ingredient.item_key);
+  }
+  return false;
+}
+
 function addRecipeIngredient(key, grams)
 {
   let item = findScoopItem(key);
-  if (!item || itemIsArchived(item) || Array.isArray(item.ingredients)) return;
+  if (!item || itemIsArchived(item) || recipeWouldCycle(g_recipe_draft.key, key)) return;
   if (!Number.isFinite(grams) || grams <= 0) return;
 
   for (let ingredient of g_recipe_draft.ingredients)
@@ -2372,11 +2391,12 @@ function addRecipeIngredient(key, grams)
   return true;
 }
 
-function recipeIngredientNutrition(ingredient)
+function recipeIngredientNutrition(ingredient, recipe_key = '')
 {
   let item = findScoopItem(ingredient.item_key);
   let amount = Number(ingredient.grams);
-  if (!item || Array.isArray(item.ingredients)) return {error:'Choose a pantry food for every ingredient.'};
+  if (!item) return {error:'Choose a pantry food for every ingredient.'};
+  if (recipeWouldCycle(recipe_key, ingredient.item_key)) return {error:'A recipe cannot contain itself, even through another recipe.'};
   if (!Number.isFinite(amount) || amount < 0) return {error:'Enter non-negative ingredient grams.'};
   let protein_100g = item.protein_100g;
   let kcal_100g = item.kcal_100g;
@@ -2401,7 +2421,7 @@ function recipeNutrition(draft)
   if (!draft.ingredients.length) return {error:'Add an ingredient.'};
   for (let ingredient of draft.ingredients)
   {
-    let nutrition = recipeIngredientNutrition(ingredient);
+    let nutrition = recipeIngredientNutrition(ingredient, draft.key);
     if (nutrition.error) return nutrition;
     grams += nutrition.grams;
     protein += nutrition.protein_g;
@@ -2556,7 +2576,7 @@ function logRecipeDraft()
   }
   for (let ingredient of draft.ingredients)
   {
-    let entry = recipeIngredientNutrition(ingredient);
+    let entry = recipeIngredientNutrition(ingredient, draft.key);
     if (entry.error)
     {
       document.getElementById('recipe-preview').textContent = entry.error;
@@ -6475,8 +6495,9 @@ function renderItemRow(item, is_today, indent, context)
   let ratio = itemKcalProteinRatio(item);
   let macro_ratio = ratio != null ? fmtKcalProteinRatio(ratio) + '/g' : '';
   let recipe_item = g_recipe_draft && is_recipe;
-  let disabled = (!g_recipe_draft && !is_today) || archived || recipe_item ? ' disabled' : '';
-  let scale_disabled = archived || recipe_item ? ' disabled' : '';
+  let recipe_cycle = g_recipe_draft && recipeWouldCycle(g_recipe_draft.key, item.key);
+  let disabled = (!g_recipe_draft && !is_today) || archived || recipe_cycle ? ' disabled' : '';
+  let scale_disabled = archived || recipe_cycle ? ' disabled' : '';
 
   /* barcode could be shown beside the brand with: item.barcode ? ' · ' + esc(item.barcode) : '' */
   h += `<tr class="scooprow${row_class}">
@@ -6491,8 +6512,8 @@ function renderItemRow(item, is_today, indent, context)
     <td class="num scoopcount"${g_recipe_draft ? ' data-recipe-grams="' + esc(item.key) + '"' : ''}>${count}</td>
     <td class="scoopactions">
       <div class="scoopactionstack">
-        <button class="smallbtn" data-a="scoop-add" data-key="${item.key}" title="${g_recipe_draft ? 'Add serving to recipe' : 'log one scoop'}"${disabled}>+</button>
-        <button class="smallbtn" data-a="scoop-scale-open" data-key="${item.key}" data-context="${esc(context)}" title="${g_recipe_draft ? 'Choose ingredient grams' : 'edit logged amount'}"${scale_disabled}>✎</button>
+        <button class="smallbtn" data-a="scoop-add" data-key="${item.key}" title="${recipe_cycle ? 'Recipe would contain itself' : g_recipe_draft ? 'Add serving to recipe' : 'log one scoop'}"${disabled}>+</button>
+        <button class="smallbtn" data-a="scoop-scale-open" data-key="${item.key}" data-context="${esc(context)}" title="${recipe_cycle ? 'Recipe would contain itself' : g_recipe_draft ? 'Choose ingredient grams' : 'edit logged amount'}"${scale_disabled}>✎</button>
       </div>
     </td>
   </tr>`;
@@ -6551,7 +6572,7 @@ function renderGroupHeader(g)
   h += `<tr class="groupheader${searchmatch}"${g_recipe_draft ? ' data-recipe-group="' + esc(g.key) + '"' : ''}>
   <td colspan="3">
     <button class="grouptoggle" data-a="group-toggle" data-group="${esc(g.key)}">
-      ${icon} ${esc(g.name)}<span class="unit">(${totals.count}/${g.members.length})</span>
+      ${icon} ${esc(g.name)}<span class="unit">(${fmt0(totals.count)}/${g.members.length})</span>
     </button>
     ${g.key != g_other ? `<button class="editbtn" data-a="group-rename-open" data-group="${esc(g.key)}"
       data-name="${esc(g.name)}" title="rename group">✎</button>` : ''}
