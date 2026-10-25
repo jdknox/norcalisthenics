@@ -76,6 +76,10 @@ async function run()
     g_view_date = '2020-01-01';`);
   click('recipe-new');
   assert.equal(evaluate('g_recipe_draft.scoop_g'), '', 'new recipes default to the whole batch');
+  let recipe_mode_html = evaluate('renderScoopSection()');
+  assert.match(recipe_mode_html, /class="summary"/, 'recipe mode keeps the daily summary visible');
+  assert.match(recipe_mode_html, /class="protein-kg-scale/, 'recipe mode keeps the protein and bodyweight panel visible');
+  assert.match(recipe_mode_html, /class="logged-foods"/, 'recipe mode keeps logged foods visible');
   input({recipedraft:'name'}, 'Test recipe');
   click('scoop-add', {key:'a'});
   click('scoop-add', {key:'a'});
@@ -96,8 +100,12 @@ async function run()
   let recipe = JSON.parse(shared).scoop_items[2];
   assert.equal(recipe.protein_100g, 16);
   assert.equal(recipe.kcal_100g, 200);
+  assert.equal(recipe.brand, 'knox');
   assert.equal(recipe.ingredients.length, 2);
   assert.equal(recipe.scoop_g, 250);
+  let recipe_row_html = evaluate('renderItemRow(g_scoop_items[2], true, false, "standalone")');
+  assert.match(recipe_row_html, /class="scooprow recipeitem"/, 'saved recipes have a distinct row marker');
+  assert.match(recipe_row_html, /class="recipe-label" title="Recipe">recipe</, 'saved recipes have a compact labeled marker');
   let key = recipe.key;
   evaluate('g_admin_mode = true;');
   click('scoop-scale-open', {key:key});
@@ -132,9 +140,9 @@ async function run()
   assert.equal(restored_recipe.protein_100g, 24);
 
   click('scoop-edit-open', {key:key});
-  input({recipeindex:'0', recipefield:'grams'}, '0');
+  input({recipeindex:'0', recipefield:'grams'}, '-1');
   click('recipe-save');
-  assert.match(preview.textContent, /positive ingredient grams/);
+  assert.match(preview.textContent, /non-negative ingredient grams/);
   assert.equal(evaluate('g_scoop_items[2].ingredients[0].grams'), 200);
   input({recipeindex:'0', recipefield:'grams'}, '200');
   evaluate("g_scoop_items[0].archived = true;");
@@ -160,9 +168,9 @@ async function run()
   evaluate(`g_admin_mode = true;`);
   click('recipe-log');
   assert.match(preview.textContent, /Add an ingredient/);
-  evaluate(`g_recipe_draft.ingredients = [{item_key:'a',grams:'125.5'},{item_key:'b',grams:'0'}];`);
+  evaluate(`g_recipe_draft.ingredients = [{item_key:'a',grams:'125.5'},{item_key:'b',grams:'-1'}];`);
   click('recipe-log');
-  assert.match(preview.textContent, /positive ingredient grams/);
+  assert.match(preview.textContent, /non-negative ingredient grams/);
   assert.equal(evaluate('dayTotals(g_view_date).grams'), 0, 'invalid meals must not log any ingredients');
   assert.equal(evaluate('meal_saves'), 0);
   input({recipeindex:'1', recipefield:'grams'}, '75');

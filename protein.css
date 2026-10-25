@@ -143,6 +143,8 @@ tr.food td{background:var(--panel)}
 tr.food:first-child td{border-top:none}
 .foodname{font-weight:600;font-size:13.5px}
 .foodname .unit{display:block;font-family:var(--mono);font-size:10.5px;color:var(--faint);font-weight:400;margin-top:1px}
+.scooprow.recipeitem td:first-child{box-shadow:inset 3px 0 var(--blue)}
+.recipe-label{display:inline-block;margin-left:5px;font-family:var(--mono);font-size:8px;line-height:1;color:var(--blue);font-weight:666;text-transform:uppercase;vertical-align:1px}
 td input {
     width: 32px;
     font-size: x-small;

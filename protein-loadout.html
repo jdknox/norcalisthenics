@@ -2377,7 +2377,7 @@ function recipeIngredientNutrition(ingredient)
   let item = findScoopItem(ingredient.item_key);
   let amount = Number(ingredient.grams);
   if (!item || Array.isArray(item.ingredients)) return {error:'Choose a pantry food for every ingredient.'};
-  if (!Number.isFinite(amount) || amount <= 0) return {error:'Enter positive ingredient grams.'};
+  if (!Number.isFinite(amount) || amount < 0) return {error:'Enter non-negative ingredient grams.'};
   let protein_100g = item.protein_100g;
   let kcal_100g = item.kcal_100g;
   if (item.scoop_g > 0)
@@ -2497,6 +2497,7 @@ function saveRecipeDraft()
   }
   let item = draft.key ? findScoopItem(draft.key) : {key:uid()};
   item.name = draft.name.trim();
+  item.brand = 'knox';
   item.tags = parseTagsInput(draft.tags);
   item.yield_g = nutrition.yield_g;
   item.scoop_g = nutrition.scoop_g;
@@ -6466,13 +6467,14 @@ function renderItemRow(item, is_today, indent, context)
   let h = '';
   let is_match = itemMatchesSearch(item);
   let archived = itemIsArchived(item);
-  let row_class = (indent ? ' groupmember' : '') + (is_match ? ' searchmatch' : '') + (archived ? ' archiveditem' : '');
+  let is_recipe = Array.isArray(item.ingredients);
+  let row_class = (indent ? ' groupmember' : '') + (is_match ? ' searchmatch' : '') + (archived ? ' archiveditem' : '') + (is_recipe ? ' recipeitem' : '');
   let scoop_g = item.scoop_g != null ? esc(item.scoop_g) + ' g' : '—';
   let protein = item.protein_g != null ? fmt0(item.protein_g) : '—';
   let kcal = item.kcal != null ? fmt_1(item.kcal) : '—';
   let ratio = itemKcalProteinRatio(item);
   let macro_ratio = ratio != null ? fmtKcalProteinRatio(ratio) + '/g' : '';
-  let recipe_item = g_recipe_draft && Array.isArray(item.ingredients);
+  let recipe_item = g_recipe_draft && is_recipe;
   let disabled = (!g_recipe_draft && !is_today) || archived || recipe_item ? ' disabled' : '';
   let scale_disabled = archived || recipe_item ? ' disabled' : '';
 
@@ -6480,7 +6482,7 @@ function renderItemRow(item, is_today, indent, context)
   h += `<tr class="scooprow${row_class}">
     <td>
       <span class="foodname">${esc(item.name)}&nbsp;<button class="editbtn" data-a="scoop-edit-open" data-key="${item.key}" data-context="${esc(context)}" title="edit name/brand/barcode/volume/scoop/protein/kcal/tags"${recipe_item ? ' disabled' : ''}>✎</button>
-        <span class="unit">${esc(item.brand || '')}</span>
+        <span class="unit">${esc(item.brand || '')}${is_recipe ? '<span class="recipe-label" title="Recipe">recipe</span>' : ''}</span>
       </span>
     </td>
     <td class="num pack-out measurestack"><span>${esc(formatVolume(item))}</span><span>${scoop_g}</span></td>
@@ -7178,7 +7180,7 @@ function renderPantryDaySummary()
 
 function renderScoopSection()
 {
-  let h = g_recipe_draft ? '' : renderPantryDaySummary();
+  let h = renderPantryDaySummary();
   let is_editable = viewDateIsEditable();
 
   h+= `<div class="btnrow2">
