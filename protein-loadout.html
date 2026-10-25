@@ -135,6 +135,8 @@ let g_target = 130;
 let g_target_raw = String(g_target);
 let g_target_kcal_ratio = 2550/g_target;
 let g_target_kcal_raw = '2550';
+let g_cut_kcal = 0;
+let g_cut_kcal_raw = '';
 let g_kcal_per_kg_bodyfat = 7700;
 let g_bodyweight_kg = 82;
 let g_bodyweight_by_date = {};
@@ -1966,6 +1968,11 @@ function targetKcalDay()
   return g_target*g_target_kcal_ratio;
 }
 
+function dailyKcalBudget()
+{
+  return Math.max(0, targetKcalDay() - g_cut_kcal);
+}
+
 function refreshTargetKcalRaw()
 {
   let kcal = targetKcalDay();
@@ -1975,7 +1982,7 @@ function refreshTargetKcalRaw()
 function remainingKcalProteinRatio(totals)
 {
   let protein_remaining = g_target - totals.protein;
-  let kcal_remaining = targetKcalDay() - totals.kcal;
+  let kcal_remaining = dailyKcalBudget() - totals.kcal;
 
   if (protein_remaining <= 0) return null;
   if (kcal_remaining < 0) return null;
@@ -3397,6 +3404,7 @@ function buildBackupTSV()
   pushBackupTsvRow(lines, ['target', g_target], state);
   pushBackupTsvRow(lines, ['target_kcal_ratio', g_target_kcal_ratio], state);
   pushBackupTsvRow(lines, ['target_kcal_day', targetKcalDay()], state);
+  pushBackupTsvRow(lines, ['cut_kcal', g_cut_kcal], state);
   pushBackupTsvRow(lines, ['bodyweight_kg', g_bodyweight_kg], state);
 
   pushBackupTsvSection(lines, 'bodyweight', ['date', 'kg'], state);
@@ -4014,6 +4022,7 @@ function parseBackupTSV(text)
       if (row.key == 'target' && value != null) payload.target = value;
       else if (row.key == 'target_kcal_ratio' && value != null) payload.target_kcal_ratio = value;
       else if (row.key == 'target_kcal_day' && value != null) payload.target_kcal_day = value;
+      else if (row.key == 'cut_kcal' && value != null) payload.cut_kcal = value;
       else if (row.key == 'bodyweight_kg' && value != null) payload.bodyweight_kg = value;
     }
   }
@@ -4662,6 +4671,8 @@ function applyReplaceImport()
   if (parsed.target_kcal_ratio != null) g_target_kcal_ratio = parsed.target_kcal_ratio;
   else if (parsed.target_kcal_day != null && g_target > 0) g_target_kcal_ratio = parsed.target_kcal_day/g_target;
   refreshTargetKcalRaw();
+  g_cut_kcal = parsed.cut_kcal != null ? Math.max(0, parsed.cut_kcal) : 0;
+  g_cut_kcal_raw = g_cut_kcal ? String(g_cut_kcal) : '';
 
   if (parsed.bodyweight_kg != null)
   {
@@ -4931,6 +4942,7 @@ function makeSavePayload()
     target:g_target,
     target_kcal_ratio:g_target_kcal_ratio,
     target_kcal_day:targetKcalDay(),
+    cut_kcal:g_cut_kcal,
     bodyweight_kg:g_bodyweight_kg,
     bodyweight_by_date:g_bodyweight_by_date,
     foods:g_foods,
@@ -5662,6 +5674,8 @@ function load()
     if (payload.target_kcal_ratio != null) g_target_kcal_ratio = payload.target_kcal_ratio;
     else if (payload.target_kcal_day != null && g_target > 0) g_target_kcal_ratio = payload.target_kcal_day/g_target;
     refreshTargetKcalRaw();
+    g_cut_kcal = payload.cut_kcal != null ? Math.max(0, payload.cut_kcal) : 0;
+    g_cut_kcal_raw = g_cut_kcal ? String(g_cut_kcal) : '';
 
     if (payload.bodyweight_kg != null)
     {
@@ -5851,10 +5865,9 @@ function renderTargetRow()
   let h = '';
 
   h += `<div class="targetrow">
-    <label>g/day</label>
-    <input type="text" inputmode="decimal" id="target-input" value="${g_target_raw}">
-    <label>kcal/day</label>
-    <input type="text" inputmode="decimal" id="target-kcal-input" value="${g_target_kcal_raw}">
+    <label>g/day <input type="text" inputmode="decimal" id="target-input" value="${g_target_raw}"></label>
+    <label>kcal/day <input type="text" inputmode="decimal" id="target-kcal-input" value="${g_target_kcal_raw}"></label>
+    <label>cut <input type="text" inputmode="decimal" id="target-cut-input" title="Kcal below maintenance per day" placeholder="0" value="${esc(g_cut_kcal_raw)}"></label>
     </div>`;
     /* <button class="reset" data-a="reset">reset to defaults</button> */
 
@@ -7112,12 +7125,8 @@ function renderPantryDaySummary()
   let is_today = g_view_date == todayISO();
   let is_editable = viewDateIsEditable();
   let totals = dayTotals(g_view_date);
-  let tdiff = totals.protein - g_target;
   let today_text = is_today ? ' · today' : '';
   let next_disabled = g_view_date >= todayISO() ? ' disabled' : '';
-  let target_label = tdiff >= 0 ? 'over target' : 'under target';
-  let target_class = tdiff >= 0 ? 'over' : 'under';
-  let target_sign = tdiff >= 0 ? '+' : '';
   let weekday = weekdayNameForDate(g_view_date);
 
   h += `<div class="dateblock">
@@ -7140,15 +7149,31 @@ function renderPantryDaySummary()
   ${renderDateJumpButtons()}
   </div>`;
 
+  h += renderPantryNutritionSummary(totals);
+  h += renderProteinKgScale(totals.protein);
+  h += renderLoggedFoodList();
+  h += renderAdjustedLogDetails();
+  h += renderCustomPanel();
+
+  return h;
+}
+
+function renderPantryNutritionSummary(totals)
+{
+  let tdiff = totals.protein - g_target;
+  let target_label = tdiff >= 0 ? 'over target' : 'under target';
+  let target_class = tdiff >= 0 ? 'over' : 'under';
+  let target_sign = tdiff >= 0 ? '+' : '';
   let remaining_ratio = remainingKcalProteinRatio(totals);
   let remaining_ratio_text = remaining_ratio != null ? fmtKcalProteinRatio(remaining_ratio) : '—';
   let target_kcal = targetKcalDay();
-  let kcal_difference = totals.kcal - target_kcal;
-  let kcal_percent = target_kcal > 0 ? kcal_difference/target_kcal*100 : 0;
-  let delta_mass_kg = kcal_difference/g_kcal_per_kg_bodyfat;
+  let kcal_difference = totals.kcal - dailyKcalBudget();
+  let maintenance_difference = totals.kcal - target_kcal;
+  let kcal_percent = target_kcal > 0 ? maintenance_difference/target_kcal*100 : 0;
+  let delta_mass_kg = maintenance_difference/g_kcal_per_kg_bodyfat;
 
-  let kcal_balance_text = fmt0(kcal_percent) + '%';
-  let weekly_mass_text = fmt1(7*delta_mass_kg, 1, 0) + ' kg/wk';
+  let kcal_balance_text = maintenance_difference == 0 ? 'on target' : fmt0(kcal_percent) + '%';
+  let weekly_mass_text = delta_mass_kg == 0 ? '0.00 kg/wk' : fmt1(7*delta_mass_kg, 1, 0) + ' kg/wk';
   let delta_sign = (delta_mass_kg < 0) ? '' : '+';
   let kcal_remaining_text = fmt0(Math.abs(kcal_difference));
 
@@ -7162,12 +7187,10 @@ function renderPantryDaySummary()
   }
   else
   {
-    kcal_balance_text = 'on target';
-    weekly_mass_text = '0.00 kg/wk';
     kcal_remaining_text = '0 rem';
   }
 
-  h += `<div class="summary">
+  return `<div id="pantry-nutrition-summary" class="summary">
     <div class="cell">
       <div class="lab">protein</div>
       <div class="val">${fmt0(totals.protein)} g</div>
@@ -7180,23 +7203,14 @@ function renderPantryDaySummary()
     <div class="cell">
       <div class="lab">kcal</div>
       <div class="val kval">${fmt_1(totals.kcal)}</div>
-      <span class="pantry-macro-ratio" title="Assumes the kcal/day target is maintenance; uses 7,700 kcal/kg">
-        ${kcal_remaining_text} (${kcal_balance_text})<br />
+      <span class="pantry-macro-ratio">
+        <span title="Remaining against kcal/day minus cut">${kcal_remaining_text}</span> (<span title="Compared with full maintenance">${kcal_balance_text}</span>)<br />
+        <span title="Assumes kcal/day is full maintenance; uses 7,700 kcal/kg">
         ${delta_sign}${weekly_mass_text}<br />
-        ${delta_sign}${fmt1(30.44*delta_mass_kg, 1, 0) + ' kg/m'}
+        ${delta_sign}${fmt1(30.44*delta_mass_kg, 1, 0) + ' kg/m'}</span>
       </span>
     </div>
   </div>`;
-
-  h += renderProteinKgScale(totals.protein);
-
-  h += renderLoggedFoodList();
-
-  h += renderAdjustedLogDetails();
-
-  h += renderCustomPanel();
-
-  return h;
 }
 
 function renderScoopSection()
@@ -7531,6 +7545,17 @@ document.addEventListener('input', function(ev)
     return;
   }
 
+  if (target.id == 'target-cut-input')
+  {
+    g_cut_kcal_raw = target.value;
+    num = Number(target.value);
+    g_cut_kcal = Number.isFinite(num) ? Math.max(0, num) : 0;
+    let summary = document.getElementById('pantry-nutrition-summary');
+    if (summary) summary.outerHTML = renderPantryNutritionSummary(dayTotals(g_view_date));
+    save();
+    return;
+  }
+
   if (target.id == 'bodyweight-input')
   {
     num = parseFloat(target.value);
@@ -7836,6 +7861,8 @@ document.addEventListener('click', function(ev)
       g_target_raw = '128';
       g_target_kcal_ratio = 2500/g_target;
       g_target_kcal_raw = '2500';
+      g_cut_kcal = 0;
+      g_cut_kcal_raw = '';
       g_bodyweight_kg = 82;
       g_bodyweight_by_date[todayISO()] = g_bodyweight_kg;
       g_bodyweight_dirty_dates[todayISO()] = true;
