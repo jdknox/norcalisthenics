@@ -66,6 +66,7 @@ async function run()
 
   evaluate(`let render_count = 0;
     showAddFeedback = function() {};
+    scrollBelowTabs = function() {};
     render = function() { ++render_count; };
     g_scoop_items = [
       {key:'a', name:'Food A', scoop_g:100, protein_g:10, kcal:200, tags:[]},

@@ -2334,10 +2334,11 @@ function lookupOFFForAddItem()
   });
 }
 
-function openRecipeDraft(item)
+function openRecipeDraft(item, context = 'standalone')
 {
   g_recipe_draft = {
     key:item ? item.key : '',
+    context:context,
     name:item ? item.name : '',
     yield_g:item ? String(item.yield_g) : '',
     scoop_g:item ? String(item.scoop_g) : '',
@@ -2514,6 +2515,50 @@ function refreshRecipeDisplays()
   }
 }
 
+function scrollBelowTabs(node)
+{
+  let tabs = document.querySelector('.apptabs');
+  let offset = tabs.offsetHeight + parseFloat(getComputedStyle(tabs).top) + 8;
+  window.scrollTo({top:window.scrollY + node.getBoundingClientRect().top - offset, behavior:'instant'});
+}
+
+function revealPantryItem(item, preferred_context)
+{
+  let context = 'standalone';
+  let group_key = '';
+  if (itemIsArchived(item))
+  {
+    context = 'archived';
+    group_key = '__archived';
+  }
+  else if (!g_flatten_view)
+  {
+    for (let node of groupedNodes())
+    {
+      if (node.type != 'group') continue;
+      for (let member of node.group.members)
+      {
+        if (member.key != item.key) continue;
+        if (!group_key || node.group.key == preferred_context) group_key = node.group.key;
+        break;
+      }
+      if (group_key == preferred_context) break;
+    }
+    if (group_key) context = group_key;
+  }
+  if (g_collapsed_groups[group_key])
+  {
+    delete g_collapsed_groups[group_key];
+    render();
+  }
+  for (let row of document.querySelectorAll('[data-pantry-key]'))
+  {
+    if (row.dataset.pantryKey != item.key || row.dataset.pantryContext != context) continue;
+    scrollBelowTabs(row);
+    break;
+  }
+}
+
 function saveRecipeDraft()
 {
   let draft = g_recipe_draft;
@@ -2543,6 +2588,7 @@ function saveRecipeDraft()
   if (!draft.key) g_scoop_items.push(item);
   g_recipe_draft = null;
   closeScaleEdit();
+  revealPantryItem(item, draft.context);
   save();
 }
 
@@ -2598,7 +2644,9 @@ function logRecipeDraft()
   {
     pushLogEntry(entry.item_key, entry.grams, entry.protein_g, entry.kcal, entry.scale);
   }
+  g_logged_foods_open = true;
   closeScaleEdit();
+  scrollBelowTabs(document.querySelector('.logged-foods'));
   save();
 }
 
@@ -2608,7 +2656,7 @@ function openScoopEdit(key, context)
   if (!item) return;
   if (Array.isArray(item.ingredients))
   {
-    openRecipeDraft(item);
+    openRecipeDraft(item, context || 'standalone');
     return;
   }
 
@@ -6515,7 +6563,7 @@ function renderItemRow(item, is_today, indent, context)
   let scale_disabled = archived || recipe_cycle ? ' disabled' : '';
 
   /* barcode could be shown beside the brand with: item.barcode ? ' · ' + esc(item.barcode) : '' */
-  h += `<tr class="scooprow${row_class}">
+  h += `<tr class="scooprow${row_class}" data-pantry-key="${esc(item.key)}" data-pantry-context="${esc(context)}">
     <td>
       <span class="foodname">${esc(item.name)}&nbsp;<button class="editbtn" data-a="scoop-edit-open" data-key="${item.key}" data-context="${esc(context)}" title="edit name/brand/barcode/volume/scoop/protein/kcal/tags"${recipe_item ? ' disabled' : ''}>✎</button>
         <span class="unit">${esc(item.brand || '')}${is_recipe ? '<span class="recipe-label" title="Recipe">recipe</span>' : ''}</span>
