@@ -10,13 +10,14 @@ let listeners = {};
 let local_values = {};
 let shared = null;
 let preview = {textContent:''};
+let ingredient_total = {textContent:''};
 let context = vm.createContext({
   console:console,
   setTimeout:setTimeout,
   document:{
     body:null,
     addEventListener:function(type, handler) { listeners[type] = handler; },
-    getElementById:function() { return preview; },
+    getElementById:function(id) { return id == 'recipe-ingredient-total' ? ingredient_total : preview; },
     querySelector:function() { return {classList:{toggle:function() {}}}; },
     querySelectorAll:function() { return []; }
   },
@@ -77,6 +78,7 @@ async function run()
     g_view_date = '2020-01-01';`);
   click('recipe-new');
   assert.equal(evaluate('g_recipe_draft.scoop_g'), '', 'new recipes default to the whole batch');
+  assert.equal(evaluate('g_recipe_draft.yield_g'), '', 'new recipes have no finished-weight override');
   let recipe_mode_html = evaluate('renderScoopSection()');
   assert.match(recipe_mode_html, /class="summary"/, 'recipe mode keeps the daily summary visible');
   assert.match(recipe_mode_html, /class="protein-kg-scale/, 'recipe mode keeps the protein and bodyweight panel visible');
@@ -96,6 +98,10 @@ async function run()
   assert.equal(evaluate('recipeNutrition(g_recipe_draft).scoop_g'), 300);
   input({recipedraft:'yield_g'}, '250');
   assert.equal(evaluate('recipeNutrition(g_recipe_draft).scoop_g'), 250, 'blank serving follows the finished batch mass');
+  assert.equal(ingredient_total.textContent, '300.0 g', 'the ingredient total remains independent of the override');
+  input({recipedraft:'yield_g'}, '');
+  assert.equal(evaluate('recipeNutrition(g_recipe_draft).yield_g'), 300, 'clearing the override uses the ingredient total');
+  input({recipedraft:'yield_g'}, '250');
   click('recipe-save');
   await flushSync();
   let recipe = JSON.parse(shared).scoop_items[2];
@@ -117,6 +123,7 @@ async function run()
   assert.equal(evaluate('dayTotals(g_view_date).kcal'), 150);
 
   click('scoop-edit-open', {key:key});
+  assert.equal(evaluate('g_recipe_draft.yield_g'), '250', 'editing preserves a distinct saved finished weight');
   input({recipedraft:'scoop_g'}, '');
   assert.equal(evaluate('recipeNutrition(g_recipe_draft).scoop_g'), 250, 'clearing serving restores the whole batch');
   click('scoop-add', {key:key});
@@ -125,6 +132,7 @@ async function run()
   let render_count_before = evaluate('render_count');
   input({recipeindex:'1', recipefield:'grams'}, '200');
   assert.equal(evaluate('render_count'), render_count_before, 'ingredient typing must not rebuild the page');
+  assert.equal(ingredient_total.textContent, '400.0 g', 'the read-only total follows ingredient edits');
   click('recipe-save');
   await flushSync();
   assert.equal(JSON.parse(shared).scoop_items[2].protein_100g, 24);
@@ -229,6 +237,11 @@ async function run()
   assert.deepEqual(wrap.ingredients, [{item_key:key, grams:150}, {item_key:'b', grams:50}]);
   assert.equal(wrap.protein_g, 46);
   assert.ok(Math.abs(wrap.kcal - 410) < 1e-9);
+  click('scoop-edit-open', {key:wrap.key});
+  assert.equal(evaluate('g_recipe_draft.yield_g'), '', 'a saved weight matching its ingredients is not an override');
+  input({recipeindex:'0', recipefield:'grams'}, '160');
+  assert.equal(evaluate('recipeBatchGrams(g_recipe_draft)'), 210, 'without an override the batch follows ingredient changes');
+  click('recipe-cancel');
   click('scoop-add', {key:wrap.key});
   await flushSync();
   click('recipe-new');

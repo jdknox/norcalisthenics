@@ -2351,6 +2351,7 @@ function openRecipeDraft(item, context = 'standalone')
     {
       g_recipe_draft.ingredients.push({item_key:ingredient.item_key, grams:String(ingredient.grams)});
     }
+    if (item.yield_g == recipeIngredientGrams(g_recipe_draft)) g_recipe_draft.yield_g = '';
   }
   g_edit_item_key = null;
   g_edit_draft = null;
@@ -2487,7 +2488,9 @@ function refreshRecipePreview()
   document.getElementById('recipe-preview').innerHTML = renderRecipePreview();
   let batch_input = document.querySelector('[data-recipedraft="yield_g"]');
   let serving_input = document.querySelector('[data-recipedraft="scoop_g"]');
-  batch_input.placeholder = fmt1(recipeIngredientGrams(g_recipe_draft));
+  let ingredient_g = recipeIngredientGrams(g_recipe_draft);
+  document.getElementById('recipe-ingredient-total').textContent = fmt1(ingredient_g) + ' g';
+  batch_input.placeholder = fmt1(ingredient_g);
   let batch_grams = recipeBatchGrams(g_recipe_draft);
   serving_input.placeholder = Number.isFinite(batch_grams) && batch_grams > 0 ? fmt1(batch_grams) : '';
   batch_input.classList.toggle('recipe-mass-diff', recipeMassDiffers(g_recipe_draft));
@@ -2609,7 +2612,8 @@ function renderRecipeDraft()
       <button class="smallbtn" data-a="recipe-remove" data-index="${i}" title="Remove ingredient" aria-label="Remove ingredient">−</button></div>`;
   }
   h += `</div>
-    <div class="recipe-weights"><label>Finished batch<span class="unitinput"><input class="${recipeMassDiffers(draft) ? 'recipe-mass-diff' : ''}" inputmode="decimal" data-recipedraft="yield_g" placeholder="${fmt1(recipeIngredientGrams(draft))}" value="${esc(draft.yield_g)}"><span class="unitghost">g</span></span></label>
+    <div class="recipe-ingredient-total"><span>Ingredient total</span><output id="recipe-ingredient-total">${fmt1(recipeIngredientGrams(draft))} g</output></div>
+    <div class="recipe-weights"><label>Finished override<span class="unitinput"><input class="${recipeMassDiffers(draft) ? 'recipe-mass-diff' : ''}" inputmode="decimal" data-recipedraft="yield_g" title="Optional finished weight; blank uses the ingredient total" placeholder="${fmt1(recipeIngredientGrams(draft))}" value="${esc(draft.yield_g)}"><span class="unitghost">g</span></span></label>
     <label>Serving<span class="unitinput"><input inputmode="decimal" data-recipedraft="scoop_g" placeholder="${Number.isFinite(recipeBatchGrams(draft)) ? fmt1(recipeBatchGrams(draft)) : ''}" value="${esc(draft.scoop_g)}"><span class="unitghost">g</span></span></label></div>
     <label class="tagwrap">Tags<input data-recipedraft="tags" autocomplete="off" value="${esc(draft.tags)}"><span class="tagsuggest"></span></label>
     <div id="recipe-preview" role="status">${renderRecipePreview()}</div>

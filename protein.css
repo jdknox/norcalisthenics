@@ -426,7 +426,9 @@ body.admin-mode #tab-top{scroll-margin-top:calc(58px + env(safe-area-inset-top,0
 .recipe-ingredient>span{font-size:16px;overflow-wrap:anywhere}
 .recipe-ingredient .smallbtn{width:36px;height:42px;padding:0}
 .recipe-editor .recipe-amount input{padding-right:28px;text-align:right;font-weight:600}
-.recipe-weights{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.recipe-ingredient-total{display:flex;align-items:baseline;justify-content:space-between;gap:12px;font-family:var(--mono);font-size:12px;color:var(--muted)}
+.recipe-ingredient-total output{font-size:16px;font-weight:600;color:var(--text)}
+.recipe-weights{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:end}
 .recipe-weights input{font-weight:600}
 .recipe-editor [data-a="recipe-log"]{color:var(--blue);border-color:var(--blue)}
 .recipe-editor [data-a="recipe-log"]:hover:not(:disabled){color:var(--bg);background:var(--blue)}
