@@ -2343,6 +2343,7 @@ function openRecipeDraft(item, context = 'standalone')
     yield_g:item ? String(item.yield_g) : '',
     scoop_g:item ? String(item.scoop_g) : '',
     tags:item ? itemTags(item).join(', ') : '',
+    save_modifications:false,
     ingredients:[]
   };
   if (item)
@@ -2423,27 +2424,31 @@ function recipeIngredientNutrition(ingredient, recipe_key = '')
   return {error:'', item_key:item.key, grams:amount, protein_g:protein, kcal:kcal, scale:item.scoop_g > 0 ? amount/item.scoop_g : null};
 }
 
-function recipeNutrition(draft)
+function recipeIngredientTotals(draft)
 {
-  let grams = 0;
-  let protein = 0;
-  let kcal = 0;
-
+  let totals = {error:'', grams:0, protein_g:0, kcal:0};
   if (!draft.ingredients.length) return {error:'Add an ingredient.'};
   for (let ingredient of draft.ingredients)
   {
     let nutrition = recipeIngredientNutrition(ingredient, draft.key);
     if (nutrition.error) return nutrition;
-    grams += nutrition.grams;
-    protein += nutrition.protein_g;
-    kcal += nutrition.kcal;
+    totals.grams += nutrition.grams;
+    totals.protein_g += nutrition.protein_g;
+    totals.kcal += nutrition.kcal;
   }
+  return totals;
+}
+
+function recipeNutrition(draft)
+{
+  let totals = recipeIngredientTotals(draft);
+  if (totals.error) return totals;
   let yield_g = recipeBatchGrams(draft);
   let scoop_g = draft.scoop_g.trim() ? Number(draft.scoop_g) : yield_g;
   if (!Number.isFinite(yield_g) || yield_g <= 0) return {error:'Enter a positive finished weight.'};
   if (!Number.isFinite(scoop_g) || scoop_g <= 0) return {error:'Enter positive serving grams.'};
-  if (!Number.isFinite(protein) || !Number.isFinite(kcal)) return {error:'Ingredient nutrition is invalid.'};
-  return {error:'', yield_g:yield_g, scoop_g:scoop_g, protein_100g:protein/yield_g*100, kcal_100g:kcal/yield_g*100};
+  if (!Number.isFinite(totals.protein_g) || !Number.isFinite(totals.kcal)) return {error:'Ingredient nutrition is invalid.'};
+  return {error:'', yield_g:yield_g, scoop_g:scoop_g, protein_100g:totals.protein_g/yield_g*100, kcal_100g:totals.kcal/yield_g*100};
 }
 
 function recipeIngredientGrams(draft)
@@ -2467,25 +2472,26 @@ function recipeMassDiffers(draft)
   return Math.abs(Number(draft.yield_g) - recipeIngredientGrams(draft)) > 1;
 }
 
+function renderRecipeTotalPreview()
+{
+  let totals = recipeIngredientTotals(g_recipe_draft);
+  if (totals.error) return esc(totals.error);
+  return `<span class="recipe-nutrition-values">${loggedEntryDetail(totals)}</span>`;
+}
+
 function renderRecipePreview()
 {
   let nutrition = recipeNutrition(g_recipe_draft);
   if (nutrition.error) return esc(nutrition.error);
   let protein = nutrition.protein_100g*nutrition.scoop_g/100;
   let kcal = nutrition.kcal_100g*nutrition.scoop_g/100;
-  let ratio = itemKcalProteinRatio({protein_g:protein, kcal:kcal});
-  return `<div class="recipe-preview-label">Per serving</div>
-    <div class="recipe-nutrition">
-      <div><span>mass g</span><strong>${fmt1(nutrition.scoop_g)}</strong></div>
-      <div class="recipe-protein"><span>protein g</span><strong>${fmt1(protein)}</strong></div>
-      <div class="recipe-kcal"><span>kcal</span><strong>${fmt0(kcal)}</strong></div>
-      <div class="recipe-ratio"><span>kcal/g protein</span><strong>${ratio != null ? fmtKcalProteinRatio(ratio) : '—'}</strong></div>
-    </div>`;
+  return `<span class="recipe-nutrition-values">${loggedEntryDetail({grams:nutrition.scoop_g, protein_g:protein, kcal:kcal})}</span>`;
 }
 
 function refreshRecipePreview()
 {
   document.getElementById('recipe-preview').innerHTML = renderRecipePreview();
+  document.getElementById('recipe-total-preview').innerHTML = renderRecipeTotalPreview();
   let batch_input = document.querySelector('[data-recipedraft="yield_g"]');
   let serving_input = document.querySelector('[data-recipedraft="scoop_g"]');
   let ingredient_g = recipeIngredientGrams(g_recipe_draft);
@@ -2562,10 +2568,8 @@ function revealPantryItem(item, preferred_context)
   }
 }
 
-function saveRecipeDraft()
+function saveRecipeItem(draft)
 {
-  let draft = g_recipe_draft;
-  if (!draft) return;
   let nutrition = recipeNutrition(draft);
   if (!draft.name.trim() || nutrition.error)
   {
@@ -2589,6 +2593,15 @@ function saveRecipeDraft()
   }
   copyScoopRawFields(item);
   if (!draft.key) g_scoop_items.push(item);
+  return item;
+}
+
+function saveRecipeDraft()
+{
+  let draft = g_recipe_draft;
+  if (!draft) return;
+  let item = saveRecipeItem(draft);
+  if (!item) return;
   g_recipe_draft = null;
   closeScaleEdit();
   revealPantryItem(item, draft.context);
@@ -2612,13 +2625,33 @@ function renderRecipeDraft()
       <button class="smallbtn" data-a="recipe-remove" data-index="${i}" title="Remove ingredient" aria-label="Remove ingredient">−</button></div>`;
   }
   h += `</div>
-    <div class="recipe-ingredient-total"><span>Ingredient total</span><output id="recipe-ingredient-total">${fmt1(recipeIngredientGrams(draft))} g</output></div>
-    <div class="recipe-weights"><label>Finished override<span class="unitinput"><input class="${recipeMassDiffers(draft) ? 'recipe-mass-diff' : ''}" inputmode="decimal" data-recipedraft="yield_g" title="Optional finished weight; blank uses the ingredient total" placeholder="${fmt1(recipeIngredientGrams(draft))}" value="${esc(draft.yield_g)}"><span class="unitghost">g</span></span></label>
-    <label>Serving<span class="unitinput"><input inputmode="decimal" data-recipedraft="scoop_g" placeholder="${Number.isFinite(recipeBatchGrams(draft)) ? fmt1(recipeBatchGrams(draft)) : ''}" value="${esc(draft.scoop_g)}"><span class="unitghost">g</span></span></label></div>
+    <div class="recipe-ingredient-total"><span>Ingredient total</span>
+      <output id="recipe-ingredient-total">
+        ${fmt1(recipeIngredientGrams(draft))} g
+      </output>
+    </div>
+    <div id="recipe-total-preview" class="recipe-nutrition-line">${renderRecipeTotalPreview()}</div>
+    <div class="recipe-log-actions">
+      <label class="recipe-save-toggle"><input type="checkbox" data-recipedraft="save_modifications"${draft.save_modifications ? ' checked' : ''}>Save modifications</label>
+      <button class="smallbtn" data-a="recipe-log"${!viewDateIsEditable() ? ' disabled' : ''}>log now</button>
+    </div>
     <label class="tagwrap">Tags<input data-recipedraft="tags" autocomplete="off" value="${esc(draft.tags)}"><span class="tagsuggest"></span></label>
-    <div id="recipe-preview" role="status">${renderRecipePreview()}</div>
-    <div class="btnrow2"><button class="smallbtn" data-a="recipe-save">save recipe</button>
-      <button class="smallbtn" data-a="recipe-log"${!viewDateIsEditable() ? ' disabled' : ''}>log FULL now</button>
+    <div class="recipe-save-fields">
+      <label class="recipe-serving">Serving<span class="unitinput"><input inputmode="decimal" data-recipedraft="scoop_g" placeholder="${Number.isFinite(recipeBatchGrams(draft)) ? fmt1(recipeBatchGrams(draft)) : ''}" value="${esc(draft.scoop_g)}"><span class="unitghost">g</span></span></label>
+      <label class="recipe-override">
+        Override total
+        <span class="unitinput">
+          <input class="${recipeMassDiffers(draft) ? 'recipe-mass-diff' : ''}"
+            inputmode="decimal" data-recipedraft="yield_g"
+            title="Optional finished weight; blank uses the ingredient total"
+            placeholder="${fmt1(recipeIngredientGrams(draft))}"
+            value="${esc(draft.yield_g)}">
+          <span class="unitghost">g</span>
+        </span>
+      </label>
+    </div>
+    <div id="recipe-preview" class="recipe-nutrition-line" role="status">${renderRecipePreview()}</div>
+    <div class="btnrow2"><button class="smallbtn" data-a="recipe-save">save</button>
       <button class="smallbtn" data-a="recipe-cancel">cancel</button></div></div>`;
   return h;
 }
@@ -2627,27 +2660,24 @@ function logRecipeDraft()
 {
   let draft = g_recipe_draft;
   if (!draft || !viewDateIsEditable()) return;
-  let totals = {grams:0, protein_g:0, kcal:0};
-  if (!draft.ingredients.length)
+  let totals = recipeIngredientTotals(draft);
+  if (totals.error)
   {
-    document.getElementById('recipe-preview').textContent = 'Add an ingredient.';
+    document.getElementById('recipe-preview').textContent = totals.error;
     return;
   }
-  for (let ingredient of draft.ingredients)
+  let item_key = 'custom';
+  let scale = null;
+  if (draft.save_modifications)
   {
-    let entry = recipeIngredientNutrition(ingredient, draft.key);
-    if (entry.error)
-    {
-      document.getElementById('recipe-preview').textContent = entry.error;
-      return;
-    }
-    totals.grams += entry.grams;
-    totals.protein_g += entry.protein_g;
-    totals.kcal += entry.kcal;
+    let item = saveRecipeItem(draft);
+    if (!item) return;
+    item_key = item.key;
+    scale = totals.grams/item.scoop_g;
   }
   g_recipe_draft = null;
-  pushLogEntry('custom', totals.grams, totals.protein_g, totals.kcal, null);
-  g_log[g_view_date].at(-1).note = draft.name.trim() || 'Meal';
+  pushLogEntry(item_key, totals.grams, totals.protein_g, totals.kcal, scale);
+  if (item_key == 'custom') g_log[g_view_date].at(-1).note = draft.name.trim() || 'Meal';
   g_temporary_meal_edit = null;
   g_logged_foods_open = true;
   closeScaleEdit();
@@ -7609,6 +7639,11 @@ document.addEventListener('input', function(ev)
     if (target.dataset.recipedraft)
     {
       let field = target.dataset.recipedraft;
+      if (field == 'save_modifications')
+      {
+        g_recipe_draft.save_modifications = target.checked;
+        return;
+      }
       g_recipe_draft[field] = target.value;
       if (field == 'tags') updateTagSuggestions(target);
     }

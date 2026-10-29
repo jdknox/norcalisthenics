@@ -11,13 +11,22 @@ let local_values = {};
 let shared = null;
 let preview = {textContent:''};
 let ingredient_total = {textContent:''};
+let total_preview = {innerHTML:''};
 let context = vm.createContext({
   console:console,
   setTimeout:setTimeout,
   document:{
     body:null,
     addEventListener:function(type, handler) { listeners[type] = handler; },
-    getElementById:function(id) { return id == 'recipe-ingredient-total' ? ingredient_total : preview; },
+    getElementById:function(id)
+    {
+      switch (id)
+      {
+        case 'recipe-ingredient-total': return ingredient_total;
+        case 'recipe-total-preview': return total_preview;
+        default: return preview;
+      }
+    },
     querySelector:function() { return {classList:{toggle:function() {}}}; },
     querySelectorAll:function() { return []; }
   },
@@ -47,6 +56,11 @@ function click(action, extra = {})
 function input(dataset, value)
 {
   listeners.input({target:{dataset:dataset, value:value, classList:{toggle:function() {}}}});
+}
+
+function toggleSaveModifications(checked)
+{
+  listeners.input({target:{dataset:{recipedraft:'save_modifications'}, checked:checked}});
 }
 
 function flushSync()
@@ -79,6 +93,7 @@ async function run()
   click('recipe-new');
   assert.equal(evaluate('g_recipe_draft.scoop_g'), '', 'new recipes default to the whole batch');
   assert.equal(evaluate('g_recipe_draft.yield_g'), '', 'new recipes have no finished-weight override');
+  assert.equal(evaluate('g_recipe_draft.save_modifications'), false, 'logging defaults to leaving pantry recipes unchanged');
   let recipe_mode_html = evaluate('renderScoopSection()');
   assert.match(recipe_mode_html, /class="summary"/, 'recipe mode keeps the daily summary visible');
   assert.match(recipe_mode_html, /class="protein-kg-scale/, 'recipe mode keeps the protein and bodyweight panel visible');
@@ -99,6 +114,13 @@ async function run()
   input({recipedraft:'yield_g'}, '250');
   assert.equal(evaluate('recipeNutrition(g_recipe_draft).scoop_g'), 250, 'blank serving follows the finished batch mass');
   assert.equal(ingredient_total.textContent, '300.0 g', 'the ingredient total remains independent of the override');
+  assert.match(total_preview.innerHTML, /300g/, 'the total nutrition line shows the full ingredient mass');
+  assert.match(preview.innerHTML, /250g/, 'the serving nutrition line follows the finished override');
+  input({recipedraft:'scoop_g'}, '50');
+  assert.match(preview.innerHTML, /50g/);
+  assert.match(preview.innerHTML, /class="logged-food-protein">\s*8</);
+  assert.match(total_preview.innerHTML, /class="logged-food-protein">\s*40</, 'serving edits cannot change the full ingredient nutrition');
+  input({recipedraft:'scoop_g'}, '');
   input({recipedraft:'yield_g'}, '');
   assert.equal(evaluate('recipeNutrition(g_recipe_draft).yield_g'), 300, 'clearing the override uses the ingredient total');
   input({recipedraft:'yield_g'}, '250');
@@ -133,6 +155,7 @@ async function run()
   input({recipeindex:'1', recipefield:'grams'}, '200');
   assert.equal(evaluate('render_count'), render_count_before, 'ingredient typing must not rebuild the page');
   assert.equal(ingredient_total.textContent, '400.0 g', 'the read-only total follows ingredient edits');
+  assert.match(total_preview.innerHTML, /400g/, 'the total nutrition line follows ingredient edits');
   click('recipe-save');
   await flushSync();
   assert.equal(JSON.parse(shared).scoop_items[2].protein_100g, 24);
@@ -310,6 +333,68 @@ async function run()
   evaluate('g_scoop_items = []; mergeScoopItems(JSON.parse(' + JSON.stringify(shared) + ').scoop_items);');
   assert.equal(evaluate('g_scoop_items[3].ingredients[0].item_key'), key, 'shared reload retains nested recipe references');
   assert.equal(evaluate('g_scoop_items[3].protein_g'), 34);
+
+  evaluate(`g_view_date = '2020-02-02';
+    let combined_saves = 0;
+    let save_for_combined = save;
+    save = function() { ++combined_saves; save_for_combined(); };`);
+  let pantry_before_combined = evaluate('JSON.stringify(g_scoop_items)');
+  let log_before_combined = evaluate('JSON.stringify(g_log)');
+  click('recipe-new');
+  click('scoop-add', {key:'b'});
+  let before_toggle = evaluate('render_count');
+  toggleSaveModifications(true);
+  assert.equal(evaluate('g_recipe_draft.save_modifications'), true);
+  assert.equal(evaluate('render_count'), before_toggle, 'toggling save must leave the form in place');
+  click('recipe-log');
+  assert.match(preview.textContent, /Enter a recipe name/);
+  assert.equal(evaluate('JSON.stringify(g_scoop_items)'), pantry_before_combined);
+  assert.equal(evaluate('JSON.stringify(g_log)'), log_before_combined);
+  input({recipedraft:'name'}, 'Saved lunch');
+  input({recipedraft:'yield_g'}, '-1');
+  click('recipe-log');
+  assert.match(preview.textContent, /positive finished weight/);
+  assert.equal(evaluate('JSON.stringify(g_scoop_items)'), pantry_before_combined, 'a failed combined action cannot save partial edits');
+  assert.equal(evaluate('JSON.stringify(g_log)'), log_before_combined, 'a failed combined action cannot log food');
+  input({recipedraft:'yield_g'}, '');
+  click('recipe-log');
+  await flushSync();
+  assert.equal(evaluate('combined_saves'), 1, 'saving and logging persists the whole action once');
+  let saved_lunch = JSON.parse(shared).scoop_items.at(-1);
+  assert.equal(saved_lunch.name, 'Saved lunch');
+  assert.equal(saved_lunch.ingredients[0].grams, 50);
+  assert.equal(saved_lunch.save_modifications, undefined, 'the toggle is transient draft state');
+  assert.equal(evaluate('g_log[g_view_date].length'), 1);
+  assert.equal(evaluate('g_log[g_view_date][0].item_key'), saved_lunch.key, 'save-on-log records the saved pantry recipe');
+  assert.equal(evaluate('loggedEntryLabel(g_log[g_view_date][0])'), 'Saved lunch');
+  assert.equal(evaluate('g_log[g_view_date][0].grams'), 50);
+  let first_lunch = evaluate('JSON.stringify(g_log[g_view_date][0])');
+
+  click('scoop-edit-open', {key:saved_lunch.key});
+  assert.equal(evaluate('g_recipe_draft.save_modifications'), false, 'each edit session starts with save-on-log off');
+  input({recipeindex:'0', recipefield:'grams'}, '100');
+  input({recipedraft:'yield_g'}, '80');
+  input({recipedraft:'scoop_g'}, '20');
+  toggleSaveModifications(true);
+  click('recipe-log');
+  await flushSync();
+  assert.equal(evaluate('combined_saves'), 2);
+  assert.equal(evaluate('findScoopItem(' + JSON.stringify(saved_lunch.key) + ').ingredients[0].grams'), 100);
+  assert.equal(evaluate('findScoopItem(' + JSON.stringify(saved_lunch.key) + ').yield_g'), 80);
+  assert.equal(evaluate('findScoopItem(' + JSON.stringify(saved_lunch.key) + ').scoop_g'), 20);
+  assert.equal(evaluate('g_log[g_view_date][1].grams'), 100, 'combined actions still log the full ingredient mass');
+  assert.equal(evaluate('g_log[g_view_date][1].item_key'), saved_lunch.key);
+  assert.equal(evaluate('g_log[g_view_date][1].protein_g'), 20);
+  assert.equal(evaluate('g_log[g_view_date][1].kcal'), 100);
+  assert.equal(evaluate('JSON.stringify(g_log[g_view_date][0])'), first_lunch, 'saving modifications cannot change previous logged values');
+
+  click('scoop-edit-open', {key:saved_lunch.key});
+  toggleSaveModifications(true);
+  input({recipeindex:'0', recipefield:'grams'}, '75');
+  click('recipe-save');
+  await flushSync();
+  assert.equal(evaluate('g_log[g_view_date].length'), 2, 'the bottom Save button never logs food');
+  assert.equal(evaluate('findScoopItem(' + JSON.stringify(saved_lunch.key) + ').ingredients[0].grams'), 75);
   console.log('Recipe workflow, nested ingredients, cycle prevention, meal logging, frozen history, shared reload, and TSV round trip passed.');
 }
 
