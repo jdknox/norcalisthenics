@@ -256,6 +256,8 @@ body.admin-mode #tab-top{scroll-margin-top:calc(58px + env(safe-area-inset-top,0
 .logged-foods-collapse{flex:1 1 auto;min-width:0;display:flex;align-items:center;gap:8px;text-align:left;font-size:12px}
 .logged-foods-headbtn:hover{color:var(--text)}
 .logged-foods-headbtn:disabled{opacity:.4;cursor:default}
+.logged-foods-headbtn[data-a="meal-new"]{color:var(--green)}
+.logged-foods-headbtn[data-a="meal-new"]:hover{color:var(--green-hi)}
 .temporary-meal{border-top:1px solid var(--line);padding:6px 0}
 .temporary-meal:last-child{margin-bottom:8px}
 .temporary-meal-head{display:flex;align-items:center;justify-content:space-between;gap:8px}

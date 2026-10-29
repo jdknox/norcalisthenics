@@ -2614,7 +2614,7 @@ function renderRecipeDraft()
     <label class="tagwrap">Tags<input data-recipedraft="tags" autocomplete="off" value="${esc(draft.tags)}"><span class="tagsuggest"></span></label>
     <div id="recipe-preview" role="status">${renderRecipePreview()}</div>
     <div class="btnrow2"><button class="smallbtn" data-a="recipe-save">save recipe</button>
-      <button class="smallbtn" data-a="recipe-log"${!viewDateIsEditable() ? ' disabled' : ''}>log this now</button>
+      <button class="smallbtn" data-a="recipe-log"${!viewDateIsEditable() ? ' disabled' : ''}>log FULL now</button>
       <button class="smallbtn" data-a="recipe-cancel">cancel</button></div></div>`;
   return h;
 }
@@ -2623,7 +2623,7 @@ function logRecipeDraft()
 {
   let draft = g_recipe_draft;
   if (!draft || !viewDateIsEditable()) return;
-  let entries = [];
+  let totals = {grams:0, protein_g:0, kcal:0};
   if (!draft.ingredients.length)
   {
     document.getElementById('recipe-preview').textContent = 'Add an ingredient.';
@@ -2637,13 +2637,14 @@ function logRecipeDraft()
       document.getElementById('recipe-preview').textContent = entry.error;
       return;
     }
-    entries.push(entry);
+    totals.grams += entry.grams;
+    totals.protein_g += entry.protein_g;
+    totals.kcal += entry.kcal;
   }
   g_recipe_draft = null;
-  for (let entry of entries)
-  {
-    pushLogEntry(entry.item_key, entry.grams, entry.protein_g, entry.kcal, entry.scale);
-  }
+  pushLogEntry('custom', totals.grams, totals.protein_g, totals.kcal, null);
+  g_log[g_view_date].at(-1).note = draft.name.trim() || 'Meal';
+  g_temporary_meal_edit = null;
   g_logged_foods_open = true;
   closeScaleEdit();
   scrollBelowTabs(document.querySelector('.logged-foods'));
@@ -6906,6 +6907,18 @@ function renderAdjustedLogDetails()
   return h;
 }
 
+function addTemporaryMeal(entry_ids = [])
+{
+  let number = 1;
+  for (let meal of g_temporary_meals)
+  {
+    if (meal.date == g_view_date) number = Math.max(number, meal.number + 1);
+  }
+  let meal = {date:g_view_date, number:number, entry_ids:entry_ids};
+  g_temporary_meals.push(meal);
+  return meal;
+}
+
 function temporaryMealTotals(meal)
 {
   let totals = {grams:0, protein_g:0, kcal:0};
@@ -8027,17 +8040,9 @@ document.addEventListener('click', function(ev)
       return;
 
     case 'meal-new':
-      {
-        let number = 1;
-        for (let meal of g_temporary_meals)
-        {
-          if (meal.date == g_view_date) number = Math.max(number, meal.number + 1);
-        }
-        g_temporary_meal_edit = {date:g_view_date, number:number, entry_ids:[]};
-        g_temporary_meals.push(g_temporary_meal_edit);
-        g_logged_foods_open = true;
-        render();
-      }
+      g_temporary_meal_edit = addTemporaryMeal();
+      g_logged_foods_open = true;
+      render();
       return;
 
     case 'meal-done':

@@ -163,6 +163,7 @@ async function run()
     let original_save = save;
     save = function() { ++meal_saves; original_save(); };`);
   let pantry_before = evaluate('JSON.stringify(g_scoop_items)');
+  let temporary_meals_before = evaluate('g_temporary_meals.length');
   click('recipe-new');
   click('recipe-log');
   assert.notEqual(evaluate('g_recipe_draft'), null, 'past dates require Admin mode to log');
@@ -174,26 +175,35 @@ async function run()
   assert.match(preview.textContent, /non-negative ingredient grams/);
   assert.equal(evaluate('dayTotals(g_view_date).grams'), 0, 'invalid meals must not log any ingredients');
   assert.equal(evaluate('meal_saves'), 0);
+  assert.equal(evaluate('g_temporary_meals.length'), temporary_meals_before, 'invalid drafts cannot create temporary meals');
   input({recipeindex:'1', recipefield:'grams'}, '75');
   input({recipedraft:'yield_g'}, 'invalid');
-  input({recipedraft:'scoop_g'}, '');
+  input({recipedraft:'scoop_g'}, '50');
   click('recipe-log');
   await flushSync();
   assert.equal(evaluate('g_recipe_draft'), null, 'meal logging must leave recipe mode');
   assert.equal(evaluate('g_scale_draft'), null);
   assert.equal(evaluate('meal_saves'), 1, 'save the complete meal once');
-  assert.equal(evaluate('g_log[g_view_date].length'), 2);
+  assert.equal(evaluate('g_log[g_view_date].length'), 1);
   assert.equal(evaluate('dayTotals(g_view_date).grams'), 200.5);
   assert.equal(evaluate('dayTotals(g_view_date).kcal'), 326);
-  assert.equal(evaluate('g_log[g_view_date][0].protein_g'), 12.55);
-  assert.equal(evaluate('g_log[g_view_date][1].scale'), 1.5);
+  assert.equal(evaluate('g_log[g_view_date][0].protein_g'), 27.55);
+  assert.equal(evaluate('g_log[g_view_date][0].scale'), null);
+  assert.equal(evaluate('g_log[g_view_date][0].item_key'), 'custom');
+  assert.equal(evaluate('g_log[g_view_date][0].note'), 'Meal', 'unnamed drafts use a readable fallback');
   assert.equal(evaluate('JSON.stringify(g_scoop_items)'), pantry_before, 'meal logging must not save a recipe or change pantry items');
-  assert.equal(JSON.parse(shared).log['2020-01-02'].length, 2);
+  assert.equal(JSON.parse(shared).log['2020-01-02'].length, 1);
+  assert.equal(evaluate('g_temporary_meals.length'), temporary_meals_before, 'combined entries do not need a temporary meal');
   click('recipe-log');
-  assert.equal(evaluate('g_log[g_view_date].length'), 2, 'a completed draft cannot log twice');
+  assert.equal(evaluate('g_log[g_view_date].length'), 1, 'a completed draft cannot log twice');
+  evaluate('markLogEntryDeleted(g_log[g_view_date][0]);');
+  assert.equal(evaluate('dayTotals(g_view_date).grams'), 0, 'deleting a combined entry removes its entire mass');
+  evaluate('markLogEntryRestored(g_log[g_view_date][0]);');
+  assert.equal(evaluate('dayTotals(g_view_date).grams'), 200.5);
   click('scoop-edit-open', {key:key});
   input({recipeindex:'0', recipefield:'grams'}, '300');
   click('recipe-log');
+  assert.equal(evaluate('g_log[g_view_date][1].note'), 'Test recipe', 'logging an edited recipe uses its name');
   assert.equal(evaluate('JSON.stringify(g_scoop_items)'), pantry_before, 'logging an edited recipe draft must not modify the saved recipe');
   await flushSync();
 
@@ -222,10 +232,15 @@ async function run()
   click('scoop-add', {key:wrap.key});
   await flushSync();
   click('recipe-new');
+  input({recipedraft:'name'}, '  Lunch wrap  ');
   click('scoop-add', {key:wrap.key});
   click('recipe-log');
   await flushSync();
-  assert.equal(evaluate('g_log[g_view_date].length'), 2, 'meal logging keeps a nested recipe as one food');
+  assert.equal(evaluate('g_log[g_view_date].length'), 2, 'logging a draft adds exactly one entry alongside existing foods');
+  assert.equal(evaluate('g_log[g_view_date][1].note'), 'Lunch wrap');
+  assert.equal(evaluate('g_log[g_view_date][1].item_key'), 'custom');
+  assert.equal(evaluate('diaryEntryLabel(g_log[g_view_date][1])'), '* Lunch wrap');
+  assert.equal(evaluate('g_temporary_meals.length'), temporary_meals_before);
   assert.equal(evaluate('dayTotals(g_view_date).protein'), 92);
   assert.ok(Math.abs(evaluate('dayTotals(g_view_date).kcal') - 820) < 1e-9);
   assert.equal(evaluate('dayTotals(g_view_date).grams'), 400);
@@ -270,7 +285,15 @@ async function run()
   restored = evaluate('parseBackupTSV(' + JSON.stringify(backup.text) + ')');
   assert.equal(restored.ok, true, restored.error);
   assert.equal(JSON.stringify(restored.payload.scoop_items[3].ingredients), JSON.stringify(wrap.ingredients), 'TSV retains nested recipe keys and grams');
-  assert.equal(JSON.stringify(restored.payload.log), frozen_log, 'TSV retains the original logged nutrition');
+  let expected_restored_log = JSON.parse(frozen_log);
+  for (let day of Object.values(expected_restored_log))
+  {
+    for (let entry of day)
+    {
+      if (entry.scale == null) delete entry.scale;
+    }
+  }
+  assert.deepEqual(JSON.parse(JSON.stringify(restored.payload.log)), expected_restored_log, 'TSV retains the original logged nutrition; blank optional scales are omitted');
   evaluate('g_scoop_items = []; mergeScoopItems(JSON.parse(' + JSON.stringify(shared) + ').scoop_items);');
   assert.equal(evaluate('g_scoop_items[3].ingredients[0].item_key'), key, 'shared reload retains nested recipe references');
   assert.equal(evaluate('g_scoop_items[3].protein_g'), 34);
