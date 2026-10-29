@@ -8,3 +8,4 @@ data/workout-library.tsv.*
 /data/*.bak
 __pycache__/
 *:Zone.Identifier
+**/.claude/scheduled_tasks.lock
