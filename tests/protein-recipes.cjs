@@ -12,6 +12,8 @@ let shared = null;
 let preview = {textContent:''};
 let ingredient_total = {textContent:''};
 let total_preview = {innerHTML:''};
+let recipe_editor = {};
+let scroll_targets = [];
 let context = vm.createContext({
   console:console,
   setTimeout:setTimeout,
@@ -27,7 +29,11 @@ let context = vm.createContext({
         default: return preview;
       }
     },
-    querySelector:function() { return {classList:{toggle:function() {}}}; },
+    querySelector:function(selector)
+    {
+      if (selector == '.recipe-editor') return recipe_editor;
+      return {classList:{toggle:function() {}}};
+    },
     querySelectorAll:function() { return []; }
   },
   localStorage:{
@@ -81,7 +87,6 @@ async function run()
 
   evaluate(`let render_count = 0;
     showAddFeedback = function() {};
-    scrollBelowTabs = function() {};
     render = function() { ++render_count; };
     g_scoop_items = [
       {key:'a', name:'Food A', scoop_g:100, protein_g:10, kcal:200, tags:[]},
@@ -90,7 +95,9 @@ async function run()
     g_log = {};
     g_admin_mode = false;
     g_view_date = '2020-01-01';`);
+  context.scrollBelowTabs = function(node) { scroll_targets.push(node); };
   click('recipe-new');
+  assert.equal(scroll_targets.length, 0, 'starting a new recipe leaves scrolling unchanged');
   assert.equal(evaluate('g_recipe_draft.scoop_g'), '', 'new recipes default to the whole batch');
   assert.equal(evaluate('g_recipe_draft.yield_g'), '', 'new recipes have no finished-weight override');
   assert.equal(evaluate('g_recipe_draft.save_modifications'), false, 'logging defaults to leaving pantry recipes unchanged');
@@ -145,6 +152,7 @@ async function run()
   assert.equal(evaluate('dayTotals(g_view_date).kcal'), 150);
 
   click('scoop-edit-open', {key:key});
+  assert.equal(scroll_targets.at(-1), recipe_editor, 'editing a recipe scrolls to the recipe editor');
   assert.equal(evaluate('g_recipe_draft.yield_g'), '250', 'editing preserves a distinct saved finished weight');
   input({recipedraft:'scoop_g'}, '');
   assert.equal(evaluate('recipeNutrition(g_recipe_draft).scoop_g'), 250, 'clearing serving restores the whole batch');

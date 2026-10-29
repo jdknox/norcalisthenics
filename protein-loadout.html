@@ -2357,6 +2357,7 @@ function openRecipeDraft(item, context = 'standalone')
   g_edit_item_key = null;
   g_edit_draft = null;
   closeScaleEdit();
+  if (item) scrollBelowTabs(document.querySelector('.recipe-editor'));
 }
 
 function recipeGramsForItem(key)
