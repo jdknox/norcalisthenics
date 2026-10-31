@@ -2609,6 +2609,18 @@ function saveRecipeDraft()
   save();
 }
 
+function archiveRecipeDraft()
+{
+  let draft = g_recipe_draft;
+  if (!draft || !draft.key) return;
+  let item = findScoopItem(draft.key);
+  item.archived = !itemIsArchived(item);
+  g_recipe_draft = null;
+  closeScaleEdit();
+  revealPantryItem(item, draft.context);
+  save();
+}
+
 function renderRecipeDraft()
 {
   let draft = g_recipe_draft;
@@ -2653,7 +2665,13 @@ function renderRecipeDraft()
     </div>
     <div id="recipe-preview" class="recipe-nutrition-line" role="status">${renderRecipePreview()}</div>
     <div class="btnrow2"><button class="smallbtn" data-a="recipe-save">save</button>
-      <button class="smallbtn" data-a="recipe-cancel">cancel</button></div></div>`;
+      <button class="smallbtn" data-a="recipe-cancel">cancel</button>`;
+  if (draft.key)
+  {
+    let archive_label = itemIsArchived(findScoopItem(draft.key)) ? 'unarchive' : 'archive';
+    h += `<button class="smallbtn archivebtn" data-a="recipe-archive" title="${archive_label} saved recipe without saving draft changes">${archive_label}</button>`;
+  }
+  h += '</div></div>';
   return h;
 }
 
@@ -8144,6 +8162,10 @@ document.addEventListener('click', function(ev)
 
     case 'recipe-save':
       saveRecipeDraft();
+      return;
+
+    case 'recipe-archive':
+      archiveRecipeDraft();
       return;
 
     case 'recipe-log':
