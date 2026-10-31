@@ -172,6 +172,10 @@ body.admin-mode #tab-top{scroll-margin-top:calc(58px + env(safe-area-inset-top,0
 .smallbtn{font-family:var(--mono);font-size:11px;color:var(--faint);border:1px solid var(--line);border-radius:4px;padding:6px 9px;background:var(--panel);cursor:pointer}
 .smallbtn:hover{color:var(--text);border-color:var(--line2)}
 .smallbtn:disabled{opacity:.4;cursor:default}
+.smallbtn[data-a="scoop-add-item-open"]{color:var(--green);border-color:var(--green)}
+.smallbtn[data-a="scoop-add-item-open"]:hover{color:var(--bg);background:var(--green)}
+.smallbtn[data-a="recipe-new"]{color:var(--blue);border-color:var(--blue)}
+.smallbtn[data-a="recipe-new"]:hover{color:var(--bg);background:var(--blue)}
 .admin-toggle.admin-on{color:#1b0f0b;background:var(--coral);border-color:#f0b09c;font-weight:666}
 .datenav{display:flex;align-items:center;gap:10px;margin:0px 0 12px}
 .dateblock{display:block;width:max-content;margin:0 0 12px}
