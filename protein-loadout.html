@@ -5199,6 +5199,7 @@ function refreshBodyweightFromShared()
 
 function pushBodyweightToShared()
 {
+  if (!viewDateIsEditable()) return;
   let date = g_view_date;
   let bodyweight_kg = bodyweightForDate(date);
 
@@ -5981,6 +5982,7 @@ function renderTargetRow()
 
 function renderProteinKgScale(logged_protein)
 {
+  let disabled = !viewDateIsEditable() ? ' disabled' : '';
   let scale_min = 1.2;
   let scale_max = 1.8;
   let scale_target = 1.666;
@@ -6012,9 +6014,9 @@ function renderProteinKgScale(logged_protein)
       <span>protein/bodyweight</span>
       <span class="protein-kg-controls">
         <label>kg</label>
-        <input type="text" inputmode="decimal" id="bodyweight-input" value="${bodyweight_raw}">
+        <input type="text" inputmode="decimal" id="bodyweight-input" value="${bodyweight_raw}"${disabled}>
         <button class="smallbtn bodyweight-refresh" data-a="bodyweight-pull" title="pull bodyweight from shared storage" aria-label="pull bodyweight from shared storage">↓</button>
-        <button class="smallbtn bodyweight-refresh" data-a="bodyweight-push" title="push bodyweight to shared storage" aria-label="push bodyweight to shared storage">↑</button>
+        <button class="smallbtn bodyweight-refresh" data-a="bodyweight-push" title="push bodyweight to shared storage" aria-label="push bodyweight to shared storage"${disabled}>↑</button>
         <strong>${ratio_text} g/kg</strong>
         ${refresh_status}
       </span>
@@ -7737,6 +7739,7 @@ document.addEventListener('input', function(ev)
 
   if (target.id == 'bodyweight-input')
   {
+    if (!viewDateIsEditable()) return;
     num = parseFloat(target.value);
     setBodyweightForDate(g_view_date, isNaN(num) ? 0 : num, target.value);
     renderPreservingFocus();
