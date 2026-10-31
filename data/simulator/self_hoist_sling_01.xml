@@ -1,0 +1,113 @@
+<mujoco model="self_hoist_sling">
+  <!--
+    Seated knee-driven self-hoist with sliding sling ring (planar, side view).
+    Units: m, kg, N, s. Angles in degrees.
+
+    Controls (sliders):
+      knee_flex   0..1   -> knee flexion torque, x 150 Nm (hamstring effort)
+      hip_hold   -0.6..0.6 rad -> hip posture target (0 = torso upright, thigh flat)
+      rope_len   -0.5..0.5 m   -> change main rope length from its start length (3.751 m)
+      sling_len  -0.3..0.6 m   -> change blue sling length from its start length (0.39 m)
+
+    Rope and sling are tension-only stiff springs (they go slack, never push).
+    Ring is a frictionless eyelet that slides along the heel strand.
+
+    Sensors to watch:
+      rope_tension, sling_tension (N, negative = pulling)
+      thigh_seat (N): contact force under the distal thigh. Goes to 0 when the thigh lifts.
+      knee_angle, hip_angle (rad), torso_z (m): torso lift from start.
+  -->
+  <compiler angle="degree" autolimits="true"/>
+  <option timestep="0.001" integrator="implicitfast" gravity="0 0 -9.81"/>
+
+  <default>
+    <geom friction="0.8 0.005 0.0001" rgba="0.75 0.75 0.72 1"/>
+    <joint damping="2"/>
+  </default>
+
+  <worldbody>
+    <light pos="0 -3 3" dir="0 1 -1"/>
+    <camera name="side" pos="0.4 -4.5 1.3" xyaxes="1 0 0 0 0 1"/>
+    <geom name="floor" type="plane" size="3 3 0.1" rgba="0.3 0.3 0.3 1"/>
+
+    <!-- Stool: top at z = 0.45, front edge at x = 0.40 (knee sits just past it) -->
+    <geom name="seat" type="box" pos="0.15 0 0.225" size="0.25 0.25 0.225" rgba="0.4 0.4 0.42 1"/>
+
+    <!-- Overhead pulley, directly above the knee -->
+    <site name="pulley" pos="0.45 0 2.5" size="0.04" rgba="0.9 0.9 0.9 1"/>
+
+    <!-- Torso = root body, origin at hip joint. Planar freedom only. -->
+    <body name="torso" pos="0 0 0.52">
+      <joint name="root_x" type="slide" axis="1 0 0" damping="0"/>
+      <joint name="root_z" type="slide" axis="0 0 1" damping="0"/>
+      <joint name="root_pitch" type="hinge" axis="0 1 0" damping="0"/>
+      <!-- pelvis mass includes the free leg, lumped -->
+      <geom name="pelvis" type="sphere" size="0.07" mass="16"/>
+      <geom name="trunk" type="capsule" fromto="0 0 0.10 0 0 0.53" size="0.11" mass="40"/>
+      <geom name="head" type="sphere" pos="0 0 0.68" size="0.10" mass="6"/>
+      <site name="harness" pos="-0.08 0 0.43" size="0.03" rgba="0.8 0.5 0.1 1"/>
+      <site name="chest" pos="0.11 0 0.48" size="0.03" rgba="0.2 0.45 0.8 1"/>
+
+      <body name="thigh" pos="0 0 0">
+        <joint name="hip" type="hinge" axis="0 1 0" range="-60 60"/>
+        <geom name="thigh" type="capsule" fromto="0 0 0 0.45 0 0" size="0.07" mass="10"/>
+        <!-- touch zone under the distal thigh -->
+        <site name="thigh_pad" type="box" pos="0.30 0 -0.07" size="0.11 0.08 0.03" rgba="0 1 0 0.2"/>
+
+        <body name="shin" pos="0.45 0 0">
+          <!-- 0 = knee straight; positive = flexion (heel down/back under seat) -->
+          <joint name="knee" type="hinge" axis="0 1 0" range="0 130"/>
+          <geom name="shin" type="capsule" fromto="0 0 0 0.43 0 0" size="0.045" mass="4.5"/>
+          <site name="heel" pos="0.43 0 0" size="0.03" rgba="0.8 0.5 0.1 1"/>
+        </body>
+      </body>
+    </body>
+
+    <!-- Sliding ring on the heel strand -->
+    <body name="ring" pos="0.50 0 1.0">
+      <joint name="ring_x" type="slide" axis="1 0 0" damping="1"/>
+      <joint name="ring_z" type="slide" axis="0 0 1" damping="1"/>
+      <geom type="sphere" size="0.03" mass="0.1" contype="0" conaffinity="0" rgba="0.9 0.9 0.9 1"/>
+      <site name="ring" size="0.02"/>
+    </body>
+  </worldbody>
+
+  <tendon>
+    <!-- Main rope: harness -> pulley -> ring (eyelet) -> heel. Start length 3.751 m -->
+    <spatial name="rope" width="0.008" rgba="0.8 0.5 0.1 1">
+      <site site="harness"/>
+      <site site="pulley"/>
+      <site site="ring"/>
+      <site site="heel"/>
+    </spatial>
+    <!-- Blue sling: chest -> ring. Start length 0.39 m -->
+    <spatial name="sling" width="0.008" rgba="0.2 0.45 0.8 1">
+      <site site="chest"/>
+      <site site="ring"/>
+    </spatial>
+  </tendon>
+
+  <actuator>
+    <!-- Hamstring effort as knee flexion torque -->
+    <motor name="knee_flex" joint="knee" gear="150" ctrlrange="0 1"/>
+    <!-- Hip posture servo (trunk/hip muscles holding the seated angle) -->
+    <position name="hip_hold" joint="hip" kp="2000" kv="50" ctrlrange="-0.6 0.6" forcerange="-400 400"/>
+    <!-- Rope: tension-only stiff spring. force = 50000*(ctrl + 3.751 - L) - 300*Ldot, clamped to <= 0 -->
+    <general name="rope_len" tendon="rope" gaintype="fixed" biastype="affine"
+             gainprm="50000" biasprm="187555 -50000 -300"
+             ctrlrange="-0.5 0.5" forcerange="-20000 0"/>
+    <!-- Sling: tension-only stiff spring. force = 50000*(ctrl + 0.39 - L) - 300*Ldot, clamped to <= 0 -->
+    <general name="sling_len" tendon="sling" gaintype="fixed" biastype="affine"
+             gainprm="50000" biasprm="19500 -50000 -300"
+             ctrlrange="-0.3 0.6" forcerange="-20000 0"/>
+  </actuator>
+
+  <sensor>
+    <actuatorfrc name="rope_tension" actuator="rope_len"/>
+    <actuatorfrc name="sling_tension" actuator="sling_len"/>
+    <touch name="thigh_seat" site="thigh_pad"/>
+    <jointpos name="knee_angle" joint="knee"/>
+    <jointpos name="hip_angle" joint="hip"/>
+    <jointpos name="torso_z" joint="root_z"/>
+  </sensor>
+</mujoco>

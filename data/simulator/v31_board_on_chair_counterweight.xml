@@ -1,0 +1,149 @@
+<mujoco model="v31_board_on_chair_counterweight">
+  <!--
+    Board on a chair (no hinge). Planar side view, ~82 kg + 3 kg board + 7 kg chair.
+    A board rests across the chair's front edge and rocks on it. You sit on the board, working
+    thigh strapped to it (rigid), torso held at 90 deg to the board by a hip servo (its torque is
+    what your hip extensors would do). Rope: chest -> overhead pulley -> heel.
+    The chair is a free body on the floor with a 30 kg weight on the back of the seat (rubber grip on the edge).
+
+    QUASI-STATIC: knee and hip are POSITION servos. Read the torques.
+
+    Controls:
+      knee_target 0..2.4 rad  knee flexion (0 = straight)
+      hip_target  -0.6..0.6 rad torso angle relative to perpendicular-to-board (0)
+
+    Sensors (Watch -> sensordata index):
+      0 knee_torque (Nm)  1 hip_torque (Nm)  2 rope_tension (N)
+      3 board_pitch (rad, + = front rising)  4 chair_pitch (rad)  5 chair_x (m)
+      6 board_rear_on_seat (N, > 0 = board has landed flat: end stop)
+  -->
+  <compiler angle="degree" autolimits="true"/>
+  <option timestep="0.001" integrator="implicitfast" gravity="0 0 -9.81"/>
+  <default>
+    <geom friction="0.8 0.005 0.0001" rgba="0.75 0.75 0.72 1" contype="0" conaffinity="0"/>
+    <joint damping="5" armature="0.05"/>
+  </default>
+  <worldbody>
+    <light pos="0 -3 4" dir="0 1 -1"/>
+    <camera name="side" pos="0.3 -5.0 1.3" xyaxes="1 0 0 0 0 1"/>
+    <geom name="floor" type="plane" size="4 4 0.1" rgba="0.3 0.3 0.3 1" contype="2" conaffinity="2"/>
+    <site name="pulley" pos="0.700 0 2.450" size="0.04" rgba="0.9 0.9 0.9 1"/>
+
+    <body name="chair" pos="-0.200 0 0">
+      <joint name="chair_x" type="slide" axis="1 0 0" damping="2" armature="0"/>
+      <joint name="chair_z" type="slide" axis="0 0 1" damping="2" armature="0"/>
+      <joint name="chair_pitch" type="hinge" axis="0 -1 0" damping="2" armature="0"/>
+      <geom name="chair_seat" type="box" pos="0 0 0.430" size="0.20 0.20 0.02" mass="3.50" contype="1" conaffinity="1" rgba="0.45 0.35 0.25 1" friction="1.2 0.005 0.0001"/>
+      <geom name="chair_leg_front" type="capsule" fromto="0.18 0 0.410 0.18 0 0.02" size="0.02" mass="1.75" contype="2" conaffinity="2" rgba="0.45 0.35 0.25 1"/>
+      <geom name="chair_leg_back" type="capsule" fromto="-0.18 0 0.410 -0.18 0 0.02" size="0.02" mass="1.75" contype="2" conaffinity="2" rgba="0.45 0.35 0.25 1"/>
+      <geom name="counterweight" type="box" pos="-0.12 0 0.510" size="0.07 0.12 0.06" mass="30" rgba="0.3 0.3 0.35 1"/>
+      <site name="seat_rear" type="box" pos="-0.05 0 0.455" size="0.15 0.20 0.02" rgba="0 1 0 0.15"/>
+    </body>
+
+    <body name="board" pos="0.000 0 0.452" euler="0 31.70 0">
+      <joint name="board_x" type="slide" axis="1 0 0" damping="2" armature="0"/>
+      <joint name="board_z" type="slide" axis="0 0 1" damping="2" armature="0"/>
+      <joint name="board_pitch" type="hinge" axis="0 -1 0" damping="2" armature="0"/>
+      <geom name="board" type="box" pos="0 0 0.015" size="0.45 0.20 0.015" mass="3" contype="1" conaffinity="1" rgba="0.8 0.75 0.6 1" friction="1.2 0.005 0.0001"/>
+      <geom name="pelvis" type="sphere" pos="0.050 0 0.10" size="0.07" mass="9"/>
+      <geom name="thigh" type="capsule" fromto="0.050 0 0.09 0.470 0 0.09" size="0.06" mass="9"/>
+      <geom name="free_leg" type="capsule" fromto="0.050 0 0.15 0.900 0 0.15" size="0.05" mass="12" rgba="0.6 0.6 0.58 1"/>
+      <geom name="thigh_strap" type="box" pos="0.350 0 0.06" size="0.025 0.21 0.07" mass="0.05" rgba="0.2 0.45 0.8 0.7"/>
+      <body name="torso" pos="0.050 0 0.10">
+        <joint name="hip" type="hinge" axis="0 1 0" range="-60 60"/>
+        <geom name="torso" type="capsule" fromto="0 0 0.08 0 0 0.55" size="0.10" mass="42"/>
+        <geom name="head" type="sphere" pos="0 0 0.68" size="0.10" mass="6"/>
+        <site name="chest" pos="0.10 0 0.38" size="0.03" rgba="0.8 0.5 0.1 1"/>
+      </body>
+      <body name="shin" pos="0.470 0 0.09">
+        <joint name="knee" type="hinge" axis="0 1 0" range="-5 140"/>
+        <geom name="shin" type="capsule" fromto="0 0 0 0.43 0 0" size="0.045" mass="4"/>
+        <site name="heel" pos="0.43 0 0" size="0.03" rgba="0.8 0.5 0.1 1"/>
+      </body>
+    </body>
+    <body name="sag_rope_chest_0" pos="0.4439 0 1.1153">
+      <joint name="sag_rope_chest_0_x" type="slide" axis="1 0 0" damping="20" armature="0.02"/>
+      <joint name="sag_rope_chest_0_z" type="slide" axis="0 0 1" damping="20" armature="0.02"/>
+      <geom type="sphere" size="0.006" mass="0.02" contype="0" conaffinity="0" rgba="0 0 0 0"/>
+      <site name="sag_rope_chest_0" size="0.004" rgba="0 0 0 0"/>
+    </body>
+    <body name="sag_rope_chest_1" pos="0.5079 0 1.4489">
+      <joint name="sag_rope_chest_1_x" type="slide" axis="1 0 0" damping="20" armature="0.02"/>
+      <joint name="sag_rope_chest_1_z" type="slide" axis="0 0 1" damping="20" armature="0.02"/>
+      <geom type="sphere" size="0.006" mass="0.02" contype="0" conaffinity="0" rgba="0 0 0 0"/>
+      <site name="sag_rope_chest_1" size="0.004" rgba="0 0 0 0"/>
+    </body>
+    <body name="sag_rope_chest_2" pos="0.5719 0 1.7826">
+      <joint name="sag_rope_chest_2_x" type="slide" axis="1 0 0" damping="20" armature="0.02"/>
+      <joint name="sag_rope_chest_2_z" type="slide" axis="0 0 1" damping="20" armature="0.02"/>
+      <geom type="sphere" size="0.006" mass="0.02" contype="0" conaffinity="0" rgba="0 0 0 0"/>
+      <site name="sag_rope_chest_2" size="0.004" rgba="0 0 0 0"/>
+    </body>
+    <body name="sag_rope_chest_3" pos="0.6360 0 2.1163">
+      <joint name="sag_rope_chest_3_x" type="slide" axis="1 0 0" damping="20" armature="0.02"/>
+      <joint name="sag_rope_chest_3_z" type="slide" axis="0 0 1" damping="20" armature="0.02"/>
+      <geom type="sphere" size="0.006" mass="0.02" contype="0" conaffinity="0" rgba="0 0 0 0"/>
+      <site name="sag_rope_chest_3" size="0.004" rgba="0 0 0 0"/>
+    </body>
+    <body name="sag_rope_pulley_0" pos="0.7226 0 1.9711">
+      <joint name="sag_rope_pulley_0_x" type="slide" axis="1 0 0" damping="20" armature="0.02"/>
+      <joint name="sag_rope_pulley_0_z" type="slide" axis="0 0 1" damping="20" armature="0.02"/>
+      <geom type="sphere" size="0.006" mass="0.02" contype="0" conaffinity="0" rgba="0 0 0 0"/>
+      <site name="sag_rope_pulley_0" size="0.004" rgba="0 0 0 0"/>
+    </body>
+    <body name="sag_rope_pulley_1" pos="0.7452 0 1.4923">
+      <joint name="sag_rope_pulley_1_x" type="slide" axis="1 0 0" damping="20" armature="0.02"/>
+      <joint name="sag_rope_pulley_1_z" type="slide" axis="0 0 1" damping="20" armature="0.02"/>
+      <geom type="sphere" size="0.006" mass="0.02" contype="0" conaffinity="0" rgba="0 0 0 0"/>
+      <site name="sag_rope_pulley_1" size="0.004" rgba="0 0 0 0"/>
+    </body>
+    <body name="sag_rope_pulley_2" pos="0.7678 0 1.0134">
+      <joint name="sag_rope_pulley_2_x" type="slide" axis="1 0 0" damping="20" armature="0.02"/>
+      <joint name="sag_rope_pulley_2_z" type="slide" axis="0 0 1" damping="20" armature="0.02"/>
+      <geom type="sphere" size="0.006" mass="0.02" contype="0" conaffinity="0" rgba="0 0 0 0"/>
+      <site name="sag_rope_pulley_2" size="0.004" rgba="0 0 0 0"/>
+    </body>
+    <body name="sag_rope_pulley_3" pos="0.7904 0 0.5345">
+      <joint name="sag_rope_pulley_3_x" type="slide" axis="1 0 0" damping="20" armature="0.02"/>
+      <joint name="sag_rope_pulley_3_z" type="slide" axis="0 0 1" damping="20" armature="0.02"/>
+      <geom type="sphere" size="0.006" mass="0.02" contype="0" conaffinity="0" rgba="0 0 0 0"/>
+      <site name="sag_rope_pulley_3" size="0.004" rgba="0 0 0 0"/>
+    </body>
+  </worldbody>
+
+  <contact>
+    <exclude body1="board" body2="chair"/>
+    <pair geom1="board" geom2="chair_seat" friction="1.2 1.2 0.005 0.0001 0.0001"/>
+  </contact>
+
+  <tendon>
+    <spatial name="rope" width="0.008" rgba="0.8 0.5 0.1 1" solreflimit="0.002 1" solimplimit="0.99 0.999 0.001" range="0 4.0959">
+      <site site="chest"/>
+      <site site="sag_rope_chest_0"/>
+      <site site="sag_rope_chest_1"/>
+      <site site="sag_rope_chest_2"/>
+      <site site="sag_rope_chest_3"/>
+      <site site="pulley"/>
+      <site site="sag_rope_pulley_0"/>
+      <site site="sag_rope_pulley_1"/>
+      <site site="sag_rope_pulley_2"/>
+      <site site="sag_rope_pulley_3"/>
+      <site site="heel"/>
+    </spatial>
+  </tendon>
+
+  <actuator>
+    <position name="knee_target" joint="knee" kp="4000" kv="150" ctrlrange="0 2.4" forcerange="-1000 1000"/>
+    <position name="hip_target" joint="hip" kp="4000" kv="150" ctrlrange="-0.6 0.6" forcerange="-1000 1000"/>
+  </actuator>
+
+  <sensor>
+    <actuatorfrc name="knee_torque" actuator="knee_target"/>
+    <actuatorfrc name="hip_torque" actuator="hip_target"/>
+    <tendonlimitfrc name="rope_tension" tendon="rope"/>
+    <jointpos name="board_pitch" joint="board_pitch"/>
+    <jointpos name="chair_pitch" joint="chair_pitch"/>
+    <jointpos name="chair_x" joint="chair_x"/>
+    <touch name="board_rear_on_seat" site="seat_rear"/>
+  </sensor>
+</mujoco>

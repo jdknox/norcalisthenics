@@ -1,0 +1,109 @@
+<mujoco model="v15_bosun_curl_stiff_ropes">
+  <!--
+    Bosun's chair with a webbing bridle (as v11) plus a TETHER on the apex pulley.
+    Ceiling anchor at 4.0 m. Tether anchor 2 m below and 2 m behind it.
+    Rope: ceiling anchor -> apex pulley -> both heels. Tether: wall anchor -> apex.
+    All ropes and bridle legs are tension-only. Both thighs strapped to the board. ~85 kg.
+
+    Ropes and bridle straps: stiff, low-give (solreflimit 0.002, solimplimit 0.99-0.999,
+    1 ms timestep). Measured stretch under load is ~1 mm or less.
+
+    Controls:
+      knee_target     0..2.0 rad   knee angle (0 = straight, + = flexion), position servo
+      hip_target     -1.3..1.0 rad torso posture (0 = upright)
+      anchor_forward -0.50..4.50 m moves the tether anchor forward from its start
+                     (start x = -1.88, 2 m behind the ceiling anchor; +2.0 = under the ceiling
+                     anchor; +2.8 = above the heels; +4.5 = 2.5 m in front of the ceiling anchor)
+      anchor_up     -1.95..1.90 m moves the tether anchor up from its start (start z = 2.0 m;
+                     -1.95 = floor, +1.90 = just under the 4 m ceiling)
+                     Moving the anchor away from the apex also shortens the tether's free length.
+      tether_shorten -0.30..2.00 m winch at the tether anchor: + = shorter tether (pulls the
+                     apex back toward the anchor), - = slack. Free tether length at 0 = 2.004 m.
+
+    Sensors (Watch -> sensordata index):
+      0 knee_torque (Nm, both legs; per leg = /2)   1 hip_torque (Nm)   2 rope_tension (N)
+      3 tether_tension (N)   4 bridle_rear (N)   5 bridle_front (N)
+      6 seat_pitch (rad)     7 seat_z (m)
+  -->
+  <compiler angle="degree" autolimits="true"/>
+  <option timestep="0.001" integrator="implicitfast" gravity="0 0 -9.81"/>
+  <default>
+    <geom friction="0.8 0.005 0.0001" rgba="0.75 0.75 0.72 1" contype="1" conaffinity="1"/>
+    <joint damping="5" armature="0.05"/>
+  </default>
+  <worldbody>
+    <light pos="0 -3 3" dir="0 1 -1"/>
+    <camera name="side" pos="0.3 -5.0 1.5" xyaxes="1 0 0 0 0 1"/>
+    <geom name="floor" type="plane" size="3 3 0.1" rgba="0.3 0.3 0.3 1"/>
+    <body name="anchor_rig" pos="-1.8766 0 2.0">
+      <joint name="anchor_forward" type="slide" axis="1 0 0" range="-0.50 4.50" damping="200" armature="0"/>
+      <joint name="anchor_up" type="slide" axis="0 0 1" range="-1.95 1.90" damping="200" armature="0"/>
+      <geom type="box" size="0.05 0.05 0.05" mass="1" contype="0" conaffinity="0" rgba="0.9 0.3 0.3 1"/>
+      <site name="tether_anchor" size="0.04" rgba="0.9 0.3 0.3 1"/>
+      <body name="winch" pos="0 0 0.20">
+        <joint name="tether_shorten" type="slide" axis="0 0 1" range="-0.30 2.00" damping="50" armature="0"/>
+        <geom type="box" size="0.02 0.02 0.02" mass="0.2" contype="0" conaffinity="0" rgba="0.9 0.3 0.3 0.25"/>
+        <site name="winch" size="0.01" rgba="0.9 0.3 0.3 0.25"/>
+      </body>
+    </body>
+    <site name="pulley" pos="0.1234 0 4.0" size="0.04" rgba="0.9 0.9 0.9 1"/>
+    <body name="seat" pos="0 0 0.52">
+      <joint name="root_x" type="slide" axis="1 0 0" damping="1" armature="0"/>
+      <joint name="root_z" type="slide" axis="0 0 1" damping="1" armature="0"/>
+      <joint name="root_pitch" type="hinge" axis="0 1 0" damping="1" armature="0"/>
+      <geom name="board" type="box" pos="0.22 0 -0.09" size="0.24 0.20 0.02" mass="3" rgba="0.8 0.75 0.6 1"/>
+      <geom name="pelvis" type="sphere" size="0.07" mass="10"/>
+      <geom name="thighs" type="capsule" fromto="0 0 0 0.45 0 0" size="0.08" mass="20"/>
+      <site name="strap_rear" pos="0.05 0 0.08" size="0.02" rgba="0.2 0.45 0.8 1"/>
+      <site name="strap_front" pos="0.40 0 0.08" size="0.02" rgba="0.2 0.45 0.8 1"/>
+      
+      <body name="torso" pos="0 0 0">
+        <joint name="hip" type="hinge" axis="0 1 0" range="-75 60"/>
+        <geom name="trunk" type="capsule" fromto="0 0 0.10 0 0 0.53" size="0.11" mass="40"/>
+        <geom name="head" type="sphere" pos="0 0 0.68" size="0.10" mass="6"/>
+      </body>
+      <body name="shins" pos="0.45 0 0">
+        <joint name="knee" type="hinge" axis="0 1 0" range="-5 120"/>
+        <geom name="shins" type="capsule" fromto="0 0 0 0.43 0 0" size="0.06" mass="9"/>
+        <site name="heel" pos="0.43 0 0" size="0.035" rgba="0.8 0.5 0.1 1"/>
+      </body>
+    </body>
+    <body name="apex" pos="0.1234 0 2.120">
+      <joint name="apex_x" type="slide" axis="1 0 0" damping="2" armature="0"/>
+      <joint name="apex_z" type="slide" axis="0 0 1" damping="2" armature="0"/>
+      <geom type="sphere" size="0.03" mass="0.2" contype="0" conaffinity="0" rgba="0.9 0.9 0.9 1"/>
+      <site name="hang" size="0.035" rgba="0.9 0.9 0.9 1"/>
+    </body>
+  </worldbody>
+  <tendon>
+    <spatial name="rope" solreflimit="0.002 1" solimplimit="0.99 0.999 0.001" width="0.008" rgba="0.8 0.5 0.1 1" range="0 3.6499">
+      <site site="pulley"/><site site="hang"/><site site="heel"/>
+    </spatial>
+    <spatial name="leg_rear" solreflimit="0.002 1" solimplimit="0.99 0.999 0.001" width="0.01" rgba="0.15 0.15 0.15 1" range="0 1.5218">
+      <site site="strap_rear"/><site site="hang"/>
+    </spatial>
+    <spatial name="leg_front" solreflimit="0.002 1" solimplimit="0.99 0.999 0.001" width="0.01" rgba="0.15 0.15 0.15 1" range="0 1.5450">
+      <site site="strap_front"/><site site="hang"/>
+    </spatial>
+      <spatial name="tether" solreflimit="0.002 1" solimplimit="0.99 0.999 0.001" width="0.01" rgba="0.9 0.3 0.3 1" range="0 2.2036">
+      <site site="winch"/><site site="tether_anchor"/><site site="hang"/>
+    </spatial>
+  </tendon>
+  <actuator>
+    <position name="knee_target" joint="knee" kp="4000" kv="120" ctrlrange="0 2.0" forcerange="-900 900"/>
+    <position name="hip_target"  joint="hip"  kp="3000" kv="100" ctrlrange="-1.3 1.0" forcerange="-600 600"/>
+      <position name="anchor_forward" joint="anchor_forward" kp="50000" kv="2000" ctrlrange="-0.50 4.50" forcerange="-20000 20000"/>
+    <position name="anchor_up" joint="anchor_up" kp="50000" kv="2000" ctrlrange="-1.95 1.90" forcerange="-20000 20000"/>
+    <position name="tether_shorten" joint="tether_shorten" kp="20000" kv="800" ctrlrange="-0.30 2.00" forcerange="-5000 5000"/>
+  </actuator>
+  <sensor>
+    <actuatorfrc name="knee_torque" actuator="knee_target"/>
+    <actuatorfrc name="hip_torque" actuator="hip_target"/>
+    <tendonlimitfrc name="rope_tension" tendon="rope"/>
+    <tendonlimitfrc name="tether_tension" tendon="tether"/>
+    <tendonlimitfrc name="bridle_rear" tendon="leg_rear"/>
+    <tendonlimitfrc name="bridle_front" tendon="leg_front"/>
+    <jointpos name="seat_pitch" joint="root_pitch"/>
+    <jointpos name="seat_z" joint="root_z"/>
+  </sensor>
+</mujoco>

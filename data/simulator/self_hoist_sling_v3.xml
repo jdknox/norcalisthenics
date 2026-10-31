@@ -1,0 +1,128 @@
+<mujoco model="self_hoist_sling_v3">
+  <!--
+    Seated knee-driven self-hoist with sliding sling ring. Planar side view. ~76 kg body.
+    Units: m, kg, N, s. Angles in degrees in this file; slider values in rad / m.
+
+    QUASI-STATIC SETUP (no runaway, no exploding springs):
+      - Knee and hip are POSITION servos. You set the angle, the sim reports the torque
+        the muscles would need (knee_torque, hip_torque). Drag knee_target slowly.
+      - Rope and sling are inextensible ropes via tendon length limits (constraint solver),
+        not stiff springs. They go slack but never push.
+
+    Controls:
+      knee_target  0..2.2 rad  knee angle (0 = straight, + = flexion). Drives both ways.
+      hip_target  -1.3..1.57 rad hip posture relative to thigh (0 = torso upright, thigh flat).
+                  negative = torso leans forward over the thigh (more hip flexion),
+                  positive = opens the hip (torso back / thigh down).
+      sling_shorten -0.08..0.30 m winch: + = shorter sling (pulls ring toward chest), - = longer.
+                   The anchor stays fixed at the front of the chest; extra rope is taken up
+                   inside the trunk.
+
+    Geometry:
+      Pulley at x = 0.07, directly above the body COM (seated, knee straight).
+      Rope: harness (upper back) -> pulley -> ring -> heel. Fixed length 3.6965 m (edit range to change).
+      Sling: winch (inside trunk) -> chest exit point -> ring. Free length 0.5327 m at
+             sling_shorten = 0. Free length = 0.5327 - sling_shorten.
+
+    Sensors:
+      knee_torque (Nm, + = flexion = hamstrings), hip_torque (Nm)
+      rope_tension, sling_tension (N)
+      thigh_seat (N): contact under distal thigh. 0 = thigh lifted.
+      butt_seat (N): contact under pelvis. 0 = hoisted off seat.
+      torso_z (m): lift from start.
+  -->
+  <compiler angle="degree" autolimits="true"/>
+  <option timestep="0.002" integrator="implicitfast" gravity="0 0 -9.81"/>
+
+  <default>
+    <geom friction="0.8 0.005 0.0001" rgba="0.75 0.75 0.72 1"/>
+    <joint damping="5" armature="0.05"/>
+  </default>
+
+  <worldbody>
+    <light pos="0 -3 3" dir="0 1 -1"/>
+    <camera name="side" pos="0.3 -4.5 1.3" xyaxes="1 0 0 0 0 1"/>
+    <geom name="floor" type="plane" size="3 3 0.1" rgba="0.3 0.3 0.3 1"/>
+
+    <!-- Stool: top at z = 0.45, front edge at x = 0.40 -->
+    <geom name="seat" type="box" pos="0.15 0 0.225" size="0.25 0.25 0.225" rgba="0.4 0.4 0.42 1"/>
+
+    <!-- Overhead pulley above body COM -->
+    <site name="pulley" pos="0.07 0 2.5" size="0.04" rgba="0.9 0.9 0.9 1"/>
+
+    <!-- Torso = root body, origin at hip joint. Planar freedom only. -->
+    <body name="torso" pos="0 0 0.52">
+      <joint name="root_x" type="slide" axis="1 0 0" damping="1" armature="0"/>
+      <joint name="root_z" type="slide" axis="0 0 1" damping="1" armature="0"/>
+      <joint name="root_pitch" type="hinge" axis="0 1 0" damping="1" armature="0"/>
+      <!-- pelvis mass includes the free leg, lumped -->
+      <geom name="pelvis" type="sphere" size="0.07" mass="16"/>
+      <geom name="trunk" type="capsule" fromto="0 0 0.10 0 0 0.53" size="0.11" mass="40"/>
+      <geom name="head" type="sphere" pos="0 0 0.68" size="0.10" mass="6"/>
+      <site name="harness" pos="-0.08 0 0.43" size="0.03" rgba="0.8 0.5 0.1 1"/>
+      <site name="butt_pad" type="box" pos="0 0 -0.07" size="0.08 0.08 0.03" rgba="0 1 0 0.2"/>
+
+      <!-- Fixed sling exit point on the front of the chest -->
+      <site name="chest" pos="0.11 0 0.58" size="0.025" rgba="0.2 0.45 0.8 1"/>
+      <!-- Hidden winch inside the trunk, 0.10 m below the exit point. Moves down to take up rope. -->
+      <body name="winch" pos="0.11 0 0.48">
+        <joint name="sling_shorten" type="slide" axis="0 0 -1" range="-0.08 0.30" damping="20" armature="0"/>
+        <geom type="sphere" size="0.02" mass="0.2" contype="0" conaffinity="0" rgba="0 0 0 0"/>
+        <site name="winch" size="0.01" rgba="0 0 0 0"/>
+      </body>
+
+      <body name="thigh" pos="0 0 0">
+        <joint name="hip" type="hinge" axis="0 1 0" range="-75 90"/>
+        <geom name="thigh" type="capsule" fromto="0 0 0 0.45 0 0" size="0.07" mass="10"/>
+        <site name="thigh_pad" type="box" pos="0.30 0 -0.07" size="0.11 0.08 0.03" rgba="0 1 0 0.2"/>
+
+        <body name="shin" pos="0.45 0 0">
+          <!-- 0 = straight, + = flexion. Small hyperextension margin so straight isn't on the stop. -->
+          <joint name="knee" type="hinge" axis="0 1 0" range="-5 135"/>
+          <geom name="shin" type="capsule" fromto="0 0 0 0.43 0 0" size="0.045" mass="4.5"/>
+          <site name="heel" pos="0.43 0 0" size="0.03" rgba="0.8 0.5 0.1 1"/>
+        </body>
+      </body>
+    </body>
+
+    <!-- Sliding ring on the heel strand -->
+    <body name="ring" pos="0.6427 0 1.10">
+      <joint name="ring_x" type="slide" axis="1 0 0" damping="5" armature="0"/>
+      <joint name="ring_z" type="slide" axis="0 0 1" damping="5" armature="0"/>
+      <geom type="sphere" size="0.03" mass="0.3" contype="0" conaffinity="0" rgba="0.9 0.9 0.9 1"/>
+      <site name="ring" size="0.02"/>
+    </body>
+  </worldbody>
+
+  <tendon>
+    <!-- Main rope. Max length = rope length. -->
+    <spatial name="rope" width="0.008" rgba="0.8 0.5 0.1 1" range="0 3.6965">
+      <site site="harness"/>
+      <site site="pulley"/>
+      <site site="ring"/>
+      <site site="heel"/>
+    </spatial>
+    <!-- Blue sling. Total = 0.10 internal take-up + 0.5327 free. -->
+    <spatial name="sling" width="0.008" rgba="0.2 0.45 0.8 1" range="0 0.6327">
+      <site site="winch"/>
+      <site site="chest"/>
+      <site site="ring"/>
+    </spatial>
+  </tendon>
+
+  <actuator>
+    <position name="knee_target" joint="knee" kp="3000" kv="100" ctrlrange="0 2.2" forcerange="-600 600"/>
+    <position name="hip_target"  joint="hip"  kp="3000" kv="100" ctrlrange="-1.3 1.57" forcerange="-600 600"/>
+    <position name="sling_shorten" joint="sling_shorten" kp="20000" kv="500" ctrlrange="-0.08 0.30" forcerange="-5000 5000"/>
+  </actuator>
+
+  <sensor>
+    <actuatorfrc name="knee_torque" actuator="knee_target"/>
+    <actuatorfrc name="hip_torque" actuator="hip_target"/>
+    <tendonlimitfrc name="rope_tension" tendon="rope"/>
+    <tendonlimitfrc name="sling_tension" tendon="sling"/>
+    <touch name="thigh_seat" site="thigh_pad"/>
+    <touch name="butt_seat" site="butt_pad"/>
+    <jointpos name="torso_z" joint="root_z"/>
+  </sensor>
+</mujoco>

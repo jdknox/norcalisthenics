@@ -1,0 +1,112 @@
+<mujoco model="suspended_seat_leg_curl_v4">
+  <!--
+    Suspended-seat leg curl ("bosun's curl"). Planar side view. ~81 kg body + 6 kg seat frame.
+
+    The working thigh is strapped to a hanging seat. One rope runs from the seat's hang point
+    (top of a chair-back frame) over a single pulley to the working heel. Flexing the knee
+    drops the heel, which hoists the seat (and you) upward. The free leg's foot can push on
+    the floor as a continuous assist.
+
+    QUASI-STATIC: knee and hip are POSITION servos. Set the angle, read the torque.
+    Rope is inextensible (tendon length limit).
+
+    Controls:
+      knee_target  0..2.0 rad  working knee angle (0 = straight, + = flexion)
+      hip_target  -1.3..1.0 rad torso posture relative to the seat/thigh (0 = upright)
+      assist_push  0..1        free foot pushing on floor, x 800 N
+
+    Sensors (Watch -> sensordata index):
+      0 knee_torque (Nm, + = flexion = hamstrings)
+      1 hip_torque  (Nm, posture effort; ideally small)
+      2 rope_tension (N)
+      3 assist_force (N, free foot push)
+      4 seat_pitch (rad, + = tipped forward / heel side down)
+      5 seat_z (m, lift from start)
+
+    Edit to explore:
+      pulley pos: x = -0.60, behind the guide, so the rope pulls the rig back against it.
+                  (x = 0.095 is directly above the COM; the rig then pitches back unguided.)
+      hang site pos on the seat frame (pitch behaviour depends on it)
+      rope range (= taut start length 3.9045 m)
+  -->
+  <compiler angle="degree" autolimits="true"/>
+  <option timestep="0.002" integrator="implicitfast" gravity="0 0 -9.81"/>
+
+  <default>
+    <geom friction="0.8 0.005 0.0001" rgba="0.75 0.75 0.72 1" contype="1" conaffinity="1"/>
+    <joint damping="5" armature="0.05"/>
+  </default>
+
+  <worldbody>
+    <light pos="0 -3 3" dir="0 1 -1"/>
+    <camera name="side" pos="0.3 -4.5 1.2" xyaxes="1 0 0 0 0 1"/>
+    <geom name="floor" type="plane" size="3 3 0.1" rgba="0.3 0.3 0.3 1" contype="3" conaffinity="3"/>
+
+    <!-- Smooth vertical guide behind the seat back (post / door edge / smooth board).
+         It can only push. Without it the hanging rig pitches back ~80-90 deg. -->
+    <geom name="guide" type="box" pos="-0.22 0 1.0" size="0.05 0.05 1.0" friction="0.05 0.005 0.0001" rgba="0.35 0.38 0.45 1" contype="1" conaffinity="1"/>
+    <site name="pulley" pos="-0.60 0 2.5" size="0.04" rgba="0.9 0.9 0.9 1"/>
+
+    <!-- Seat = root body, origin at the hip. Carries pelvis and strapped working thigh. -->
+    <body name="seat" pos="0 0 0.52">
+      <joint name="root_x" type="slide" axis="1 0 0" damping="1" armature="0"/>
+      <joint name="root_z" type="slide" axis="0 0 1" damping="1" armature="0"/>
+      <joint name="root_pitch" type="hinge" axis="0 1 0" damping="1" armature="0"/>
+
+      <!-- seat plate, chair-back frame, hang point -->
+      <geom name="seat_plate" type="box" pos="0.15 0 -0.09" size="0.25 0.20 0.02" mass="3" rgba="0.4 0.4 0.42 1"/>
+      <geom name="seat_back" type="capsule" fromto="-0.12 0 -0.09 -0.15 0 0.60" size="0.015" mass="2" friction="0.05 0.005 0.0001" rgba="0.4 0.4 0.42 1"/>
+      <geom name="hang_bar" type="capsule" fromto="-0.15 0 0.60 -0.15 0 0.62" size="0.02" mass="1" contype="0" conaffinity="0" rgba="0.4 0.4 0.42 1"/>
+      <site name="hang" pos="-0.15 0 0.62" size="0.03" rgba="0.8 0.5 0.1 1"/>
+
+      <geom name="pelvis" type="sphere" size="0.07" mass="10"/>
+      <!-- working thigh, strapped to the seat (rigid with it) -->
+      <geom name="thigh" type="capsule" fromto="0 0 0 0.45 0 0" size="0.07" mass="10"/>
+      <geom name="thigh_strap" type="box" pos="0.36 0 -0.01" size="0.03 0.09 0.09" mass="0.1" contype="0" conaffinity="0" rgba="0.2 0.45 0.8 0.6"/>
+
+      <!-- torso, hinged at the hip; posture servo -->
+      <body name="torso" pos="0 0 0">
+        <joint name="hip" type="hinge" axis="0 1 0" range="-75 60"/>
+        <geom name="trunk" type="capsule" fromto="0 0 0.10 0 0 0.53" size="0.11" mass="40"/>
+        <geom name="head" type="sphere" pos="0 0 0.68" size="0.10" mass="6"/>
+      </body>
+
+      <!-- working shin -->
+      <body name="shin" pos="0.45 0 0">
+        <joint name="knee" type="hinge" axis="0 1 0" range="-5 120"/>
+        <geom name="shin" type="capsule" fromto="0 0 0 0.43 0 0" size="0.045" mass="4.5"/>
+        <site name="heel" pos="0.43 0 0" size="0.03" rgba="0.8 0.5 0.1 1"/>
+      </body>
+
+      <!-- free leg: telescoping strut from the knee area to the floor (thigh+shin lumped) -->
+      <body name="free_leg" pos="0.40 0 0">
+        <joint name="free_push" type="slide" axis="0 0 -1" range="-0.05 0.45" damping="20" armature="0"/>
+        <geom name="free_shin" type="capsule" fromto="0 0 0 0 0 -0.47" size="0.045" mass="6" contype="0" conaffinity="0" rgba="0.6 0.6 0.58 1"/>
+        <geom name="free_foot" type="sphere" pos="0 0 -0.47" size="0.05" mass="0.5" contype="2" conaffinity="2" rgba="0.6 0.6 0.58 1"/>
+      </body>
+    </body>
+  </worldbody>
+
+  <tendon>
+    <spatial name="rope" width="0.008" rgba="0.8 0.5 0.1 1" range="0 3.9045">
+      <site site="hang"/>
+      <site site="pulley"/>
+      <site site="heel"/>
+    </spatial>
+  </tendon>
+
+  <actuator>
+    <position name="knee_target" joint="knee" kp="3000" kv="100" ctrlrange="0 2.0" forcerange="-600 600"/>
+    <position name="hip_target"  joint="hip"  kp="3000" kv="100" ctrlrange="-1.3 1.0" forcerange="-600 600"/>
+    <motor name="assist_push" joint="free_push" gear="800" ctrlrange="0 1"/>
+  </actuator>
+
+  <sensor>
+    <actuatorfrc name="knee_torque" actuator="knee_target"/>
+    <actuatorfrc name="hip_torque" actuator="hip_target"/>
+    <tendonlimitfrc name="rope_tension" tendon="rope"/>
+    <actuatorfrc name="assist_force" actuator="assist_push"/>
+    <jointpos name="seat_pitch" joint="root_pitch"/>
+    <jointpos name="seat_z" joint="root_z"/>
+  </sensor>
+</mujoco>

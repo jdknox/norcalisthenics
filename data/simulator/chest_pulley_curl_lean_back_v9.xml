@@ -1,0 +1,83 @@
+<mujoco model="chest_pulley_curl_lean_back_v9">
+  <!--
+    Chest-pulley curl, leaning back, no seat. Planar side view. ~76 kg body.
+    Starts hanging from the rope with the torso leaned back 45 deg and the thigh horizontal
+    (hip flexed 135 deg relative to the torso). Nothing supports you but the rope.
+
+    Rope: ceiling anchor (pulley site) -> small pulley on the chest harness (harness site,
+    top of sternum) -> heel. The hip has no servo: only joint damping, plus an optional
+    hip_effort motor you can use to "hold" it. Watch the thigh close toward the chest.
+
+    The thigh can touch the trunk (explicit contact pair). A pad block on top of the thigh
+    sets where it stops: edit chest_pad size (thickness = 2nd value of the box half-size z).
+
+    Controls:
+      knee_target  0..2.6 rad  knee angle (0 = straight, + = flexion), position servo
+      hip_effort  -1..1        hip torque x 400 Nm (+ = extension, holds thigh away from chest)
+
+    Sensors (Watch -> sensordata index):
+      0 knee_torque (Nm, + = flexion)
+      1 hip_angle (rad, from the start pose; - = thigh closing toward chest)
+      2 chest_contact (N, thigh/pad pushing on the trunk)
+      3 rope_tension (N)
+      4 torso_pitch (rad)
+      5 lift_z (m)
+  -->
+  <compiler angle="degree" autolimits="true"/>
+  <option timestep="0.002" integrator="implicitfast" gravity="0 0 -9.81"/>
+  <default>
+    <geom friction="0.8 0.005 0.0001" rgba="0.75 0.75 0.72 1" contype="1" conaffinity="1"/>
+    <joint damping="5" armature="0.05"/>
+  </default>
+  <worldbody>
+    <light pos="0 -3 3" dir="0 1 -1"/>
+    <camera name="side" pos="0.3 -4.0 1.0" xyaxes="1 0 0 0 0 1"/>
+    <geom name="floor" type="plane" size="3 3 0.1" rgba="0.3 0.3 0.3 1"/>
+    <site name="pulley" pos="-0.4101 0 2.6" size="0.04" rgba="0.8 0.5 0.1 1"/>
+    <body name="torso" pos="0 0 0.90" euler="0 -45 0">
+      <joint name="root_x" type="slide" axis="1 0 0" damping="1" armature="0"/>
+      <joint name="root_z" type="slide" axis="0 0 1" damping="1" armature="0"/>
+      <joint name="root_pitch" type="hinge" axis="0 1 0" damping="1" armature="0"/>
+      <geom name="butt" type="sphere" size="0.10" mass="16"/>
+      <geom name="trunk" type="capsule" fromto="0 0 0.12 0 0 0.55" size="0.11" mass="40"/>
+      <geom name="head" type="sphere" pos="0 0 0.70" size="0.10" mass="6"/>
+      <site name="harness" pos="0.12 0 0.70" size="0.03" rgba="0.9 0.9 0.9 1"/>
+      <!-- thigh starts horizontal in the world (torso is tipped back 45 deg) -->
+      <body name="thigh" pos="0 0 0" euler="0 45 0">
+        <joint name="hip" type="hinge" axis="0 1 0" range="-100 30" damping="10"/>
+        <geom name="thigh" type="capsule" fromto="0 0 0 0.45 0 0" size="0.07" mass="10"/>
+        <!-- pad block on top of the thigh: the hip stops where this meets the trunk -->
+        <geom name="chest_pad" type="box" pos="0.28 0 0.10" size="0.12 0.08 0.03" mass="0.3" rgba="0.2 0.45 0.8 1"/>
+        <site name="thigh_top" type="box" pos="0.24 0 0.09" size="0.24 0.10 0.08" rgba="0 1 0 0.15"/>
+        <body name="shin" pos="0.45 0 0">
+          <joint name="knee" type="hinge" axis="0 1 0" range="-5 150"/>
+          <geom name="shin" type="capsule" fromto="0 0 0 0.43 0 0" size="0.045" mass="4.5"/>
+          <site name="heel" pos="0.43 0 0" size="0.03" rgba="0.8 0.5 0.1 1"/>
+        </body>
+      </body>
+    </body>
+  </worldbody>
+  <contact>
+    <pair geom1="chest_pad" geom2="trunk"/>
+    <pair geom1="chest_pad" geom2="head"/>
+  </contact>
+  <tendon>
+    <spatial name="rope" width="0.008" rgba="0.8 0.5 0.1 1" range="0 2.5346">
+      <site site="pulley"/>
+      <site site="harness"/>
+      <site site="heel"/>
+    </spatial>
+  </tendon>
+  <actuator>
+    <position name="knee_target" joint="knee" kp="3000" kv="100" ctrlrange="0 2.6" forcerange="-800 800"/>
+    <motor name="hip_effort" joint="hip" gear="400" ctrlrange="-1 1"/>
+  </actuator>
+  <sensor>
+    <actuatorfrc name="knee_torque" actuator="knee_target"/>
+    <jointpos name="hip_angle" joint="hip"/>
+    <touch name="chest_contact" site="thigh_top"/>
+    <tendonlimitfrc name="rope_tension" tendon="rope"/>
+    <jointpos name="torso_pitch" joint="root_pitch"/>
+    <jointpos name="lift_z" joint="root_z"/>
+  </sensor>
+</mujoco>

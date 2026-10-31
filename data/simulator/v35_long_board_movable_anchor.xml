@@ -1,0 +1,147 @@
+<mujoco model="v35_long_board_movable_anchor">
+  <!--
+    Long-board lever with thigh strap (as v34), plus a movable ceiling anchor.
+    Lie face up; board head end on the floor 2 m past the hip (pivot); working thigh 20 deg from
+    vertical toward the feet, held by a cuff strapped to the board; heel strap to the anchor.
+    The anchor and winch are rigid: rope loads can't move them. Drag their sliders slowly.
+
+    Controls:
+      knee_target     0..2.4 rad  knee flexion (0 = straight)
+      hip_target      leave at 0 (the thigh strap holds the hip)
+      assist_lift     0..1  free foot / hands helping lift the hips, x 600 N
+      anchor_forward  -3..+3 m  anchor fore-aft from its start (above the heel); + = toward the feet
+      anchor_down      0..2 m   anchor lowered from 4.0 m
+      strap_shorten  -0.3..3 m  heel strap winch; + = shorter. Moving the anchor closer to you
+                                leaves the strap slack: take it up with this.
+
+    Sensor: knee_torque only (Nm, + = flexion). cutoff = 400 clamps it at +/-400 Nm, which the
+    simulate viewer's sensor plot uses as its full scale.
+  -->
+  <compiler angle="degree" autolimits="true"/>
+  <option timestep="0.001" integrator="implicitfast" gravity="0 0 -9.81"/>
+  <default>
+    <geom friction="0.8 0.005 0.0001" rgba="0.75 0.75 0.72 1" contype="0" conaffinity="0"/>
+    <joint damping="5" armature="0.05"/>
+  </default>
+  <worldbody>
+    <light pos="0 -3 4" dir="0 1 -1"/>
+    <camera name="side" pos="-0.6 -6.0 1.3" xyaxes="1 0 0 0 0 1"/>
+    <geom name="floor" type="plane" size="5 5 0.1" rgba="0.35 0.3 0.3 1" contype="1" conaffinity="1" friction="0.6 0.005 0.0001"/>
+    <body name="anchor_rig" pos="0.3010 0 4.0">
+      <joint name="anchor_forward" type="slide" axis="1 0 0" range="-3 3" damping="0" armature="1000"/>
+      <joint name="anchor_down" type="slide" axis="0 0 -1" range="0 2" damping="0" armature="1000"/>
+      <geom type="box" size="0.05 0.05 0.05" mass="1" contype="0" conaffinity="0" rgba="0.9 0.3 0.3 1"/>
+      <site name="anchor" size="0.04" rgba="0.9 0.9 0.9 1"/>
+      <body name="strap_winch" pos="0 0 0.10">
+        <joint name="strap_shorten" type="slide" axis="0 0 1" range="-0.30 3.00" damping="0" armature="1000"/>
+        <geom type="box" size="0.02 0.02 0.02" mass="0.2" contype="0" conaffinity="0" rgba="0.8 0.5 0.1 0.25"/>
+        <site name="strap_winch" size="0.01" rgba="0.8 0.5 0.1 0.25"/>
+      </body>
+    </body>
+    <body name="board" pos="0 0 0.001">
+      <joint name="board_x" type="slide" axis="1 0 0" damping="2" armature="0"/>
+      <joint name="board_z" type="slide" axis="0 0 1" damping="2" armature="0"/>
+      <joint name="board_tilt" type="hinge" axis="0 -1 0" damping="2" armature="0"/>
+      <geom name="board" type="box" pos="-0.750 0 0.015" size="1.250 0.20 0.015" mass="6.0" contype="1" conaffinity="1" friction="0.6 0.005 0.0001" rgba="0.8 0.75 0.6 1"/>
+      <geom name="pelvis" type="sphere" pos="0 0 0.13" size="0.10" mass="9"/>
+      <geom name="torso" type="capsule" fromto="-0.10 0 0.14 -0.52 0 0.14" size="0.11" mass="36"/>
+      <geom name="head" type="sphere" pos="-0.66 0 0.14" size="0.10" mass="5"/>
+      <geom name="arms" type="capsule" fromto="-0.48 0 0.10 -0.05 0 0.10" size="0.04" mass="7"/>
+      <geom name="free_leg" type="capsule" fromto="0.10 0 0.10 0.88 0 0.10" size="0.06" mass="12" rgba="0.6 0.6 0.58 1"/>
+      <site name="hips" pos="0 0 0.23" size="0.02"/>
+      <site name="board_anchor" pos="0.550 0 0.03" size="0.025" rgba="0.2 0.45 0.8 1"/>
+      <body name="thigh" pos="0 0 0.13" euler="0 -70.000 0">
+        <joint name="hip" type="hinge" axis="0 -1 0" range="-100 60"/>
+        <geom name="thigh" type="capsule" fromto="0.08 0 0 0.45 0 0" size="0.07" mass="9"/>
+        <geom name="cuff" type="cylinder" pos="0.360 0 0" euler="0 90 0" size="0.085 0.04" mass="0.1" rgba="0.2 0.45 0.8 0.8"/>
+        <site name="cuff" pos="0.360 0 0" size="0.02" rgba="0.2 0.45 0.8 1"/>
+        <body name="shin" pos="0.45 0 0" euler="0 0.000 0">
+          <joint name="knee" type="hinge" axis="0 1 0" ref="0.0" range="-5 140"/>
+          <geom name="shin" type="capsule" fromto="0.04 0 0 0.43 0 0" size="0.045" mass="4"/>
+          <site name="heel" pos="0.43 0 0" size="0.03" rgba="0.8 0.5 0.1 1"/>
+        </body>
+      </body>
+    </body>
+    <body name="sag_strap_anchor_0" pos="0.3010 0 3.3916">
+      <joint name="sag_strap_anchor_0_x" type="slide" axis="1 0 0" damping="20" armature="0.02"/>
+      <joint name="sag_strap_anchor_0_z" type="slide" axis="0 0 1" damping="20" armature="0.02"/>
+      <geom type="sphere" size="0.006" mass="0.02" contype="0" conaffinity="0" rgba="0 0 0 0"/>
+      <site name="sag_strap_anchor_0" size="0.004" rgba="0 0 0 0"/>
+    </body>
+    <body name="sag_strap_anchor_1" pos="0.3010 0 2.7832">
+      <joint name="sag_strap_anchor_1_x" type="slide" axis="1 0 0" damping="20" armature="0.02"/>
+      <joint name="sag_strap_anchor_1_z" type="slide" axis="0 0 1" damping="20" armature="0.02"/>
+      <geom type="sphere" size="0.006" mass="0.02" contype="0" conaffinity="0" rgba="0 0 0 0"/>
+      <site name="sag_strap_anchor_1" size="0.004" rgba="0 0 0 0"/>
+    </body>
+    <body name="sag_strap_anchor_2" pos="0.3010 0 2.1748">
+      <joint name="sag_strap_anchor_2_x" type="slide" axis="1 0 0" damping="20" armature="0.02"/>
+      <joint name="sag_strap_anchor_2_z" type="slide" axis="0 0 1" damping="20" armature="0.02"/>
+      <geom type="sphere" size="0.006" mass="0.02" contype="0" conaffinity="0" rgba="0 0 0 0"/>
+      <site name="sag_strap_anchor_2" size="0.004" rgba="0 0 0 0"/>
+    </body>
+    <body name="sag_strap_anchor_3" pos="0.3010 0 1.5663">
+      <joint name="sag_strap_anchor_3_x" type="slide" axis="1 0 0" damping="20" armature="0.02"/>
+      <joint name="sag_strap_anchor_3_z" type="slide" axis="0 0 1" damping="20" armature="0.02"/>
+      <geom type="sphere" size="0.006" mass="0.02" contype="0" conaffinity="0" rgba="0 0 0 0"/>
+      <site name="sag_strap_anchor_3" size="0.004" rgba="0 0 0 0"/>
+    </body>
+    <body name="sag_thigh_strap_board_anchor_0" pos="0.4646 0 0.1187">
+      <joint name="sag_thigh_strap_board_anchor_0_x" type="slide" axis="1 0 0" damping="20" armature="0.02"/>
+      <joint name="sag_thigh_strap_board_anchor_0_z" type="slide" axis="0 0 1" damping="20" armature="0.02"/>
+      <geom type="sphere" size="0.006" mass="0.02" contype="0" conaffinity="0" rgba="0 0 0 0"/>
+      <site name="sag_thigh_strap_board_anchor_0" size="0.004" rgba="0 0 0 0"/>
+    </body>
+    <body name="sag_thigh_strap_board_anchor_1" pos="0.3793 0 0.2063">
+      <joint name="sag_thigh_strap_board_anchor_1_x" type="slide" axis="1 0 0" damping="20" armature="0.02"/>
+      <joint name="sag_thigh_strap_board_anchor_1_z" type="slide" axis="0 0 1" damping="20" armature="0.02"/>
+      <geom type="sphere" size="0.006" mass="0.02" contype="0" conaffinity="0" rgba="0 0 0 0"/>
+      <site name="sag_thigh_strap_board_anchor_1" size="0.004" rgba="0 0 0 0"/>
+    </body>
+    <body name="sag_thigh_strap_board_anchor_2" pos="0.2939 0 0.2940">
+      <joint name="sag_thigh_strap_board_anchor_2_x" type="slide" axis="1 0 0" damping="20" armature="0.02"/>
+      <joint name="sag_thigh_strap_board_anchor_2_z" type="slide" axis="0 0 1" damping="20" armature="0.02"/>
+      <geom type="sphere" size="0.006" mass="0.02" contype="0" conaffinity="0" rgba="0 0 0 0"/>
+      <site name="sag_thigh_strap_board_anchor_2" size="0.004" rgba="0 0 0 0"/>
+    </body>
+    <body name="sag_thigh_strap_board_anchor_3" pos="0.2085 0 0.3816">
+      <joint name="sag_thigh_strap_board_anchor_3_x" type="slide" axis="1 0 0" damping="20" armature="0.02"/>
+      <joint name="sag_thigh_strap_board_anchor_3_z" type="slide" axis="0 0 1" damping="20" armature="0.02"/>
+      <geom type="sphere" size="0.006" mass="0.02" contype="0" conaffinity="0" rgba="0 0 0 0"/>
+      <site name="sag_thigh_strap_board_anchor_3" size="0.004" rgba="0 0 0 0"/>
+    </body>
+  </worldbody>
+  <tendon>
+    <spatial name="strap" width="0.008" rgba="0.8 0.5 0.1 1" solreflimit="0.002 1" solimplimit="0.99 0.999 0.001" range="0 3.1421">
+      <site site="strap_winch"/>
+      <site site="anchor"/>
+      <site site="sag_strap_anchor_0"/>
+      <site site="sag_strap_anchor_1"/>
+      <site site="sag_strap_anchor_2"/>
+      <site site="sag_strap_anchor_3"/>
+      <site site="heel"/>
+    </spatial>
+    <spatial name="thigh_strap" width="0.012" rgba="0.2 0.45 0.8 1" solreflimit="0.002 1" solimplimit="0.99 0.999 0.001" range="0 0.6118">
+      <site site="board_anchor"/>
+      <site site="sag_thigh_strap_board_anchor_0"/>
+      <site site="sag_thigh_strap_board_anchor_1"/>
+      <site site="sag_thigh_strap_board_anchor_2"/>
+      <site site="sag_thigh_strap_board_anchor_3"/>
+      <site site="cuff"/>
+    </spatial>
+  </tendon>
+  <actuator>
+    <position name="knee_target" joint="knee" kp="4000" kv="150" ctrlrange="0 2.4" forcerange="-1000 1000"/>
+    <position name="hip_target" joint="hip" kp="20" kv="10" ctrlrange="-1 1" forcerange="-300 300"/>
+    <motor name="assist_lift" site="hips" gear="0 0 600 0 0 0" ctrlrange="0 1"/>
+    <position name="anchor_forward" joint="anchor_forward" kp="10000000" kv="200000" ctrlrange="-3 3"/>
+    <position name="anchor_down" joint="anchor_down" kp="10000000" kv="200000" ctrlrange="0 2"/>
+    <position name="strap_shorten" joint="strap_shorten" kp="10000000" kv="200000" ctrlrange="-0.30 3.00"/>
+  </actuator>
+  <keyframe>
+    <key name="start" ctrl="0.0000 0 0 0 0 0"/>
+  </keyframe>
+  <sensor>
+    <actuatorfrc name="knee_torque" actuator="knee_target" cutoff="400"/>
+  </sensor>
+</mujoco>
