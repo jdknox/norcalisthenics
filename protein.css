@@ -362,6 +362,9 @@ body.admin-mode #tab-top{scroll-margin-top:calc(58px + env(safe-area-inset-top,0
   font-size:smaller;
 }
 .addform input{width:120px;max-width:100%}
+.barcode-entry{display:flex;gap:6px;min-width:0;max-width:100%}
+.addform .barcode-entry input{flex:1 1 120px;min-width:0}
+.barcode-entry .smallbtn{flex:none;width:36px;padding:0;font-size:20px}
 .addform textarea{width:120px;max-width:100%;font:inherit;color:var(--text);background:var(--panel2);border:1px solid var(--line2);border-radius:4px;padding:6px 8px;outline:none;font-family:var(--mono);resize:none;overflow:hidden;overflow-wrap:anywhere}
 .addform textarea:focus{border-color:var(--green)}
 .macromode{display:inline-flex;align-items:center;border:1px solid var(--line2);border-radius:4px;overflow:hidden;background:var(--panel2)}
@@ -534,7 +537,7 @@ body.admin-mode #tab-top{scroll-margin-top:calc(58px + env(safe-area-inset-top,0
   .scale-entry{font-size:calc(13px*var(--mobile-text-scale))}
   .grouptoggle{font-size:calc(14.5px*var(--mobile-text-scale))}
   .fetchstatus{font-size:calc(12.5px*var(--mobile-text-scale))}
-  .addform input[data-adddraft="barcode"],
+  .addform .barcode-entry,
   .addform textarea[data-adddraft="name"],
   .addform textarea[data-adddraft="brand"],
   .addform textarea[data-editdraft="name"],

@@ -14,6 +14,11 @@ let ingredient_total = {textContent:''};
 let total_preview = {innerHTML:''};
 let recipe_editor = {};
 let ingredient_input = {value:''};
+let barcode_input = {
+  inputMode:'none',
+  blur:function() { barcode_input.blurred = true; },
+  focus:function() { barcode_input.focused = true; }
+};
 let scroll_targets = [];
 let context = vm.createContext({
   console:console,
@@ -33,6 +38,7 @@ let context = vm.createContext({
     querySelector:function(selector)
     {
       if (selector == '.recipe-editor') return recipe_editor;
+      if (selector == '[data-adddraft="barcode"]') return barcode_input;
       if (selector == '[data-recipeindex="1"][data-recipefield="grams"]') return ingredient_input;
       return {classList:{toggle:function() {}}};
     },
@@ -474,7 +480,27 @@ async function run()
   assert.equal(zeroed_entry.kcal, zeroed_totals.kcal);
   assert.equal(evaluate('g_log[g_view_date].length'), log_count_before_zeroed_meal + 1);
   assert.equal(evaluate('JSON.stringify(g_scoop_items)'), pantry_before_zeroed_meal, 'logging with a zeroed ingredient leaves the saved recipe unchanged');
-  console.log('Recipe workflow, nested ingredients, cycle prevention, meal logging, archive/unarchive, frozen history, shared reload, and TSV round trip passed.');
+  click('scoop-add-item-open');
+  assert.equal(evaluate('g_scoop_add_draft.barcode_keyboard'), false);
+  assert.match(evaluate('renderScoopSection()'), /inputmode="none" data-adddraft="barcode"/);
+  let before_keyboard = evaluate('render_count');
+  click('addex-barcode-keyboard');
+  assert.equal(barcode_input.inputMode, 'numeric');
+  assert.equal(barcode_input.blurred, true, 'keyboard entry refocuses even an already focused barcode field');
+  assert.equal(barcode_input.focused, true);
+  assert.equal(evaluate('render_count'), before_keyboard, 'keyboard entry does not rebuild the form');
+  assert.match(evaluate('renderScoopSection()'), /inputmode="numeric" data-adddraft="barcode"/, 'manual entry mode survives a render');
+  input({adddraft:'barcode'}, '0012345678905');
+  input({adddraft:'name'}, 'Barcode test');
+  click('scoop-add-item-save');
+  await flushSync();
+  let barcode_item = JSON.parse(shared).scoop_items.at(-1);
+  assert.equal(barcode_item.barcode, '0012345678905', 'barcode entry keeps leading zeros');
+  assert.equal(barcode_item.barcode_keyboard, undefined, 'keyboard mode is never saved with an item');
+  click('scoop-add-item-open');
+  assert.match(evaluate('renderScoopSection()'), /inputmode="none" data-adddraft="barcode"/, 'each new form starts paste-first');
+  click('scoop-add-item-cancel');
+  console.log('Recipe and pantry workflows, barcode keyboard mode, nested ingredients, cycle prevention, meal logging, archive/unarchive, frozen history, shared reload, and TSV round trip passed.');
 }
 
 run().catch(function(error) { console.error(error); process.exitCode = 1; });

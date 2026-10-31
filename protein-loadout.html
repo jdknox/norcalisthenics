@@ -7402,7 +7402,10 @@ function renderScoopSection()
     let kcal_unit = mode == '100g' ? '/100g' : 'kcal';
 
     h += `<div class="addform">
-      <input type="text" data-adddraft="barcode" placeholder="barcode" value="${esc(d.barcode)}">
+      <span class="barcode-entry">
+        <input type="text" inputmode="${d.barcode_keyboard ? 'numeric' : 'none'}" data-adddraft="barcode" placeholder="barcode" aria-label="Barcode" value="${esc(d.barcode)}">
+        <button type="button" class="smallbtn" data-a="addex-barcode-keyboard" title="Type barcode" aria-label="Type barcode">&#9000;&#65038;</button>
+      </span>
       <button class="smallbtn" data-a="addex-lookup-off">look up on O.F.F.</button>
       <textarea rows="1" data-adddraft="name" placeholder="name">${esc(d.name)}</textarea>
       <textarea rows="1" data-adddraft="brand" placeholder="brand">${esc(d.brand)}</textarea>
@@ -8185,9 +8188,17 @@ document.addEventListener('click', function(ev)
       return;
 
     case 'scoop-add-item-open':
-      g_scoop_add_draft = { barcode:'', name:'', brand:'', tags:'', scoop_g:'', macro_mode:'100g', macro_protein:'', macro_kcal:'' };
+      g_scoop_add_draft = { barcode:'', barcode_keyboard:false, name:'', brand:'', tags:'', scoop_g:'', macro_mode:'100g', macro_protein:'', macro_kcal:'' };
       g_add_item_status = '';
       render();
+      return;
+
+    case 'addex-barcode-keyboard':
+      g_scoop_add_draft.barcode_keyboard = true;
+      let barcode_input = document.querySelector('[data-adddraft="barcode"]');
+      barcode_input.blur();
+      barcode_input.inputMode = 'numeric';
+      barcode_input.focus();
       return;
 
     case 'scoop-add-item-cancel':
