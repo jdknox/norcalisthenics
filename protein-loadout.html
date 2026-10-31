@@ -5122,7 +5122,7 @@ function bodyweightForDate(date)
 function bodyweightRawForDate(date)
 {
   if (g_bodyweight_raw_by_date[date] != null) return g_bodyweight_raw_by_date[date];
-  return bodyweightForDate(date).toFixed(1);
+  return bodyweightForDate(date).toFixed(2);
 }
 
 function setBodyweightForDate(date, kg, raw)
