@@ -13,6 +13,7 @@ let preview = {textContent:''};
 let ingredient_total = {textContent:''};
 let total_preview = {innerHTML:''};
 let recipe_editor = {};
+let ingredient_input = {value:''};
 let scroll_targets = [];
 let context = vm.createContext({
   console:console,
@@ -32,6 +33,7 @@ let context = vm.createContext({
     querySelector:function(selector)
     {
       if (selector == '.recipe-editor') return recipe_editor;
+      if (selector == '[data-recipeindex="1"][data-recipefield="grams"]') return ingredient_input;
       return {classList:{toggle:function() {}}};
     },
     querySelectorAll:function() { return []; }
@@ -161,6 +163,22 @@ async function run()
   assert.equal(evaluate('g_recipe_draft.ingredients.length'), 2, 'a recipe cannot be its own ingredient');
   assert.equal(evaluate('g_recipe_draft.ingredients[1].grams'), '100');
   let render_count_before = evaluate('render_count');
+  let pantry_before_zero = evaluate('JSON.stringify(g_scoop_items)');
+  let log_before_zero = evaluate('JSON.stringify(g_log)');
+  let shared_before_zero = shared;
+  click('recipe-zero', {index:'1'});
+  assert.equal(ingredient_input.value, '0', 'zero updates the existing input');
+  assert.equal(evaluate('g_recipe_draft.ingredients[1].grams'), '0');
+  assert.equal(evaluate('g_recipe_draft.ingredients.length'), 2, 'zero keeps the ingredient listed');
+  assert.equal(evaluate('g_recipe_draft.ingredients[0].grams'), '200', 'zero leaves other ingredients alone');
+  assert.equal(ingredient_total.textContent, '200.0 g');
+  assert.equal(evaluate('recipeIngredientTotals(g_recipe_draft).protein_g'), 20);
+  assert.equal(evaluate('recipeIngredientTotals(g_recipe_draft).kcal'), 400);
+  click('recipe-zero', {index:'1'});
+  assert.equal(evaluate('render_count'), render_count_before, 'zero must not rebuild the editor');
+  assert.equal(evaluate('JSON.stringify(g_scoop_items)'), pantry_before_zero, 'zero only changes the draft');
+  assert.equal(evaluate('JSON.stringify(g_log)'), log_before_zero);
+  assert.equal(shared, shared_before_zero, 'zero must not save or sync');
   input({recipeindex:'1', recipefield:'grams'}, '200');
   assert.equal(evaluate('render_count'), render_count_before, 'ingredient typing must not rebuild the page');
   assert.equal(ingredient_total.textContent, '400.0 g', 'the read-only total follows ingredient edits');
@@ -442,6 +460,20 @@ async function run()
   assert.deepEqual(unarchived_recipe, JSON.parse(recipe_before_archive));
   assert.equal(evaluate('sortedActiveScoopItems().some(item => item.key == ' + JSON.stringify(key) + ')'), true);
   assert.equal(evaluate('JSON.stringify(g_log)'), log_before_archive, 'unarchiving leaves logged foods frozen');
+  click('scoop-edit-open', {key:key});
+  click('recipe-zero', {index:'1'});
+  let zeroed_totals = JSON.parse(evaluate('JSON.stringify(recipeIngredientTotals(g_recipe_draft))'));
+  let log_count_before_zeroed_meal = evaluate('g_log[g_view_date].length');
+  let pantry_before_zeroed_meal = evaluate('JSON.stringify(g_scoop_items)');
+  click('recipe-log');
+  await flushSync();
+  let zeroed_entry = JSON.parse(shared).log[evaluate('g_view_date')].at(-1);
+  assert.equal(zeroed_entry.item_key, 'custom');
+  assert.equal(zeroed_entry.grams, zeroed_totals.grams);
+  assert.equal(zeroed_entry.protein_g, zeroed_totals.protein_g);
+  assert.equal(zeroed_entry.kcal, zeroed_totals.kcal);
+  assert.equal(evaluate('g_log[g_view_date].length'), log_count_before_zeroed_meal + 1);
+  assert.equal(evaluate('JSON.stringify(g_scoop_items)'), pantry_before_zeroed_meal, 'logging with a zeroed ingredient leaves the saved recipe unchanged');
   console.log('Recipe workflow, nested ingredients, cycle prevention, meal logging, archive/unarchive, frozen history, shared reload, and TSV round trip passed.');
 }
 

@@ -422,7 +422,7 @@ body.admin-mode #tab-top{scroll-margin-top:calc(58px + env(safe-area-inset-top,0
 .recipe-editor .unitinput{flex:none}
 .recipe-editor input.recipe-mass-diff{color:var(--red);border-color:var(--red)}
 .recipe-ingredients{display:grid;gap:0}
-.recipe-ingredient{display:grid;grid-template-columns:minmax(0,1fr) 96px 36px;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line)}
+.recipe-ingredient{display:grid;grid-template-columns:minmax(0,1fr) 96px 36px 36px;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line)}
 .recipe-ingredient>span{font-size:16px;overflow-wrap:anywhere}
 .recipe-ingredient .smallbtn{width:36px;height:42px;padding:0}
 .recipe-editor .recipe-amount input{padding-right:28px;text-align:right;font-weight:600}

@@ -2635,6 +2635,7 @@ function renderRecipeDraft()
     let item = findScoopItem(ingredient.item_key);
     h += `<div class="recipe-ingredient"><span>${esc(item ? item.name : 'Missing ingredient: ' + ingredient.item_key)}</span>
       <label class="recipe-amount unitinput"><input aria-label="${esc((item ? item.name : 'Ingredient') + ' grams')}" inputmode="decimal" data-recipeindex="${i}" data-recipefield="grams" value="${esc(ingredient.grams)}"><span class="unitghost">g</span></label>
+      <button class="smallbtn" data-a="recipe-zero" data-index="${i}" title="Set ingredient grams to zero" aria-label="Set ${esc(item ? item.name : 'ingredient')} grams to zero">0</button>
       <button class="smallbtn" data-a="recipe-remove" data-index="${i}" title="Remove ingredient" aria-label="Remove ingredient">−</button></div>`;
   }
   h += `</div>
@@ -8158,6 +8159,12 @@ document.addEventListener('click', function(ev)
     case 'recipe-remove':
       g_recipe_draft.ingredients.splice(Number(target.dataset.index), 1);
       render();
+      return;
+
+    case 'recipe-zero':
+      g_recipe_draft.ingredients[Number(target.dataset.index)].grams = '0';
+      document.querySelector(`[data-recipeindex="${target.dataset.index}"][data-recipefield="grams"]`).value = '0';
+      refreshRecipeDisplays();
       return;
 
     case 'recipe-save':
