@@ -7,6 +7,7 @@ import time
 
 board_name = 'Nintendo Wii Remote Balance Board'
 csv_path = '/home/knox/prj/dev/norcalisthenics/data/wii/wiiboard_weights.csv'
+retare_path = '/home/knox/prj/dev/norcalisthenics/data/wii/.retare-request'
 calibration_factor = 1.028744517
 
 while True:
@@ -48,6 +49,17 @@ while True:
     window_count = 0
 
     while os.access(device_path, os.R_OK):
+        if os.access(retare_path, os.F_OK):
+            os.unlink(retare_path)
+            tare_start = time.monotonic()
+            tare_total = 0.0
+            tare_count = 0
+            tare_kg = None
+            window_start = None
+            window_total = 0.0
+            window_count = 0
+            print('re-tare requested', flush=True)
+
         corners_centi_kg = []
         for axis in range(16, 20):
             # EVIOCGABS(axis): input_absinfo is six 32-bit integers.
