@@ -39,6 +39,7 @@ data.
 - [workout-sample.js](workout-sample.js): sample workout loaded from the empty state
 - [claude_changelog.md](claude_changelog.md): development history
 - [AI_AGENT_SESSIONS.md](AI_AGENT_SESSIONS.md): AI-assisted work streams and context anchors
+- [src/wii/README.md](src/wii/README.md): Wii Balance Board setup, recording, and Pi deploy
 
 ## Data
 
