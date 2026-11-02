@@ -6,7 +6,7 @@ Wants=bluetooth.service
 [Service]
 Type=simple
 User=knox
-ExecStart=/usr/bin/python3 -u /home/knox/prj/dev/norcalisthenics/src/wii/pi_wiiboard_power_button.py
+ExecStart=/usr/bin/python3 -u /home/knox/.local/share/norcalisthenics/wii/pi_wiiboard_power_button.py
 Restart=always
 RestartSec=1
 
