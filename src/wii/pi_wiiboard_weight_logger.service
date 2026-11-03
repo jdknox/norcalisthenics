@@ -1,5 +1,5 @@
 [Unit]
-Description=Log Wii Balance Board weights from paired HID input
+Description=Read Wii Balance Board weights and record on dashboard request
 After=bluetooth.service
 Wants=bluetooth.service
 

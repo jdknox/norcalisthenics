@@ -6,6 +6,7 @@ data/shared-storage.json
 data/workout-data.tsv*
 data/workout-library.tsv.*
 /data/wii/wiiboard_weights.csv
+/data/wii/wiiboard_weights.csv.*.bak
 /data/wii/.retare-request
 /data/*.bak
 *.blend1

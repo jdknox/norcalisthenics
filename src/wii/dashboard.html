@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#111817">
+    <title>Board · Live session</title>
+    <link rel="stylesheet" href="dashboard.css">
+    <script src="dashboard.js" defer></script>
+</head>
+<body>
+    <main>
+        <header>
+            <a class="brand" href="/" aria-label="Board dashboard"><span class="brand-mark">▥</span> BOARD<span class="brand-detail"> / TRAINING LAB</span></a>
+            <span class="connection" id="connection" role="status">Connecting…</span>
+        </header>
+
+        <section class="session-heading">
+            <div><p class="eyebrow">WII BALANCE BOARD</p><h1>Live session<span>.</span></h1>
+                <p class="intro">See the load. Record when you're ready.</p></div>
+            <div class="record-controls">
+                <span id="record-state" class="record-state">Preview · not saving</span>
+                <button id="record" class="record-button" type="button" disabled><span class="record-dot"></span><span id="record-label">Record</span></button>
+            </div>
+        </section>
+        <p id="message" class="message" role="status">Connecting to the Pi…</p>
+        <p id="error" class="error" role="alert" hidden></p>
+
+        <section class="readings" aria-label="Live force readings">
+            <article class="panel total-panel">
+                <div class="panel-heading"><h2>Total load</h2><span class="small-label">TARED + CORRECTED</span></div>
+                <div class="total-value"><span id="total">—</span><span class="unit">kg</span></div>
+                <dl class="load-stats">
+                    <div><dt>2 s average</dt><dd><span id="load-average">—</span><small>kg</small></dd></div>
+                    <div><dt>2 s stdev</dt><dd><span id="load-stdev">—</span><small>kg</small></dd></div>
+                </dl>
+                <p id="load-window-note" class="stats-note">Waiting for readings</p>
+                <div class="total-footer"><span>100 ms averages</span><span id="rows">0 samples recorded</span></div>
+            </article>
+            <article class="panel corners-panel">
+                <div class="panel-heading"><h2>Four corners</h2><span class="small-label">BEFORE TARE</span></div>
+                <div class="corners">
+                    <div><span class="corner-label">01 <span>AXIS 18</span></span><p><span id="corner-3">—</span><small>kg</small></p></div>
+                    <div><span class="corner-label">02 <span>AXIS 16</span></span><p><span id="corner-1">—</span><small>kg</small></p></div>
+                    <div><span class="corner-label">03 <span>AXIS 19</span></span><p><span id="corner-4">—</span><small>kg</small></p></div>
+                    <div><span class="corner-label">04 <span>AXIS 17</span></span><p><span id="corner-2">—</span><small>kg</small></p></div>
+                </div>
+            </article>
+        </section>
+
+        <section class="panel chart-panel" aria-label="Recent load history">
+            <div class="panel-heading chart-heading"><div><h2>Load over time</h2><p class="chart-description">The last 60 seconds · live preview</p></div>
+                <label class="baseline-label">Bodyweight reference <span><input id="baseline" type="number" min="1" max="500" step="0.1" placeholder="—" inputmode="decimal"> kg</span></label>
+            </div>
+            <div class="chart-legend"><span><i class="legend-total"></i>Total load</span><span><i class="legend-baseline"></i>Bodyweight reference</span></div>
+            <canvas id="chart" role="img" aria-label="Total load in kilograms over the last 60 seconds"></canvas>
+            <div class="chart-footer"><span>−60 s</span><span>−30 s</span><span>NOW</span></div>
+        </section>
+        <footer><span>Recording continues until Stop, even if you close this tab.</span><span>Re-tare, disconnect, or restart stops recording.</span></footer>
+    </main>
+</body>
+</html>
