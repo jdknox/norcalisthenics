@@ -6,10 +6,68 @@
     <meta name="theme-color" content="#111817">
     <title>Board · Live session</title>
     <link rel="stylesheet" href="dashboard.css">
+    <script>
+        let dashboard_failure = '';
+
+        function renderDashboardFailure()
+        {
+            let banner = document.getElementById('dashboard-code-error');
+            if (!dashboard_failure || banner == null)
+            {
+                return;
+            }
+            document.getElementById('dashboard-code-error-details').textContent = dashboard_failure;
+            banner.hidden = false;
+        }
+
+        function reportDashboardFailure(message)
+        {
+            dashboard_failure = message;
+            renderDashboardFailure();
+        }
+
+        // Register independently so a syntax error in dashboard.js cannot disable reporting.
+        window.addEventListener('error', function (event)
+        {
+            if (event.target != window && event.target.tagName == 'SCRIPT')
+            {
+                reportDashboardFailure('Could not load script: ' + event.target.src);
+                return;
+            }
+            if (!event.message)
+            {
+                return;
+            }
+            let source_location = event.filename + ':' + event.lineno + ':' + event.colno;
+            let details = event.message;
+            if (event.error != null && event.error.stack)
+            {
+                details = event.error.stack;
+            }
+            reportDashboardFailure(details + '\n' + source_location);
+        }, true);
+
+        window.addEventListener('unhandledrejection', function (event)
+        {
+            let details = String(event.reason);
+            if (event.reason != null && event.reason.stack)
+            {
+                details = event.reason.stack;
+            }
+            reportDashboardFailure('Unhandled promise rejection:\n' + details);
+        });
+
+        document.addEventListener('DOMContentLoaded', renderDashboardFailure);
+    </script>
     <script src="dashboard.js" defer></script>
 </head>
 <body>
     <main>
+        <section id="dashboard-code-error" class="code-error" role="alert" hidden>
+            <h2>Dashboard code error</h2>
+            <p>Live readings or controls may not be working. Fix the error below and refresh. Recording on the Pi is not stopped by this message.</p>
+            <pre id="dashboard-code-error-details"></pre>
+        </section>
         <header>
             <a class="brand" href="/" aria-label="Board dashboard"><span class="brand-mark">▥</span> BOARD<span class="brand-detail"> / TRAINING LAB</span></a>
             <span class="connection" id="connection" role="status">Connecting…</span>
@@ -31,8 +89,9 @@
                 <div class="panel-heading"><h2>Total load</h2><span class="small-label">TARED + CORRECTED</span></div>
                 <div class="total-value"><span id="total">—</span><span class="unit">kg</span></div>
                 <dl class="load-stats">
-                    <div><dt>2 s average</dt><dd><span id="load-average">—</span><small>kg</small></dd></div>
-                    <div><dt>2 s stdev</dt><dd><span id="load-stdev">—</span><small>kg</small></dd></div>
+                    <div><dt>3 s average</dt><dd><span id="load-average">—</span><small>kg</small></dd></div>
+                    <div><dt>3 s stdev</dt><dd><span id="load-stdev">—</span><small>kg</small></dd></div>
+                    <div><dt>(uncorrected</dt><dd><span id="total-raw">—</span><small>kg)</small></dd></div>
                 </dl>
                 <p id="load-window-note" class="stats-note">Waiting for readings</p>
                 <div class="total-footer"><span>100 ms averages</span><span id="rows">0 samples recorded</span></div>
@@ -40,12 +99,107 @@
             <article class="panel corners-panel">
                 <div class="panel-heading"><h2>Four corners</h2><span class="small-label">BEFORE TARE</span></div>
                 <div class="corners">
-                    <div><span class="corner-label">01 <span>AXIS 18</span></span><p><span id="corner-3">—</span><small>kg</small></p></div>
-                    <div><span class="corner-label">02 <span>AXIS 16</span></span><p><span id="corner-1">—</span><small>kg</small></p></div>
-                    <div><span class="corner-label">03 <span>AXIS 19</span></span><p><span id="corner-4">—</span><small>kg</small></p></div>
-                    <div><span class="corner-label">04 <span>AXIS 17</span></span><p><span id="corner-2">—</span><small>kg</small></p></div>
+                    <div>
+                        <span class="corner-label">01 <span>AXIS 18</span></span><p><span id="corner-3">—</span><small>kg</small></p>
+                        <dl class="corner-stats">
+                            <div><dt>3 s avg</dt><dd><span id="corner-3-average">—</span> kg</dd></div>
+                            <div><dt>3 s stdev</dt><dd><span id="corner-3-stdev">—</span> kg</dd></div>
+                            <div><dt>Min − avg</dt><dd><span id="corner-3-min-delta">—</span> kg</dd></div>
+                            <div><dt>Max − avg</dt><dd><span id="corner-3-max-delta">—</span> kg</dd></div>
+                        </dl>
+                        <div id="corner-3-range" class="corner-range" role="img" aria-label="Waiting for min/max readings. Scale −0.3 to +0.3 kg relative to the 3 s average.">
+                            <div class="corner-range-track" aria-hidden="true">
+                                <span class="corner-range-zero"></span>
+                                <span id="corner-3-range-span" class="corner-range-span" hidden></span>
+                                <span id="corner-3-min-tick" class="corner-range-tick min-tick" hidden></span>
+                                <span id="corner-3-max-tick" class="corner-range-tick max-tick" hidden></span>
+                            </div>
+                            <div class="corner-range-scale" aria-hidden="true"><span>−0.3</span><span>0</span><span>+0.3 kg</span></div>
+                        </div>
+                    </div>
+                    <div>
+                        <span class="corner-label">02 <span>AXIS 16</span></span><p><span id="corner-1">—</span><small>kg</small></p>
+                        <dl class="corner-stats">
+                            <div><dt>3 s avg</dt><dd><span id="corner-1-average">—</span> kg</dd></div>
+                            <div><dt>3 s stdev</dt><dd><span id="corner-1-stdev">—</span> kg</dd></div>
+                            <div><dt>Min − avg</dt><dd><span id="corner-1-min-delta">—</span> kg</dd></div>
+                            <div><dt>Max − avg</dt><dd><span id="corner-1-max-delta">—</span> kg</dd></div>
+                        </dl>
+                        <div id="corner-1-range" class="corner-range" role="img" aria-label="Waiting for min/max readings. Scale −0.3 to +0.3 kg relative to the 3 s average.">
+                            <div class="corner-range-track" aria-hidden="true">
+                                <span class="corner-range-zero"></span>
+                                <span id="corner-1-range-span" class="corner-range-span" hidden></span>
+                                <span id="corner-1-min-tick" class="corner-range-tick min-tick" hidden></span>
+                                <span id="corner-1-max-tick" class="corner-range-tick max-tick" hidden></span>
+                            </div>
+                            <div class="corner-range-scale" aria-hidden="true"><span>−0.3</span><span>0</span><span>+0.3 kg</span></div>
+                        </div>
+                    </div>
+                    <div>
+                        <span class="corner-label">03 <span>AXIS 19</span></span><p><span id="corner-4">—</span><small>kg</small></p>
+                        <dl class="corner-stats">
+                            <div><dt>3 s avg</dt><dd><span id="corner-4-average">—</span> kg</dd></div>
+                            <div><dt>3 s stdev</dt><dd><span id="corner-4-stdev">—</span> kg</dd></div>
+                            <div><dt>Min − avg</dt><dd><span id="corner-4-min-delta">—</span> kg</dd></div>
+                            <div><dt>Max − avg</dt><dd><span id="corner-4-max-delta">—</span> kg</dd></div>
+                        </dl>
+                        <div id="corner-4-range" class="corner-range" role="img" aria-label="Waiting for min/max readings. Scale −0.3 to +0.3 kg relative to the 3 s average.">
+                            <div class="corner-range-track" aria-hidden="true">
+                                <span class="corner-range-zero"></span>
+                                <span id="corner-4-range-span" class="corner-range-span" hidden></span>
+                                <span id="corner-4-min-tick" class="corner-range-tick min-tick" hidden></span>
+                                <span id="corner-4-max-tick" class="corner-range-tick max-tick" hidden></span>
+                            </div>
+                            <div class="corner-range-scale" aria-hidden="true"><span>−0.3</span><span>0</span><span>+0.3 kg</span></div>
+                        </div>
+                    </div>
+                    <div>
+                        <span class="corner-label">04 <span>AXIS 17</span></span><p><span id="corner-2">—</span><small>kg</small></p>
+                        <dl class="corner-stats">
+                            <div><dt>3 s avg</dt><dd><span id="corner-2-average">—</span> kg</dd></div>
+                            <div><dt>3 s stdev</dt><dd><span id="corner-2-stdev">—</span> kg</dd></div>
+                            <div><dt>Min − avg</dt><dd><span id="corner-2-min-delta">—</span> kg</dd></div>
+                            <div><dt>Max − avg</dt><dd><span id="corner-2-max-delta">—</span> kg</dd></div>
+                        </dl>
+                        <div id="corner-2-range" class="corner-range" role="img" aria-label="Waiting for min/max readings. Scale −0.3 to +0.3 kg relative to the 3 s average.">
+                            <div class="corner-range-track" aria-hidden="true">
+                                <span class="corner-range-zero"></span>
+                                <span id="corner-2-range-span" class="corner-range-span" hidden></span>
+                                <span id="corner-2-min-tick" class="corner-range-tick min-tick" hidden></span>
+                                <span id="corner-2-max-tick" class="corner-range-tick max-tick" hidden></span>
+                            </div>
+                            <div class="corner-range-scale" aria-hidden="true"><span>−0.3</span><span>0</span><span>+0.3 kg</span></div>
+                        </div>
+                    </div>
                 </div>
+                <p id="corner-window-note" class="stats-note">Waiting for readings</p>
+                <p class="corner-range-note">Min / max − 3 s avg · green within ±0.3 kg · red outside</p>
             </article>
+        </section>
+
+        <section class="sample-quality" aria-label="Shared sample coverage and freshness">
+            <div class="sample-quality-heading"><span id="sample-window-label">3 s sample coverage</span><span id="sample-count">—/30 samples · —%</span></div>
+            <div id="sample-coverage" class="sample-coverage" role="meter" aria-labelledby="sample-window-label" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-valuetext="Waiting for readings"><span id="sample-coverage-fill"></span></div>
+            <p id="sample-freshness">Latest sample: — · waiting for readings</p>
+            <div class="sample-age-summary">
+                <span>Latest sample age · last 3 s</span>
+                <dl class="sample-age-stats">
+                    <div><dt>Average</dt><dd id="sample-age-average">—</dd></div>
+                    <div><dt>Min</dt><dd id="sample-age-min">—</dd></div>
+                    <div><dt>Max</dt><dd id="sample-age-max">—</dd></div>
+                </dl>
+            </div>
+        </section>
+
+        <section class="panel copy-panel" aria-label="Copy corner readings">
+            <div class="panel-heading">
+                <h2><label for="corner-readout">Corner snapshot</label></h2>
+                <button id="copy-corners" class="copy-button" type="button" disabled>Copy 4 lines</button>
+            </div>
+            <p class="chart-description">Before tare and correction · kg · physical order 3, 1, 4, 2</p>
+            <p id="corner-readout-columns" class="copy-schema">corner,position,current_kg,mean_3s_kg,stdev_3s_kg</p>
+            <textarea id="corner-readout" rows="4" wrap="off" readonly spellcheck="false" aria-describedby="corner-readout-columns corner-copy-status" placeholder="Waiting for three seconds of corner readings…"></textarea>
+            <p id="corner-copy-status" class="stats-note" role="status">Waiting for readings</p>
         </section>
 
         <section class="panel chart-panel" aria-label="Recent load history">

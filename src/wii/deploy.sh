@@ -5,7 +5,23 @@ source_dir=$(CDPATH= cd "$(dirname "$0")" && pwd)
 remote=rpi
 runtime_dir=/home/knox/.local/share/norcalisthenics/wii
 
+ui_only=false
+case "$*" in
+    '') ;;
+    --ui) ui_only=true ;;
+    *)
+        printf '%s\n' 'Usage: deploy.sh [--ui]' >&2
+        exit 2
+        ;;
+esac
+
 ssh "$remote" mkdir -p "$runtime_dir"
+if [ "$ui_only" = true ]; then
+    rsync -a "$source_dir/dashboard.html" "$source_dir/dashboard.css" "$source_dir/dashboard.js" "$remote:$runtime_dir/"
+    printf '%s\n' 'Dashboard files updated. Refresh the browser; services, tare, and recording are unchanged.'
+    exit 0
+fi
+
 rsync -a --exclude=__pycache__ "$source_dir/" "$remote:$runtime_dir/"
 
 ssh "$remote" sudo install -m 644 "$runtime_dir/pi_wiiboard_power_button.service" "$runtime_dir/pi_wiiboard_weight_logger.service" "$runtime_dir/pi_wiiboard_dashboard.service" /etc/systemd/system/

@@ -26,7 +26,11 @@ def readState():
     handle = open(state_path)
     state = json.load(handle)
     handle.close()
-    state['live'] = time.time() - state['updated_at'] < 1.5
+    now = time.time()
+    state['live'] = now - state['updated_at'] < 1.5
+    state['sample_age_ms'] = None
+    if state['sample_time'] != None:
+        state['sample_age_ms'] = max(0.0, (now - state['sample_time'])*1000)
     return state
 
 

@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 import csv
+from collections import deque
 import fcntl
+import math
 import os
 import struct
 import time
@@ -10,7 +12,9 @@ import wii_runtime
 board_name = 'Nintendo Wii Remote Balance Board'
 csv_path = '/home/knox/prj/dev/norcalisthenics/data/wii/wiiboard_weights.csv'
 retare_path = '/home/knox/prj/dev/norcalisthenics/data/wii/.retare-request'
-calibration_factor = 1.028744517
+# calibration_factor = 1.028744517
+calibration_factor = 1.0
+WINDOW_DURATION = 3.0
 csv_header = ['timestamp', 'total_kg', 'corner_1_kg', 'corner_2_kg',
               'corner_3_kg', 'corner_4_kg']
 
@@ -33,11 +37,80 @@ def openCsv():
     return csv_file, csv_writer
 
 
+def calculateStats(values):
+    if not values:
+        return None, None
+
+    mean = 0.0
+    squared_deviations = 0.0
+    count = 0
+    for value in values:
+        count += 1
+        delta = value - mean
+        mean += delta/count
+        squared_deviations += delta*(value - mean)
+    variance = max(0.0, squared_deviations/count)
+    return mean, math.sqrt(variance)
+
+
+def clearLoadStats(state):
+    state['load_average_kg'] = None
+    state['load_stdev_kg'] = None
+    state['load_samples'] = 0
+    state['corner_average_kg'] = None
+    state['corner_stdev_kg'] = None
+    state['corner_min_kg'] = None
+    state['corner_max_kg'] = None
+
+
+def updateLoadStats(state, samples, now, total_kg, corners_kg):
+    if samples and now - samples[-1][0] > 0.5:
+        samples.clear()
+    samples.append((now, total_kg, corners_kg))
+    cutoff = now - WINDOW_DURATION
+    # Keep one sample at or before the cutoff to establish a full window.
+    while len(samples) > 1 and samples[1][0] <= cutoff:
+        samples.popleft()
+
+    clearLoadStats(state)
+    total_values = []
+    corner_values = [[], [], [], []]
+    for sample_time, sample_total, sample_corners in samples:
+        if sample_time <= cutoff:
+            continue
+        total_values.append(sample_total)
+        for corner in range(4):
+            corner_values[corner].append(sample_corners[corner])
+
+    state['load_samples'] = len(total_values)
+    if now - samples[0][0] < WINDOW_DURATION:
+        return
+
+    state['load_average_kg'], state['load_stdev_kg'] = calculateStats(total_values)
+    corner_averages = []
+    corner_stdevs = []
+    corner_minima = []
+    corner_maxima = []
+    for corner in range(4):
+        mean, stdev = calculateStats(corner_values[corner])
+        corner_averages.append(mean)
+        corner_stdevs.append(stdev)
+        corner_minima.append(min(corner_values[corner]))
+        corner_maxima.append(max(corner_values[corner]))
+    state['corner_average_kg'] = corner_averages
+    state['corner_stdev_kg'] = corner_stdevs
+    state['corner_min_kg'] = corner_minima
+    state['corner_max_kg'] = corner_maxima
+
+
 def main():
     state = {
         'run_id': str(time.time_ns()), 'connected': False, 'taring': False,
         'recording': False, 'recording_started_at': None, 'rows_written': 0,
         'total_kg': None, 'corners_kg': None, 'sample_time': None,
+        'load_average_kg': None, 'load_stdev_kg': None, 'load_samples': 0,
+        'corner_average_kg': None, 'corner_stdev_kg': None,
+        'corner_min_kg': None, 'corner_max_kg': None,
         'applied_command': None, 'command_error': '',
     }
     wii_runtime.publishState(state)
@@ -77,6 +150,7 @@ def main():
         window_count = 0
         report_corners = True
         last_publish = tare_start
+        stats_samples = deque()
 
         while os.access(device_path, os.R_OK):
             if os.access(retare_path, os.F_OK):
@@ -85,6 +159,8 @@ def main():
                 state['taring'] = True
                 state['total_kg'] = None
                 state['sample_time'] = None
+                clearLoadStats(state)
+                stats_samples.clear()
                 tare_start = time.monotonic()
                 tare_total = 0.0
                 tare_count = 0
@@ -141,6 +217,7 @@ def main():
                     state['total_kg'] = total_kg
                     state['corners_kg'] = corners_kg
                     state['sample_time'] = sample_time
+                    updateLoadStats(state, stats_samples, now, total_kg, corners_kg)
                     if report_corners:
                         corner_values = [f'{value:.3f}' for value in corners_kg]
                         print('corners after tare: ' + ', '.join(corner_values) + ' kg', flush=True)
@@ -171,6 +248,7 @@ def main():
         state['total_kg'] = None
         state['corners_kg'] = None
         state['sample_time'] = None
+        clearLoadStats(state)
         wii_runtime.publishState(state)
         print('board disconnected; recording stopped', flush=True)
 

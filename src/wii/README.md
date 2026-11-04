@@ -14,9 +14,42 @@ recording path.
   the first **2 seconds** while the logger tares.
 - Open **http://rpi:8011** (or use the Pi's IP address) on the same network.
   The dashboard shows total load, four corners, and a rolling 60-second chart.
-  The total-load panel also shows the rolling two-second mean and population
-  standard deviation of the live 100 ms readings. It waits for two seconds of
-  readings and resets on re-tare, disconnect, restart, or a gap over 0.5 seconds.
+  The total-load panel also shows the rolling three-second mean and population
+  standard deviation of the live 100 ms readings, calculated by the logger
+  independently of browser polling. It waits for three seconds of readings and
+  resets on re-tare, disconnect, restart, or an actual measurement gap over
+  0.5 seconds. Delayed browser updates retain the last statistics with a clear
+  delay label until fresh readings arrive.
+  Each corner also shows its own three-second mean and population standard
+  deviation in kg, using the same window and shared calculation as the total.
+  Corner statistics use the HID-calibrated values before our tare and correction
+  factor, preserving the physical panel order 3, 1, 4, 2 for calibration work.
+  Each corner also shows its minimum minus average and maximum minus average
+  over the last **3 seconds**, using the logger's complete window of 100 ms
+  readings. The mini-graph has a fixed −0.3 to +0.3 kg scale centered on the
+  average. Each min/max tick and readout is green within those inclusive bounds
+  and red outside; out-of-range ticks stay at the edge with an outward pointer.
+  The exact deviations remain visible in the numeric readouts. All corner
+  statistics reset together and retain the same delayed-update label.
+  A shared bar below the readings shows the window's sample count out of the
+  **30 expected at 10 Hz**, its percentage (capped at 100%), and the latest
+  sample's age. The count also fills during initial collection. Age is measured
+  on the Pi, with browser elapsed time and request transit time added, so it
+  continues increasing when updates pause and does not depend on matching
+  browser/Pi clocks. After 0.5 seconds without a fresh sample, the bar turns
+  amber and labels its count as the last received window. These are logger
+  samples, not counts of fresh Bluetooth reports.
+  The latest-sample age also has an average, minimum, and maximum over the
+  last three seconds of browser observations, sampled every 100 ms. These
+  include increasing age during a stall; extra polling or control renders do
+  not add observations. Old observations expire by elapsed time. Age history
+  resets on re-tare, disconnect, or logger restart and begins again as soon as
+  sample age is available.
+  The **Corner snapshot** readout provides exactly four CSV rows in that order:
+  `corner,position,current_kg,mean_3s_kg,stdev_3s_kg` (column names are shown
+  separately). Press **Copy 4 lines**, or select and copy the text manually.
+  Focusing the readout holds its contents; click outside to resume live updates.
+  Copy is enabled once live three-second corner statistics are available.
 - Press **Record** to append readings to the CSV; press **Stop** to return to
   preview. Preview does not open, create, or modify the CSV.
 - A quick front-button tap stops recording and re-tares; leave the board empty
@@ -54,6 +87,15 @@ does not change calibration or CSV data. A force deficit during movement is
 not automatically hand assistance, because body acceleration also changes
 the reading.
 
+`calculateStats()` is the shared mean/stdev calculation for the total and four
+corners. `GET /api/status` includes the four-element `corner_average_kg` and
+`corner_stdev_kg` arrays in input-axis order 16–19, alongside total statistics.
+These statistics are live preview data; adding them does not change the CSV
+columns or apply new per-corner calibration coefficients. All five channels
+reset together on re-tare, disconnect, restart, or an acquisition gap.
+`corner_min_kg` and `corner_max_kg` provide the raw per-corner extrema over
+the same window; the dashboard subtracts `corner_average_kg` for the graph.
+
 ## Dashboard service
 
 `pi_wiiboard_dashboard.service` serves the standalone dashboard on port 8011;
@@ -77,10 +119,32 @@ dashboard without authentication.
 
 ## Code and logs
 
+For HTML, CSS, or JavaScript edits only, run `./src/wii/deploy.sh --ui` from
+the desktop repo root, then refresh the dashboard in the browser. This copies
+only `dashboard.html`, `dashboard.css`, and `dashboard.js`; it does not restart
+services, re-tare, or interrupt recording. The dashboard server reads these
+files on each request and disables browser caching.
+
+The move to logger-calculated three-second statistics requires one full deploy
+with the board connected and empty; `--ui` alone cannot update the logger.
+The corner min/max fields also require a full deploy; an older logger keeps
+showing averages and stdevs with an update notice for the missing min/max data.
+Sample coverage during initial collection and Pi-calculated sample age also
+require a full deploy to update the logger and dashboard service.
+
 Run `./src/wii/grab_corners.sh` to print the four current corner readings
 from the Pi as one comma-separated line in kg, in the same order as the CSV.
 These are instantaneous HID values before tare and correction, without
 averaging. The board must be connected; no deployment or restart is needed.
+
+Run `./src/wii/grab_unclipped.sh` from the desktop to capture three seconds of
+raw board reports through the Pi's `hidraw` device. It uses `sudo -n` on the Pi
+for access, discovers the board by its Bluetooth address, and prints ADC means,
+factory zero references, signed kg means, and population stdevs in physical
+order 3, 1, 4, 2. Signed kg values extrapolate the lower factory calibration
+segment below zero; they are not yet zeroed for the current empty board.
+This diagnostic runs alongside the HID logger without disconnecting Bluetooth,
+re-taring, or writing to the recording CSV. No deploy is needed to run it.
 
 Edit the files here on the Mac, then run `./src/wii/deploy.sh` from the repo
 root. It copies `src/wii` to `~/.local/share/norcalisthenics/wii` on the Pi
@@ -105,7 +169,15 @@ SYNC button; it is not needed for ordinary front-button use.
 
 ## Checks
 
+The page installs error reporting before loading `dashboard.js`. JavaScript
+syntax errors, uncaught runtime errors, unhandled promise rejections, and
+script loading failures show a prominent red banner with the available
+file/line or stack details. Errors also remain visible in the browser console.
+The banner does not stop recording on the Pi.
+
 From the repo root, run `python3 tests/wii-dashboard.py`. It exercises the
 real dashboard HTTP server and logger with simulated HID input, including
 preview/record gating, zero-load recording, CSV preservation, and stopping
 on re-tare, disconnect, and restart. It does not contact the Pi.
+Run `node tests/wii-sample-coverage.cjs` for coverage percentage, sample age,
+transport delay, delayed-update labeling, and collection/reset checks.

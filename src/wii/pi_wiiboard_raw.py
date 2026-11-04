@@ -5,7 +5,8 @@ import time
 
 address = '00:1f:c5:ab:39:a6'
 csv_path = '/home/knox/prj/dev/norcalisthenics/data/wii/wiiboard_weights.csv'
-calibration_factor = 1.028744517
+# calibration_factor = 1.028744517
+calibration_factor = 1.0
 
 def channel(psm):
     sock = socket.socket(socket.AF_BLUETOOTH, socket.SOCK_SEQPACKET,

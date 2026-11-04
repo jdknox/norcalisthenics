@@ -70,6 +70,8 @@ def logRequest(handler, code='-', size='-'):
 
 # The standard-library HTTP server requires a handler subclass; routing stays procedural.
 class DashboardHandler(http.server.BaseHTTPRequestHandler):
+    # Browsers can pre-open idle sockets; never let one block all other requests.
+    timeout = 0.5
     do_GET = getRequest
     do_POST = postRequest
     log_request = logRequest
