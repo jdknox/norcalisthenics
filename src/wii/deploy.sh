@@ -24,6 +24,10 @@ fi
 
 rsync -a --exclude=__pycache__ "$source_dir/" "$remote:$runtime_dir/"
 
+ssh "$remote" sudo install -m 644 "$runtime_dir/70-wii-board.rules" /etc/udev/rules.d/
+ssh "$remote" sudo udevadm control --reload-rules
+ssh "$remote" sudo udevadm trigger --action=change --subsystem-match=hidraw
+ssh "$remote" sudo udevadm settle
 ssh "$remote" sudo install -m 644 "$runtime_dir/pi_wiiboard_power_button.service" "$runtime_dir/pi_wiiboard_weight_logger.service" "$runtime_dir/pi_wiiboard_dashboard.service" /etc/systemd/system/
 ssh "$remote" sudo systemctl daemon-reload
 ssh "$remote" sudo systemctl enable pi_wiiboard_dashboard.service

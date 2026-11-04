@@ -6,6 +6,7 @@ Wants=bluetooth.service
 [Service]
 Type=simple
 User=knox
+SupplementaryGroups=input
 ExecStart=/usr/bin/python3 -u /home/knox/.local/share/norcalisthenics/wii/pi_wiiboard_weight_logger.py
 Restart=always
 RestartSec=1

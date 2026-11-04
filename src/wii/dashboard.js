@@ -181,7 +181,16 @@ function renderLoadStats(state, ready)
     }
     document.getElementById('load-average').textContent = average_text;
     document.getElementById('load-stdev').textContent = stdev_text;
-    document.getElementById('total-raw').textContent = ready ? state.total_kg.toFixed(2) : '—';
+    let signed_total = null;
+    if (ready && state.corner_signed_kg != null)
+    {
+        signed_total = 0;
+        for (let value of state.corner_signed_kg)
+        {
+            signed_total += value;
+        }
+    }
+    document.getElementById('total-raw').textContent = signed_total != null ? signed_total.toFixed(2) : '—';
     document.getElementById('load-window-note').textContent = note;
     renderCornerStats(last_load_stats, note);
 }

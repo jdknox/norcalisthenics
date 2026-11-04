@@ -91,13 +91,13 @@
                 <dl class="load-stats">
                     <div><dt>3 s average</dt><dd><span id="load-average">—</span><small>kg</small></dd></div>
                     <div><dt>3 s stdev</dt><dd><span id="load-stdev">—</span><small>kg</small></dd></div>
-                    <div><dt>(uncorrected</dt><dd><span id="total-raw">—</span><small>kg)</small></dd></div>
+                    <div><dt>Before tare</dt><dd><span id="total-raw">—</span><small>kg</small></dd></div>
                 </dl>
                 <p id="load-window-note" class="stats-note">Waiting for readings</p>
                 <div class="total-footer"><span>100 ms averages</span><span id="rows">0 samples recorded</span></div>
             </article>
             <article class="panel corners-panel">
-                <div class="panel-heading"><h2>Four corners</h2><span class="small-label">BEFORE TARE</span></div>
+                <div class="panel-heading"><h2>Four corners</h2><span class="small-label">TARED</span></div>
                 <div class="corners">
                     <div>
                         <span class="corner-label">01 <span>AXIS 18</span></span><p><span id="corner-3">—</span><small>kg</small></p>
@@ -196,7 +196,7 @@
                 <h2><label for="corner-readout">Corner snapshot</label></h2>
                 <button id="copy-corners" class="copy-button" type="button" disabled>Copy 4 lines</button>
             </div>
-            <p class="chart-description">Before tare and correction · kg · physical order 3, 1, 4, 2</p>
+            <p class="chart-description">Per-corner tare · factory gains · kg · physical order 3, 1, 4, 2</p>
             <p id="corner-readout-columns" class="copy-schema">corner,position,current_kg,mean_3s_kg,stdev_3s_kg</p>
             <textarea id="corner-readout" rows="4" wrap="off" readonly spellcheck="false" aria-describedby="corner-readout-columns corner-copy-status" placeholder="Waiting for three seconds of corner readings…"></textarea>
             <p id="corner-copy-status" class="stats-note" role="status">Waiting for readings</p>
