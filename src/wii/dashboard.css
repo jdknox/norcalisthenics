@@ -1,14 +1,22 @@
 :root { color-scheme: dark; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #eef3ef; background: #111817; font-synthesis: none; }
 * { box-sizing: border-box; }
 body { margin: 0; }
+pre.readout { display: inline-block; margin: 0; font-family: ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace; font-size: inherit; font-weight: inherit; line-height: inherit; letter-spacing: normal; white-space: pre; vertical-align: baseline; }
 main { max-width: 1180px; padding: 0 38px 28px; margin: auto; }
 header { height: 96px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #2b3632; gap: 16px; }
-.brand { text-decoration: none; color: inherit; font-size: 15px; font-weight: 750; letter-spacing: .08em; }
+.brand { text-decoration: none; color: inherit; font-size: 15px; font-weight: 750; letter-spacing: .08em; white-space: nowrap; flex-shrink: 0; }
 .brand-mark { color: #c9f785; margin-right: 10px; font-size: 24px; vertical-align: middle; }
 .brand-detail { color: #85968d; font-size: 11px; font-weight: 500; }
 .connection { display: flex; align-items: center; gap: 8px; color: #abb9b1; font-size: 12px; }
 .connection::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: #738078; }
 .connection.connected::before { background: #c9f785; box-shadow: 0 0 12px #c9f744; }
+.board-status { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 8px 20px; }
+.battery { display: inline-flex; align-items: center; gap: 8px; color: #8fa092; font-size: 12px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.battery.available { color: #c9f785; }
+.battery.low { color: #ff9188; }
+.battery-icon { position: relative; width: 22px; height: 11px; padding: 2px; border: 1px solid currentColor; border-radius: 2px; }
+.battery-icon::after { content: ''; position: absolute; top: 2px; right: -4px; width: 2px; height: 5px; border-radius: 0 1px 1px 0; background: currentColor; }
+#battery-fill { display: block; width: 0; height: 100%; background: currentColor; }
 .session-heading { margin-top: 46px; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
 .eyebrow { font-size: 11px; color: #abb9b1; letter-spacing: .17em; margin: 0 0 12px; }
 h1 { font-size: clamp(34px, 5vw, 50px); line-height: 1.1; font-weight: 550; letter-spacing: -.045em; margin: 0; }
@@ -16,6 +24,7 @@ h1 span { color: #c9f785; }
 .intro { color: #9aaba0; margin: 14px 0 0; font-size: 14px; }
 .record-controls { display: flex; align-items: center; gap: 20px; }
 .record-state { font-size: 12px; color: #9aaba0; font-variant-numeric: tabular-nums; }
+.record-controls .record-state { font-size: 12px; white-space: pre-wrap; }
 button { font: inherit; cursor: pointer; }
 .record-button { display: flex; align-items: center; justify-content: center; gap: 10px; min-width: 136px; padding: 15px 22px; border-radius: 8px; background: #c9f785; border: 1px solid #c9f785; color: #1b2615; font-size: 14px; font-weight: 650; }
 .record-button:hover { background: #daffa3; }
@@ -34,8 +43,9 @@ button { font: inherit; cursor: pointer; }
 .panel-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 h2 { margin: 0; font-size: 14px; font-weight: 550; }
 .small-label { color: #8fa092; font-size: 9px; letter-spacing: .09em; }
-.total-value { font-size: clamp(64px, 8vw, 92px); letter-spacing: -.06em; font-weight: 450; color: #c9f785; margin: 21px 0 20px; font-variant-numeric: tabular-nums; line-height: 1.12; }
+.total-value { display: flex; align-items: baseline; gap: 10px; font-size: clamp(64px, 8vw, 92px); letter-spacing: -.06em; font-weight: 450; color: #c9f785; margin: 21px 0 20px; font-variant-numeric: tabular-nums; line-height: 1.12; }
 .unit { font-size: 23px; letter-spacing: 0; margin-left: 14px; color: #9aaba0; }
+.total-value .unit { margin-left: 0; }
 .load-stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin: 0; }
 .load-stats dt, .stats-note { color: #8fa092; font-size: 11px; }
 .load-stats dd { margin: 6px 0 0; font-size: 24px; font-variant-numeric: tabular-nums; }
@@ -48,8 +58,9 @@ h2 { margin: 0; font-size: 14px; font-weight: 550; }
 .corners > div:nth-child(-n+2) { border-bottom: 1px solid #303d34; }
 .corner-label { font-size: 11px; color: #c2d1c5; }
 .corner-label span { color: #7e9283; margin-left: 8px; font-size: 9px; letter-spacing: .08em; }
-.corners p { font-size: clamp(22px, 3.2vw, 32px); font-weight: 450; letter-spacing: -.03em; font-variant-numeric: tabular-nums; margin: 7px 0 9px; }
+.corner-value { display: flex; align-items: baseline; flex-wrap: wrap; gap: 0 8px; font-size: clamp(22px, 3.2vw, 32px); font-weight: 450; font-variant-numeric: tabular-nums; margin: 7px 0 9px; }
 .corners small { font-size: 12px; margin-left: 8px; color: #8fa092; }
+.corner-value small { margin-left: 0; }
 .corner-stats { margin: 0 0 10px; font-size: 11px; }
 .corner-stats > div { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 8px; margin-top: 6px; }
 .corner-stats dt { color: #8fa092; }
@@ -76,9 +87,9 @@ h2 { margin: 0; font-size: 14px; font-weight: 550; }
 .sample-quality-heading { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 6px 12px; }
 .sample-coverage { height: 6px; margin-top: 10px; overflow: hidden; border-radius: 3px; background: #303d34; }
 #sample-coverage-fill { display: block; width: 0; height: 100%; background: #c9f785; }
-.sample-quality p { margin: 8px 0 0; color: #8fa092; }
+.sample-quality .sample-freshness { display: block; margin: 8px 0 0; color: #8fa092; white-space: pre-wrap; overflow-wrap: anywhere; }
 .sample-quality.delayed #sample-coverage-fill { background: #f4b477; }
-.sample-quality.delayed p { color: #f4b477; }
+.sample-quality.delayed .sample-freshness { color: #f4b477; }
 .sample-age-summary { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 8px 18px; margin-top: 12px; color: #8fa092; }
 .sample-age-stats { display: flex; flex-wrap: wrap; gap: 8px 20px; margin: 0; }
 .sample-age-stats > div { display: flex; gap: 6px; }
@@ -114,7 +125,7 @@ footer { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10
     .panel { padding: 20px; }
     .chart-heading { align-items: flex-start; flex-wrap: wrap; gap: 20px; }
     .baseline-label { width: 100%; justify-content: space-between; }
-    .total-value { font-size: 76px; }
-    .corners p { font-size: clamp(22px, 7vw, 30px); }
+    .total-value { font-size: clamp(56px, 18vw, 76px); }
+    .corner-value { font-size: clamp(22px, 7vw, 30px); }
     .corners > div:nth-child(even) { padding-left: 16px; }
 }

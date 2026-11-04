@@ -14,6 +14,12 @@ recording path.
   the first **2 seconds** while the logger tares.
 - Open **http://rpi:8011** (or use the Pi's IP address) on the same network.
   The dashboard shows total load, four corners, and a rolling 60-second chart.
+  A battery icon and percentage sit beside the connection status. The board's
+  Linux power-supply capacity is checked by the dashboard service every
+  30 seconds, separately from the measurement loop. At 20% or below, the
+  indicator turns red and says **low**. Offline or unavailable battery data
+  shows **Battery —**. This requires updating/restarting the dashboard service;
+  `--ui` alone cannot add the battery API field.
   The total-load panel also shows the rolling three-second mean and population
   standard deviation of the live 100 ms readings, calculated by the logger
   independently of browser polling. It waits for three seconds of readings and
@@ -150,6 +156,11 @@ the desktop repo root, then refresh the dashboard in the browser. This copies
 only `dashboard.html`, `dashboard.css`, and `dashboard.js`; it does not restart
 services, re-tare, or interrupt recording. The dashboard server reads these
 files on each request and disables browser caching.
+Deployment also gives JavaScript and CSS content-based version URLs and uses
+checksum comparisons when copying files, including same-size edits made within
+the same timestamp resolution. Reload the tab after deployment to execute the
+updated script; live data polling does not reload JavaScript. Adding `?v=1`
+to the page URL alone does not change its JavaScript or CSS asset URLs.
 
 The move to logger-calculated three-second statistics requires one full deploy
 with the board connected and empty; `--ui` alone cannot update the logger.

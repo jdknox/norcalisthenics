@@ -5,6 +5,31 @@ import time
 runtime_dir = os.environ.get('WII_RUNTIME_DIR', f'/dev/shm/norcalisthenics-wii-{os.getuid()}')
 state_path = f'{runtime_dir}/state.json'
 command_path = f'{runtime_dir}/command.json'
+battery_capacity_path = '/sys/class/power_supply/wiimote_battery_00:1f:c5:ab:39:a6/capacity'
+battery_percent = None
+battery_checked_at = None
+
+
+def readBatteryPercent(connected):
+    global battery_percent, battery_checked_at
+    if not connected:
+        battery_percent = None
+        battery_checked_at = None
+        return None
+
+    now = time.monotonic()
+    if battery_checked_at == None or now - battery_checked_at >= 30:
+        battery_checked_at = now
+        battery_percent = None
+        if os.access(battery_capacity_path, os.R_OK):
+            handle = open(battery_capacity_path)
+            text = handle.read().strip()
+            handle.close()
+            if text.isdecimal():
+                value = int(text)
+                if 0 <= value <= 100:
+                    battery_percent = value
+    return battery_percent
 
 
 def writeJson(path, value):
@@ -22,12 +47,14 @@ def publishState(state):
 
 def readState():
     if not os.access(state_path, os.F_OK):
-        return {'live': False, 'connected': False, 'recording': False}
+        readBatteryPercent(False)
+        return {'live': False, 'connected': False, 'recording': False, 'battery_percent': None}
     handle = open(state_path)
     state = json.load(handle)
     handle.close()
     now = time.time()
     state['live'] = now - state['updated_at'] < 1.5
+    state['battery_percent'] = readBatteryPercent(state['live'] and state['connected'])
     state['sample_age_ms'] = None
     if state['sample_time'] != None:
         state['sample_age_ms'] = max(0.0, (now - state['sample_time'])*1000)

@@ -70,14 +70,20 @@
         </section>
         <header>
             <a class="brand" href="/" aria-label="Board dashboard"><span class="brand-mark">▥</span> BOARD<span class="brand-detail"> / TRAINING LAB</span></a>
-            <span class="connection" id="connection" role="status">Connecting…</span>
+            <div class="board-status">
+                <span class="connection" id="connection" role="status">Connecting…</span>
+                <div id="battery" class="battery" role="img" aria-label="Board battery unavailable" title="Board battery unavailable">
+                    <span class="battery-icon" aria-hidden="true"><span id="battery-fill"></span></span>
+                    <pre id="battery-label" class="readout" aria-hidden="true">Battery —</pre>
+                </div>
+            </div>
         </header>
 
         <section class="session-heading">
             <div><p class="eyebrow">WII BALANCE BOARD</p><h1>Live session<span>.</span></h1>
                 <p class="intro">See the load. Record when you're ready.</p></div>
             <div class="record-controls">
-                <span id="record-state" class="record-state">Preview · not saving</span>
+                <pre id="record-state" class="readout record-state">Preview · not saving</pre>
                 <button id="record" class="record-button" type="button" disabled><span class="record-dot"></span><span id="record-label">Record</span></button>
             </div>
         </section>
@@ -87,25 +93,25 @@
         <section class="readings" aria-label="Live force readings">
             <article class="panel total-panel">
                 <div class="panel-heading"><h2>Total load</h2><span class="small-label">TARED + CORRECTED</span></div>
-                <div class="total-value"><span id="total">—</span><span class="unit">kg</span></div>
+                <div class="total-value"><pre id="total" class="readout">—</pre><span class="unit">kg</span></div>
                 <dl class="load-stats">
-                    <div><dt>3 s average</dt><dd><span id="load-average">—</span><small>kg</small></dd></div>
-                    <div><dt>3 s stdev</dt><dd><span id="load-stdev">—</span><small>kg</small></dd></div>
-                    <div><dt>Before tare</dt><dd><span id="total-raw">—</span><small>kg</small></dd></div>
+                    <div><dt>3 s average</dt><dd><pre id="load-average" class="readout">—</pre><small>kg</small></dd></div>
+                    <div><dt>3 s stdev</dt><dd><pre id="load-stdev" class="readout">—</pre><small>kg</small></dd></div>
+                    <div><dt>Before tare</dt><dd><pre id="total-raw" class="readout">—</pre><small>kg</small></dd></div>
                 </dl>
                 <p id="load-window-note" class="stats-note">Waiting for readings</p>
-                <div class="total-footer"><span>100 ms averages</span><span id="rows">0 samples recorded</span></div>
+                <div class="total-footer"><span>100 ms averages</span><pre id="rows" class="readout">0 samples recorded</pre></div>
             </article>
             <article class="panel corners-panel">
                 <div class="panel-heading"><h2>Four corners</h2><span class="small-label">TARED</span></div>
                 <div class="corners">
                     <div>
-                        <span class="corner-label">01 <span>AXIS 18</span></span><p><span id="corner-3">—</span><small>kg</small></p>
+                        <span class="corner-label">01 <span>AXIS 18</span></span><div class="corner-value"><pre id="corner-3" class="readout">—</pre><small>kg</small></div>
                         <dl class="corner-stats">
-                            <div><dt>3 s avg</dt><dd><span id="corner-3-average">—</span> kg</dd></div>
-                            <div><dt>3 s stdev</dt><dd><span id="corner-3-stdev">—</span> kg</dd></div>
-                            <div><dt>Min − avg</dt><dd><span id="corner-3-min-delta">—</span> kg</dd></div>
-                            <div><dt>Max − avg</dt><dd><span id="corner-3-max-delta">—</span> kg</dd></div>
+                            <div><dt>3 s avg</dt><dd><pre id="corner-3-average" class="readout">—</pre> kg</dd></div>
+                            <div><dt>3 s stdev</dt><dd><pre id="corner-3-stdev" class="readout">—</pre> kg</dd></div>
+                            <div><dt>Min − avg</dt><dd><pre id="corner-3-min-delta" class="readout">—</pre> kg</dd></div>
+                            <div><dt>Max − avg</dt><dd><pre id="corner-3-max-delta" class="readout">—</pre> kg</dd></div>
                         </dl>
                         <div id="corner-3-range" class="corner-range" role="img" aria-label="Waiting for min/max readings. Scale −0.3 to +0.3 kg relative to the 3 s average.">
                             <div class="corner-range-track" aria-hidden="true">
@@ -118,12 +124,12 @@
                         </div>
                     </div>
                     <div>
-                        <span class="corner-label">02 <span>AXIS 16</span></span><p><span id="corner-1">—</span><small>kg</small></p>
+                        <span class="corner-label">02 <span>AXIS 16</span></span><div class="corner-value"><pre id="corner-1" class="readout">—</pre><small>kg</small></div>
                         <dl class="corner-stats">
-                            <div><dt>3 s avg</dt><dd><span id="corner-1-average">—</span> kg</dd></div>
-                            <div><dt>3 s stdev</dt><dd><span id="corner-1-stdev">—</span> kg</dd></div>
-                            <div><dt>Min − avg</dt><dd><span id="corner-1-min-delta">—</span> kg</dd></div>
-                            <div><dt>Max − avg</dt><dd><span id="corner-1-max-delta">—</span> kg</dd></div>
+                            <div><dt>3 s avg</dt><dd><pre id="corner-1-average" class="readout">—</pre> kg</dd></div>
+                            <div><dt>3 s stdev</dt><dd><pre id="corner-1-stdev" class="readout">—</pre> kg</dd></div>
+                            <div><dt>Min − avg</dt><dd><pre id="corner-1-min-delta" class="readout">—</pre> kg</dd></div>
+                            <div><dt>Max − avg</dt><dd><pre id="corner-1-max-delta" class="readout">—</pre> kg</dd></div>
                         </dl>
                         <div id="corner-1-range" class="corner-range" role="img" aria-label="Waiting for min/max readings. Scale −0.3 to +0.3 kg relative to the 3 s average.">
                             <div class="corner-range-track" aria-hidden="true">
@@ -136,12 +142,12 @@
                         </div>
                     </div>
                     <div>
-                        <span class="corner-label">03 <span>AXIS 19</span></span><p><span id="corner-4">—</span><small>kg</small></p>
+                        <span class="corner-label">03 <span>AXIS 19</span></span><div class="corner-value"><pre id="corner-4" class="readout">—</pre><small>kg</small></div>
                         <dl class="corner-stats">
-                            <div><dt>3 s avg</dt><dd><span id="corner-4-average">—</span> kg</dd></div>
-                            <div><dt>3 s stdev</dt><dd><span id="corner-4-stdev">—</span> kg</dd></div>
-                            <div><dt>Min − avg</dt><dd><span id="corner-4-min-delta">—</span> kg</dd></div>
-                            <div><dt>Max − avg</dt><dd><span id="corner-4-max-delta">—</span> kg</dd></div>
+                            <div><dt>3 s avg</dt><dd><pre id="corner-4-average" class="readout">—</pre> kg</dd></div>
+                            <div><dt>3 s stdev</dt><dd><pre id="corner-4-stdev" class="readout">—</pre> kg</dd></div>
+                            <div><dt>Min − avg</dt><dd><pre id="corner-4-min-delta" class="readout">—</pre> kg</dd></div>
+                            <div><dt>Max − avg</dt><dd><pre id="corner-4-max-delta" class="readout">—</pre> kg</dd></div>
                         </dl>
                         <div id="corner-4-range" class="corner-range" role="img" aria-label="Waiting for min/max readings. Scale −0.3 to +0.3 kg relative to the 3 s average.">
                             <div class="corner-range-track" aria-hidden="true">
@@ -154,12 +160,12 @@
                         </div>
                     </div>
                     <div>
-                        <span class="corner-label">04 <span>AXIS 17</span></span><p><span id="corner-2">—</span><small>kg</small></p>
+                        <span class="corner-label">04 <span>AXIS 17</span></span><div class="corner-value"><pre id="corner-2" class="readout">—</pre><small>kg</small></div>
                         <dl class="corner-stats">
-                            <div><dt>3 s avg</dt><dd><span id="corner-2-average">—</span> kg</dd></div>
-                            <div><dt>3 s stdev</dt><dd><span id="corner-2-stdev">—</span> kg</dd></div>
-                            <div><dt>Min − avg</dt><dd><span id="corner-2-min-delta">—</span> kg</dd></div>
-                            <div><dt>Max − avg</dt><dd><span id="corner-2-max-delta">—</span> kg</dd></div>
+                            <div><dt>3 s avg</dt><dd><pre id="corner-2-average" class="readout">—</pre> kg</dd></div>
+                            <div><dt>3 s stdev</dt><dd><pre id="corner-2-stdev" class="readout">—</pre> kg</dd></div>
+                            <div><dt>Min − avg</dt><dd><pre id="corner-2-min-delta" class="readout">—</pre> kg</dd></div>
+                            <div><dt>Max − avg</dt><dd><pre id="corner-2-max-delta" class="readout">—</pre> kg</dd></div>
                         </dl>
                         <div id="corner-2-range" class="corner-range" role="img" aria-label="Waiting for min/max readings. Scale −0.3 to +0.3 kg relative to the 3 s average.">
                             <div class="corner-range-track" aria-hidden="true">
@@ -178,15 +184,15 @@
         </section>
 
         <section class="sample-quality" aria-label="Shared sample coverage and freshness">
-            <div class="sample-quality-heading"><span id="sample-window-label">3 s sample coverage</span><span id="sample-count">—/30 samples · —%</span></div>
+            <div class="sample-quality-heading"><span id="sample-window-label">3 s sample coverage</span><pre id="sample-count" class="readout">—/30 samples · —%</pre></div>
             <div id="sample-coverage" class="sample-coverage" role="meter" aria-labelledby="sample-window-label" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-valuetext="Waiting for readings"><span id="sample-coverage-fill"></span></div>
-            <p id="sample-freshness">Latest sample: — · waiting for readings</p>
+            <pre id="sample-freshness" class="readout sample-freshness">Latest sample: — · waiting for readings</pre>
             <div class="sample-age-summary">
                 <span>Latest sample age · last 3 s</span>
                 <dl class="sample-age-stats">
-                    <div><dt>Average</dt><dd id="sample-age-average">—</dd></div>
-                    <div><dt>Min</dt><dd id="sample-age-min">—</dd></div>
-                    <div><dt>Max</dt><dd id="sample-age-max">—</dd></div>
+                    <div><dt>Average</dt><dd><pre id="sample-age-average" class="readout">—</pre></dd></div>
+                    <div><dt>Min</dt><dd><pre id="sample-age-min" class="readout">—</pre></dd></div>
+                    <div><dt>Max</dt><dd><pre id="sample-age-max" class="readout">—</pre></dd></div>
                 </dl>
             </div>
         </section>

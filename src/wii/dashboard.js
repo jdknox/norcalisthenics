@@ -205,10 +205,10 @@ function renderCornerStats(stats, note)
         let stdev_text = '—';
         if (has_stats)
         {
-            average_text = stats.corner_average_kg[corner].toFixed(3);
-            stdev_text = stats.corner_stdev_kg[corner].toFixed(3);
+            average_text = stats.corner_average_kg[corner].toFixed(3).padStart(8);
+            stdev_text = stats.corner_stdev_kg[corner].toFixed(3).padStart(8);
         }
-        let element_id = 'corner-' + (corner + 1);
+        let element_id = `corner-${(corner + 1)}`;
         document.getElementById(element_id + '-average').textContent = average_text;
         document.getElementById(element_id + '-stdev').textContent = stdev_text;
         renderCornerRange(element_id, stats, corner, has_range);
@@ -345,6 +345,27 @@ function formatDuration(seconds)
     return minutes_text + ':' + seconds_text;
 }
 
+function renderBattery(state)
+{
+    let available = state.live && state.connected && state.battery_percent != null;
+    let percent = available ? state.battery_percent : 0;
+    let low = available && percent <= 20;
+    let label = available ? 'Battery ' + percent + '%' : 'Battery —';
+    let description = available ? 'Board battery: ' + percent + '%' : 'Board battery unavailable';
+    if (low)
+    {
+        label += ' · low';
+        description += ' · low battery';
+    }
+    let indicator = document.getElementById('battery');
+    indicator.classList.toggle('available', available);
+    indicator.classList.toggle('low', low);
+    indicator.setAttribute('aria-label', description);
+    indicator.title = description;
+    document.getElementById('battery-label').textContent = label;
+    document.getElementById('battery-fill').style.width = percent + '%';
+}
+
 function renderState(state, request_started_at)
 {
     last_state = state;
@@ -353,15 +374,17 @@ function renderState(state, request_started_at)
     let connection = document.getElementById('connection');
     connection.classList.toggle('connected', live);
     connection.textContent = live ? 'Board connected' : 'Board offline';
-    document.getElementById('total').textContent = ready ? state.total_kg.toFixed(2) : '—';
+    renderBattery(state);
+    let total_kg = ready ? state.total_kg.toFixed(2).padStart(7) : '—';
+    document.getElementById('total').textContent = total_kg;
     for (let i = 0; i < 4; ++i)
     {
         let value = '—';
         if (live && state.corners_kg != null)
         {
-            value = state.corners_kg[i].toFixed(3);
+            value = state.corners_kg[i].toFixed(3).padStart(8);
         }
-        document.getElementById('corner-' + (i + 1)).textContent = value;
+        document.getElementById('corner-' + (i + 1)).innerHTML = value;
     }
 
     if (pending_command != null && pending_command.command_id != null)

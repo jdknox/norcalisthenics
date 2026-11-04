@@ -15,14 +15,19 @@ case "$*" in
         ;;
 esac
 
+ui_stage_dir=$(mktemp -d "${TMPDIR:-/tmp}/wii-dashboard-ui.XXXXXX")
+trap 'rm -rf "$ui_stage_dir"' 0
+python3 "$source_dir/prepare_dashboard_ui.py" "$source_dir" "$ui_stage_dir"
+
 ssh "$remote" mkdir -p "$runtime_dir"
+if [ "$ui_only" = false ]; then
+    rsync -a --checksum --exclude=__pycache__ "$source_dir/" "$remote:$runtime_dir/"
+fi
+rsync -a --checksum "$ui_stage_dir/" "$remote:$runtime_dir/"
 if [ "$ui_only" = true ]; then
-    rsync -a "$source_dir/dashboard.html" "$source_dir/dashboard.css" "$source_dir/dashboard.js" "$remote:$runtime_dir/"
     printf '%s\n' 'Dashboard files updated. Refresh the browser; services, tare, and recording are unchanged.'
     exit 0
 fi
-
-rsync -a --exclude=__pycache__ "$source_dir/" "$remote:$runtime_dir/"
 
 ssh "$remote" sudo install -m 644 "$runtime_dir/70-wii-board.rules" /etc/udev/rules.d/
 ssh "$remote" sudo udevadm control --reload-rules
