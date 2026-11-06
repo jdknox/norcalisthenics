@@ -996,13 +996,32 @@ function addScoop(key)
   return pushLogEntry(key, item.scoop_g, item.protein_g, item.kcal, 1);
 }
 
-function pushLogEntry(key, grams, protein_g, kcal, scale)
+function pushLogEntry(key, grams, protein_g, kcal, scale, recipe_snapshot = null)
 {
   if (g_recipe_draft)
   {
     if (addRecipeIngredient(key, grams)) return 'Added to recipe';
     return '';
   }
+  let entry =
+  {
+    id:uid(),
+    item_key:key,
+    grams:grams,
+    protein_g:protein_g,
+    kcal:kcal,
+    scale:scale
+  };
+  let item = findScoopItem(key);
+  if (!recipe_snapshot && item && Array.isArray(item.ingredients))
+  {
+    let ingredient_scale = grams != null ? grams/item.yield_g : null;
+    let result = makeRecipeLogSnapshot(item, grams, protein_g, kcal, ingredient_scale);
+    if (result.error) return result.error;
+    recipe_snapshot = result.snapshot;
+  }
+  // Ingredient snapshots describe this meal; only the outer log entry counts toward totals.
+  if (recipe_snapshot) entry.recipe_snapshot = recipe_snapshot;
   let day = g_log[g_view_date];
 
   if (!day)
@@ -1011,7 +1030,7 @@ function pushLogEntry(key, grams, protein_g, kcal, scale)
     g_log[g_view_date] = day;
   }
 
-  day.push({ id:uid(), item_key:key, grams:grams, protein_g:protein_g, kcal:kcal, scale:scale });
+  day.push(entry);
   return grams != null ? 'Added ' + fmt1(grams) + ' g' : 'Added to log';
 }
 
@@ -2073,6 +2092,7 @@ function loggedEntryLabel(entry)
   let item;
 
   if (entry.item_key == 'custom') return 'Custom';
+  if (entry.recipe_snapshot) return entry.recipe_snapshot.name;
 
   item = findScoopItem(entry.item_key);
   if (item) return item.name;
@@ -2090,6 +2110,7 @@ function diaryEntryLabel(entry)
     note = (entry.note || '').trim();
     return note ? '* ' + note : 'Custom';
   }
+  if (entry.recipe_snapshot) return entry.recipe_snapshot.name;
 
   item = findScoopItem(entry.item_key);
   if (item) return item.name;
@@ -2440,6 +2461,52 @@ function recipeIngredientTotals(draft)
   return totals;
 }
 
+function makeRecipeLogSnapshot(item, grams, protein_g, kcal, ingredient_scale, trail = [])
+{
+  let result =
+  {
+    error:'',
+    snapshot:
+    {
+      item_key:item.key || '',
+      name:item.name.trim() || 'Meal',
+      brand:item.brand || '',
+      barcode:item.barcode || '',
+      grams:grams,
+      protein_g:protein_g,
+      kcal:kcal
+    }
+  };
+  if (!Array.isArray(item.ingredients)) return result;
+  if (item.key && trail.includes(item.key))
+  {
+    result.error = 'A recipe cannot contain itself, even through another recipe.';
+    return result;
+  }
+  if (ingredient_scale != null && (!Number.isFinite(ingredient_scale) || ingredient_scale < 0))
+  {
+    result.error = 'Enter a positive finished weight and a non-negative logged amount.';
+    return result;
+  }
+
+  result.snapshot.ingredients = [];
+  let next_trail = item.key ? trail.concat(item.key) : trail;
+  for (let ingredient of item.ingredients)
+  {
+    let nutrition = recipeIngredientNutrition(ingredient, item.key);
+    if (nutrition.error) return nutrition;
+    let child = findScoopItem(ingredient.item_key);
+    let child_grams = ingredient_scale != null ? nutrition.grams*ingredient_scale : null;
+    let child_protein = ingredient_scale != null ? nutrition.protein_g*ingredient_scale : null;
+    let child_kcal = ingredient_scale != null ? nutrition.kcal*ingredient_scale : null;
+    let child_scale = child_grams != null && Array.isArray(child.ingredients) ? child_grams/child.yield_g : null;
+    let child_result = makeRecipeLogSnapshot(child, child_grams, child_protein, child_kcal, child_scale, next_trail);
+    if (child_result.error) return child_result;
+    result.snapshot.ingredients.push(child_result.snapshot);
+  }
+  return result;
+}
+
 function recipeNutrition(draft)
 {
   let totals = recipeIngredientTotals(draft);
@@ -2686,6 +2753,14 @@ function logRecipeDraft()
     document.getElementById('recipe-preview').textContent = totals.error;
     return;
   }
+  // Draft logging records the full ingredient batch, independently of serving/yield overrides.
+  let result = makeRecipeLogSnapshot(draft, totals.grams, totals.protein_g, totals.kcal, 1);
+  if (result.error)
+  {
+    document.getElementById('recipe-preview').textContent = result.error;
+    return;
+  }
+  result.snapshot.brand = 'knox';
   let item_key = 'custom';
   let scale = null;
   if (draft.save_modifications)
@@ -2694,9 +2769,10 @@ function logRecipeDraft()
     if (!item) return;
     item_key = item.key;
     scale = totals.grams/item.scoop_g;
+    result.snapshot.item_key = item.key;
   }
   g_recipe_draft = null;
-  pushLogEntry(item_key, totals.grams, totals.protein_g, totals.kcal, scale);
+  pushLogEntry(item_key, totals.grams, totals.protein_g, totals.kcal, scale, result.snapshot);
   if (item_key == 'custom') g_log[g_view_date].at(-1).note = draft.name.trim() || 'Meal';
   g_temporary_meal_edit = null;
   g_logged_foods_open = true;
@@ -3410,6 +3486,20 @@ function doFetchOFF(key)
   });
 }
 
+function appendRecipeSnapshotText(lines, snapshot, indent)
+{
+  for (let ingredient of snapshot.ingredients)
+  {
+    lines.push(indent + '- ' + ingredient.name
+      + (ingredient.brand ? ' — ' + ingredient.brand : '')
+      + (ingredient.barcode ? ' [' + ingredient.barcode + ']' : '')
+      + ' · ' + (ingredient.grams != null ? ingredient.grams + ' g' : '— g')
+      + ' · ' + (ingredient.protein_g != null ? ingredient.protein_g + ' g protein' : '— g protein')
+      + ' · ' + (ingredient.kcal != null ? ingredient.kcal + ' kcal' : '— kcal'));
+    if (ingredient.ingredients) appendRecipeSnapshotText(lines, ingredient, indent + '  ');
+  }
+}
+
 function buildDiaryText()
 {
   let lines = [];
@@ -3452,6 +3542,11 @@ function buildDiaryText()
         + (entry.grams != null ? ' (' + entry.grams + ' g' + (entry.scale != null && entry.scale != 1 ? ', ' + entry.scale.toFixed(2) + '×' : '') + ')' : '')
         + (entry.protein_g != null ? ' — ' + fmt0(entry.protein_g) + ' g' : '')
         + (entry.kcal != null ? ' / ' + fmt_1(entry.kcal) + ' kcal' : ''));
+      if (entry.recipe_snapshot)
+      {
+        lines.push('    Ingredients (detail only; nutrition included in meal totals):');
+        appendRecipeSnapshotText(lines, entry.recipe_snapshot, '      ');
+      }
     }
 
     lines.push('');
@@ -3568,7 +3663,7 @@ function buildBackupTSV()
     }
   }
 
-  pushBackupTsvSection(lines, 'log_entries', ['date', 'id', 'item_key', 'grams', 'protein_g', 'kcal', 'scale', 'note', 'deleted_at', 'delete_count', 'buried_at', 'restored_at'], state);
+  pushBackupTsvSection(lines, 'log_entries', ['date', 'id', 'item_key', 'grams', 'protein_g', 'kcal', 'scale', 'note', 'deleted_at', 'delete_count', 'buried_at', 'restored_at', 'recipe_snapshot'], state);
   for (let date in g_log)
   {
     let day = g_log[date];
@@ -3577,7 +3672,8 @@ function buildBackupTSV()
     for (let i = 0; i < day.length; ++i)
     {
       let entry = day[i];
-      pushBackupTsvRow(lines, [date, entry.id, entry.item_key, entry.grams, entry.protein_g, entry.kcal, entry.scale, entry.note, entry.deleted_at, entry.delete_count, entry.buried_at, entry.restored_at], state);
+      let recipe_snapshot = entry.recipe_snapshot ? JSON.stringify(entry.recipe_snapshot) : '';
+      pushBackupTsvRow(lines, [date, entry.id, entry.item_key, entry.grams, entry.protein_g, entry.kcal, entry.scale, entry.note, entry.deleted_at, entry.delete_count, entry.buried_at, entry.restored_at, recipe_snapshot], state);
     }
   }
 
@@ -4269,6 +4365,7 @@ function parseBackupTSV(text)
       setIfNumber(entry, 'delete_count', row.delete_count);
       setIfText(entry, 'buried_at', row.buried_at);
       setIfText(entry, 'restored_at', row.restored_at);
+      if (row.recipe_snapshot) entry.recipe_snapshot = JSON.parse(row.recipe_snapshot);
 
       if (date && entry.id && entry.item_key)
       {
@@ -5373,6 +5470,11 @@ function mergeLogEntryState(local_entry, remote_entry)
   let remote_count;
 
   if (!local_entry || !remote_entry) return;
+
+  if (!local_entry.recipe_snapshot && remote_entry.recipe_snapshot)
+  {
+    local_entry.recipe_snapshot = JSON.parse(JSON.stringify(remote_entry.recipe_snapshot));
+  }
 
   local_delete_millis = logEntryDeleteMillis(local_entry);
   local_restore_millis = logEntryRestoreMillis(local_entry);

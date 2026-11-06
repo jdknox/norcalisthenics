@@ -82,6 +82,165 @@ function flushSync()
   return new Promise(function(resolve) { setImmediate(resolve); });
 }
 
+function testRecipeLogSnapshots()
+{
+  evaluate(`save = function() {};
+    g_view_date = '2020-03-01';
+    g_admin_mode = true;
+    g_recipe_draft = null;
+    g_log = {};
+    g_scoop_items = [
+      {
+        key:'powder', name:'Powder', brand:'Original brand', barcode:'000123', scoop_g:20, protein_g:16, kcal:80
+      },
+      {
+        key:'yogurt', name:'Yogurt', scoop_g:100, protein_g:10, kcal:60
+      },
+      {
+        key:'premix', name:'Premix', scoop_g:100, protein_g:17, kcal:94, yield_g:200,
+        ingredients:[
+          {
+            item_key:'powder', grams:20
+          },
+          {
+            item_key:'yogurt', grams:180
+          }
+        ]
+      },
+      {
+        key:'bowl', name:'Original bowl', scoop_g:125, protein_g:13.5, kcal:77, yield_g:250,
+        ingredients:[
+          {
+            item_key:'premix', grams:100
+          },
+          {
+            item_key:'yogurt', grams:100
+          }
+        ]
+      }
+    ];`);
+  click('scoop-add',
+  {
+    key:'bowl'
+  });
+  click('scoop-scale-open',
+  {
+    key:'bowl'
+  });
+  input(
+  {
+    scaledraft:'grams'
+  }, '62.5');
+  click('scoop-scale-log');
+  let entries = JSON.parse(evaluate('JSON.stringify(g_log[g_view_date])'));
+  assert.equal(entries.length, 2, 'ingredients must not become additional diary entries');
+  assert.equal(entries[0].recipe_snapshot.ingredients[0].grams, 50, 'saved portions use the finished batch weight');
+  assert.equal(entries[0].recipe_snapshot.ingredients[0].ingredients[0].grams, 5, 'nested recipes scale down to the logged portion');
+  assert.equal(entries[1].recipe_snapshot.ingredients[0].ingredients[0].grams, 2.5, 'scaled logging also captures the ingredient amounts');
+  assert.equal(entries[0].recipe_snapshot.ingredients[0].ingredients[0].brand, 'Original brand');
+  assert.equal(entries[0].recipe_snapshot.ingredients[0].ingredients[0].barcode, '000123');
+  assert.equal(evaluate('dayTotals(g_view_date).protein'), 20.25, 'nested details cannot add protein a second time');
+  assert.equal(evaluate('dayTotals(g_view_date).kcal'), 116, 'the rounded, recorded parent calories remain authoritative');
+  assert.equal(evaluate('dayTotals(g_view_date).grams'), 187.5);
+
+  click('scoop-edit-open',
+  {
+    key:'bowl'
+  });
+  click('recipe-log');
+  entries = JSON.parse(evaluate('JSON.stringify(g_log[g_view_date])'));
+  assert.equal(entries[2].item_key, 'custom');
+  assert.equal(entries[2].recipe_snapshot.ingredients[0].grams, 100);
+  assert.equal(entries[2].recipe_snapshot.ingredients[0].ingredients[0].grams, 10, 'unsaved drafts snapshot the full ingredient batch, not a portion based on finished yield');
+  assert.equal(entries[2].grams, 200);
+  assert.equal(entries[2].protein_g, 27);
+
+  click('scoop-edit-open',
+  {
+    key:'bowl'
+  });
+  input(
+  {
+    recipedraft:'yield_g'
+  }, '80');
+  toggleSaveModifications(true);
+  click('recipe-log');
+  entries = JSON.parse(evaluate('JSON.stringify(g_log[g_view_date])'));
+  assert.equal(entries[3].item_key, 'bowl');
+  assert.equal(entries[3].recipe_snapshot.ingredients[0].ingredients[0].grams, 10, 'save-on-log keeps full-batch details even with a finished-weight override');
+  let frozen_log = evaluate('JSON.stringify(g_log)');
+  let frozen_totals = evaluate('JSON.stringify(dayTotals(g_view_date))');
+  evaluate(`g_scoop_items[0].name = 'Changed powder';
+    g_scoop_items[0].brand = 'Changed brand';
+    g_scoop_items[0].barcode = '999';
+    g_scoop_items[0].protein_g = 0;
+    g_scoop_items[2].ingredients[0].grams = 99;
+    g_scoop_items[3].name = 'Changed bowl';`);
+  assert.equal(evaluate('JSON.stringify(g_log)'), frozen_log, 'later recipe and pantry edits cannot change any logged snapshot');
+  assert.equal(evaluate('loggedEntryLabel(g_log[g_view_date][0])'), 'Original bowl');
+  assert.equal(evaluate('JSON.stringify(dayTotals(g_view_date))'), frozen_totals);
+  let diary = evaluate('buildDiaryText()');
+  assert.match(diary, /Ingredients \(detail only; nutrition included in meal totals\)/);
+  assert.match(diary, /Powder — Original brand \[000123\] · 5 g · 4 g protein · 20 kcal/);
+  assert.doesNotMatch(diary.split('FOOD DIARY')[1], /Changed powder|Changed bowl/);
+
+  let json_payload = JSON.parse(evaluate('buildExportJSON()'));
+  assert.equal(JSON.stringify(json_payload.log), frozen_log, 'JSON exports retain every snapshot');
+  evaluate('saveLocalJson(JSON.stringify(makeSavePayload()));');
+  assert.equal(JSON.stringify(JSON.parse(local_values['protein-loadout:v1']).log), frozen_log, 'local storage retains every snapshot');
+  let backup = evaluate('buildBackupTSV()');
+  assert.equal(backup.ok, true, backup.error);
+  let restored = evaluate('parseBackupTSV(' + JSON.stringify(backup.text) + ')');
+  assert.equal(restored.ok, true, restored.error);
+  assert.deepEqual(JSON.parse(JSON.stringify(restored.payload.log['2020-03-01'][0].recipe_snapshot)), json_payload.log['2020-03-01'][0].recipe_snapshot, 'TSV round trips nested snapshots');
+  context.snapshot_payload = restored.payload;
+  evaluate('g_log = {}; g_import_pending = snapshot_payload; applyReplaceImport();');
+  assert.equal(evaluate('JSON.stringify(dayTotals(g_view_date))'), frozen_totals, 'replacement imports still count only parent nutrition');
+  assert.equal(evaluate('g_log[g_view_date][0].recipe_snapshot.ingredients[0].ingredients[0].grams'), 5);
+
+  evaluate(`let snapshot_remote = JSON.parse(JSON.stringify(g_log));
+    delete g_log[g_view_date][0].recipe_snapshot;
+    mergeLogEntries(snapshot_remote);
+    mergeLogEntries(snapshot_remote);`);
+  assert.equal(evaluate('g_log[g_view_date].length'), 4, 'repeated sync cannot create ingredient entries or duplicate meals');
+  assert.equal(evaluate('g_log[g_view_date][0].recipe_snapshot.ingredients[0].ingredients[0].grams'), 5, 'sync fills a missing snapshot on the same existing entry');
+  evaluate('snapshot_remote[g_view_date][0].recipe_snapshot.ingredients[0].ingredients[0].grams = 999; mergeLogEntries(snapshot_remote);');
+  assert.equal(evaluate('g_log[g_view_date][0].recipe_snapshot.ingredients[0].ingredients[0].grams'), 5, 'sync copies incoming detail and never overwrites an existing snapshot');
+  evaluate('delete snapshot_remote[g_view_date][0].recipe_snapshot; mergeLogEntries(snapshot_remote);');
+  assert.equal(evaluate('g_log[g_view_date][0].recipe_snapshot.ingredients[0].ingredients[0].grams'), 5, 'older clients cannot remove a snapshot');
+  evaluate('markLogEntryDeleted(g_log[g_view_date][0]);');
+  assert.equal(evaluate('dayTotals(g_view_date).protein'), 60.75);
+  evaluate('markLogEntryRestored(g_log[g_view_date][0]);');
+  assert.equal(evaluate('JSON.stringify(dayTotals(g_view_date))'), frozen_totals, 'restoring a meal does not add its ingredient nutrition again');
+
+  let legacy_lines = backup.text.split('\n');
+  let section = '';
+  for (let index = 0; index < legacy_lines.length; ++index)
+  {
+    let line = legacy_lines[index];
+    if (line.charAt(0) == '[') section = line;
+    if (section != '[log_entries]' || !line || line.charAt(0) == '[') continue;
+    legacy_lines[index] = line.slice(0, line.lastIndexOf('\t'));
+  }
+  let legacy = evaluate('parseBackupTSV(' + JSON.stringify(legacy_lines.join('\n')) + ')');
+  assert.equal(legacy.ok, true, legacy.error);
+  assert.equal(legacy.payload.log['2020-03-01'][0].recipe_snapshot, undefined, 'legacy backups remain readable without invented ingredient histories');
+  context.snapshot_payload = legacy.payload;
+  evaluate('g_log = {}; g_import_pending = snapshot_payload; applyReplaceImport();');
+  assert.equal(evaluate('JSON.stringify(dayTotals(g_view_date))'), frozen_totals);
+
+  evaluate(`g_view_date = '2020-03-02';
+    addScoop('yogurt');
+    pushLogEntry('bowl', null, 13.5, 77, null);`);
+  assert.equal(evaluate('g_log[g_view_date][0].recipe_snapshot'), undefined, 'ordinary foods keep the existing log shape');
+  assert.equal(evaluate('g_log[g_view_date][1].recipe_snapshot.ingredients[0].ingredients[0].grams'), null, 'unknown serving mass must not invent ingredient amounts');
+  assert.equal(evaluate('dayTotals(g_view_date).protein'), 23.5, 'unknown ingredient amounts do not change the recorded meal nutrition');
+  evaluate("g_scoop_items[2].ingredients[0].item_key = 'missing';");
+  let log_before_invalid = evaluate('JSON.stringify(g_log)');
+  assert.match(evaluate("addScoop('bowl')"), /Choose a pantry food/, 'missing nested ingredients produce a visible logging error');
+  assert.equal(evaluate('JSON.stringify(g_log)'), log_before_invalid, 'snapshot failure cannot leave a partially logged meal');
+}
+
 async function run()
 {
   let imported_detail = evaluate("loggedEntryDetail({grams:'48', protein_g:'5.4', kcal:'125'})");
@@ -500,7 +659,8 @@ async function run()
   click('scoop-add-item-open');
   assert.match(evaluate('renderScoopSection()'), /inputmode="none" data-adddraft="barcode"/, 'each new form starts paste-first');
   click('scoop-add-item-cancel');
-  console.log('Recipe and pantry workflows, barcode keyboard mode, nested ingredients, cycle prevention, meal logging, archive/unarchive, frozen history, shared reload, and TSV round trip passed.');
+  testRecipeLogSnapshots();
+  console.log('Recipe and pantry workflows, nested ingredient snapshots, counted-once nutrition, sync, legacy imports, frozen history, shared reload, and TSV round trip passed.');
 }
 
 run().catch(function(error) { console.error(error); process.exitCode = 1; });
