@@ -8238,6 +8238,12 @@ document.addEventListener('click', function(ev)
       feedback_message = addScoop(target.dataset.key);
       render(true);
       if (!g_recipe_draft) save();
+      if (g_recipe_draft && feedback_message)
+      {
+        let editor = document.querySelector('.recipe-editor');
+        scrollBelowTabs(editor);
+        feedback_bounds = editor.querySelector('.mass-section-head').getBoundingClientRect();
+      }
       showAddFeedback(feedback_bounds, feedback_message);
       return;
 
@@ -8365,6 +8371,12 @@ document.addEventListener('click', function(ev)
     case 'scoop-scale-log':
       feedback_bounds = target.getBoundingClientRect();
       feedback_message = logScaledEntry();
+      if (g_recipe_draft && feedback_message)
+      {
+        let editor = document.querySelector('.recipe-editor');
+        scrollBelowTabs(editor);
+        feedback_bounds = editor.querySelector('.mass-section-head').getBoundingClientRect();
+      }
       showAddFeedback(feedback_bounds, feedback_message);
       return;
 

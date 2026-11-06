@@ -12,7 +12,10 @@ let shared = null;
 let preview = {textContent:''};
 let ingredient_total = {textContent:''};
 let total_preview = {innerHTML:''};
-let recipe_editor = {};
+let recipe_editor =
+{
+  querySelector:function() { return {getBoundingClientRect:function() { return {}; }}; }
+};
 let ingredient_input = {value:''};
 let barcode_input = {
   inputMode:'none',
@@ -275,12 +278,17 @@ async function run()
   assert.match(recipe_mode_html, /class="logged-foods"/, 'recipe mode keeps logged foods visible');
   input({recipedraft:'name'}, 'Test recipe');
   click('scoop-add', {key:'a'});
+  assert.equal(scroll_targets.length, 1, 'adding an ingredient scrolls once');
+  assert.equal(scroll_targets.at(-1), recipe_editor, 'ingredient additions return to the recipe editor');
   click('scoop-add', {key:'a'});
+  assert.equal(scroll_targets.length, 2, 'adding more of an ingredient also returns to the editor');
   assert.equal(evaluate('g_recipe_draft.ingredients.length'), 1, 'repeat servings must combine');
   assert.equal(evaluate('g_recipe_draft.ingredients[0].grams'), '200');
   click('scoop-scale-open', {key:'b'});
   input({scaledraft:'grams'}, '100');
   click('scoop-scale-log');
+  assert.equal(scroll_targets.length, 3, 'scaled ingredient additions also scroll once');
+  assert.equal(scroll_targets.at(-1), recipe_editor);
   assert.equal(evaluate('g_recipe_draft.ingredients[1].grams'), '100');
   assert.equal(shared, null, 'adding ingredients must not save or sync the draft');
   assert.equal(evaluate('dayTotals(g_view_date).kcal'), 0, 'draft must not log ingredients');
@@ -312,9 +320,11 @@ async function run()
   assert.match(recipe_row_html, /class="recipe-label" title="Recipe">recipe</, 'saved recipes have a compact labeled marker');
   let key = recipe.key;
   evaluate('g_admin_mode = true;');
+  let before_normal_log_scrolls = scroll_targets.length;
   click('scoop-scale-open', {key:key});
   input({scaledraft:'grams'}, '75');
   click('scoop-scale-log');
+  assert.equal(scroll_targets.length, before_normal_log_scrolls, 'normal pantry logging does not jump');
   await flushSync();
   assert.equal(evaluate('dayTotals(g_view_date).protein'), 12);
   assert.equal(evaluate('dayTotals(g_view_date).kcal'), 150);
@@ -324,10 +334,13 @@ async function run()
   assert.equal(evaluate('g_recipe_draft.yield_g'), '250', 'editing preserves a distinct saved finished weight');
   input({recipedraft:'scoop_g'}, '');
   assert.equal(evaluate('recipeNutrition(g_recipe_draft).scoop_g'), 250, 'clearing serving restores the whole batch');
+  let before_blocked_add_scrolls = scroll_targets.length;
   click('scoop-add', {key:key});
+  assert.equal(scroll_targets.length, before_blocked_add_scrolls, 'blocked ingredient additions do not jump');
   assert.equal(evaluate('g_recipe_draft.ingredients.length'), 2, 'a recipe cannot be its own ingredient');
   assert.equal(evaluate('g_recipe_draft.ingredients[1].grams'), '100');
   let render_count_before = evaluate('render_count');
+  let before_typing_scrolls = scroll_targets.length;
   let pantry_before_zero = evaluate('JSON.stringify(g_scoop_items)');
   let log_before_zero = evaluate('JSON.stringify(g_log)');
   let shared_before_zero = shared;
@@ -345,6 +358,7 @@ async function run()
   assert.equal(evaluate('JSON.stringify(g_log)'), log_before_zero);
   assert.equal(shared, shared_before_zero, 'zero must not save or sync');
   input({recipeindex:'1', recipefield:'grams'}, '200');
+  assert.equal(scroll_targets.length, before_typing_scrolls, 'zeroing and typing ingredient grams do not jump');
   assert.equal(evaluate('render_count'), render_count_before, 'ingredient typing must not rebuild the page');
   assert.equal(ingredient_total.textContent, '400.0 g', 'the read-only total follows ingredient edits');
   assert.match(total_preview.innerHTML, /400g/, 'the total nutrition line follows ingredient edits');
