@@ -375,7 +375,12 @@ function renderState(state, request_started_at)
     connection.classList.toggle('connected', live);
     connection.textContent = live ? 'Board connected' : 'Board offline';
     renderBattery(state);
-    let total_kg = ready ? state.total_kg.toFixed(2).padStart(7) : '—';
+    let total_kg = '—';
+    if (ready)
+    {
+        let display_total_kg = state.total_kg < 0.1 ? 0 : state.total_kg;
+        total_kg = display_total_kg.toFixed(2).padStart(7);
+    }
     document.getElementById('total').textContent = total_kg;
     for (let i = 0; i < 4; ++i)
     {
