@@ -17,6 +17,9 @@
 <script>
 'use strict';
 
+const PROTEIN_VERSION = 'unversioned';
+const PROTEIN_COMMIT_MESSAGE = '';
+
 function esc(value)
 {
   let text = String(value == null ? '' : value);
@@ -6033,6 +6036,7 @@ function renderStartupError(title, error)
   if (!app) return;
 
   h += `<div class="eyebrow">// daily protein loadout</div>
+  <div class="site-version" title="${esc(PROTEIN_COMMIT_MESSAGE)}">version <time datetime="${PROTEIN_VERSION}">${PROTEIN_VERSION}</time></div>
   <h1>protein_loadout</h1>
   <div class="startup-error">
     <div class="startup-error-title">${esc(title)}</div>
@@ -6682,6 +6686,7 @@ function render(preserve_pantry_position = false)
     <button class="smallbtn admin-toggle${admin_class}" data-a="admin-toggle">
       ${admin_label}</button>
   </div>
+  <div class="site-version" title="${esc(PROTEIN_COMMIT_MESSAGE)}">version <time datetime="${PROTEIN_VERSION}">${PROTEIN_VERSION}</time></div>
   <h1>protein_loadout</h1>`;
 
   if (g_sync_failed) h += `<div id="sync-status" class="sync-status">${esc(g_sync_status || 'local only / sync failed')}</div>`;

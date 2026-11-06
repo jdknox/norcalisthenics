@@ -8,6 +8,7 @@ import glob
 import hashlib
 import json
 import os
+import subprocess
 import threading
 import time
 import urllib.parse
@@ -53,6 +54,14 @@ def noCacheHeaders(handler):
 
 
 def versionHtmlScripts(html_text):
+    version_marker = "const PROTEIN_VERSION = 'unversioned';"
+    if version_marker in html_text:
+        commit_info = subprocess.check_output(['git', 'log', '-1', '--format=%cI%n%B'], text=True)
+        commit_date, commit_message = commit_info.split('\n', 1)
+        html_text = html_text.replace(version_marker, f"const PROTEIN_VERSION = '{commit_date}';")
+        message_json = json.dumps(commit_message.strip()).replace('<', '\\u003c')
+        html_text = html_text.replace("const PROTEIN_COMMIT_MESSAGE = '';", f'const PROTEIN_COMMIT_MESSAGE = {message_json};')
+
     nonce = str(time.time_ns())
     script_names = [
         'shared-storage.js',
