@@ -80,7 +80,18 @@ self.addEventListener('fetch', function(event)
 
   if (request.mode == 'navigate')
   {
-    event.respondWith(proteinFetchWithTimeout(request).catch(function()
+    event.respondWith(proteinFetchWithTimeout(request).then(function(response)
+    {
+      if (response.ok && (url.pathname == '/' || url.pathname == '/protein-loadout.html'))
+      {
+        let copy = response.clone();
+        event.waitUntil(caches.open(protein_cache_name).then(function(cache)
+        {
+          return cache.put('/protein-loadout.html', copy);
+        }));
+      }
+      return response;
+    }).catch(function()
     {
       return caches.match('/protein-loadout.html').then(function(response)
       {

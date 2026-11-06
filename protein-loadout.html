@@ -5963,11 +5963,6 @@ function load()
     }
   }
 
-  function applyStorageValue(value)
-  {
-    applyLoaded(storagePayloadFromValue(value));
-  }
-
   function finishLoad()
   {
     mergeKnownItems();
@@ -5985,16 +5980,19 @@ function load()
 
       if (result && result.value)
       {
+        let shared_payload = storagePayloadFromValue(result.value);
         if (g_unsynced_changes && local_payload)
         {
           applyLoaded(local_payload);
           markDailyActivityDatesDirty(local_payload.daily_activity);
-          mergeLoadedPayload(storagePayloadFromValue(result.value));
+          mergeLoadedPayload(shared_payload);
         }
         else
         {
-          applyStorageValue(result.value);
+          applyLoaded(shared_payload);
           mergeLoadedPayload(local_payload);
+          // Resolve activity before rendering: synced local records cannot override shared values.
+          mergeDailyActivityFromSync(shared_payload.daily_activity);
         }
       }
       else
