@@ -1,21 +1,31 @@
 # Usage:
 #   python3 pose_to_csv.py /q/video/.../20261030/squat/clip.mp4 pose_landmarker_heavy.task out_dir
-#   python3 pose_to_csv.py '/q/video/.../20261030/hspu/*.jpg' pose_landmarker_heavy.task out_dir 30 [workers] [cpu|gpu] [0|180]
+#   python3 pose_to_csv.py '/q/video/.../20261030/hspu/*.jpg' pose_landmarker_heavy.task out_dir 30 [workers] [cpu|gpu] [0|180] [mediapipe|rtmpose]
 # Writes out_dir/<date>-<movement>.csv, e.g. 20261030-hspu.csv. Input must sit in
 # .../<date>/<movement>/, where <date> is 8 digits.
 # Input is a video file, or a quoted glob of image frames plus their frame rate.
 # Frames are read in sorted filename order, so gaps in the numbering don't matter.
 # Image frames are split into contiguous chunks, one process per chunk. Video
 # files run in one process.
+# Backend (last argument, default mediapipe):
+#   mediapipe - BlazePose, all 33 landmarks. model_path is a .task file.
+#   rtmpose   - RTMPose via rtmlib (onnxruntime, no torch). Only the 17 COCO
+#               joints are filled; the rest (fingers, heel, foot, eye corners,
+#               mouth) are written as zero/invisible. model_path is instead the
+#               rtmlib mode: 'balanced' (default), 'performance', or 'lightweight'.
+#               Stateless per frame (no built-in tracking), but this script's own
+#               pickPerson already does cross-frame tracking on top of either
+#               backend, so behavior is otherwise the same.
 # Device: 'cpu' (default) or 'gpu'. The GPU is only used when asked for, and a
 # failure then is an error, not a fallback. MediaPipe's Python GPU support is
-# Linux (OpenGL ES/EGL) only, and under WSL it is slower than the CPU.
+# Linux (OpenGL ES/EGL) only, and under WSL it is slower than the CPU. rtmpose
+# GPU needs onnxruntime-gpu installed; plain onnxruntime has no CUDA provider.
 # Default workers: 1 on the GPU (processes would share one GPU), CPU count on the CPU.
 # Rotation: 180 turns each frame upside down before detection and maps the
 # landmarks back. The detector is trained mostly on upright people, so this helps
 # inverted movements (HSPU). Rotation is not a mirror, so L/R stay correct.
-# MediaPipe tracks one person from frame to frame; pickPerson then rejects any
-# frame where that person's torso jumped too far (the model switched people).
+# pickPerson tracks one person from frame to frame and rejects any frame where
+# that person's torso jumped too far (the detector switched people).
 # One CSV row per frame: time, joint angles, all 33 landmarks in pixels.
 import sys
 import os
@@ -28,6 +38,7 @@ import math
 import multiprocessing
 import cv2
 import mediapipe as mp
+import rtmlib
 
 # MediaPipe pose indices
 L_SHOULDER, R_SHOULDER = 11, 12
@@ -47,6 +58,15 @@ LANDMARK_NAMES = [
     'l_hip', 'r_hip', 'l_knee', 'r_knee', 'l_ankle', 'r_ankle',
     'l_heel', 'r_heel', 'l_foot', 'r_foot']
 assert len(LANDMARK_NAMES) == 33
+
+# rtmpose (rtmlib's Body) gives 17 COCO joints per person, in this fixed order.
+# Each maps onto one of the 33 MediaPipe slots above; the other 16 slots (fingers,
+# heel, foot, eye corners, mouth) have no COCO equivalent and stay zero/invisible.
+COCO_NAMES = [
+    'nose', 'l_eye', 'r_eye', 'l_ear', 'r_ear',
+    'l_shoulder', 'r_shoulder', 'l_elbow', 'r_elbow', 'l_wrist', 'r_wrist',
+    'l_hip', 'r_hip', 'l_knee', 'r_knee', 'l_ankle', 'r_ankle']
+COCO_TO_LANDMARK_SLOT = [LANDMARK_NAMES.index(n) for n in COCO_NAMES]
 
 # Angle at the middle joint, 180 = straight.
 # shoulder = hip-shoulder-elbow: ~0 arm along the torso, 180 arm in line overhead.
@@ -78,7 +98,11 @@ def angleDeg(a, b, c):
     norm = math.hypot(ax, ay)*math.hypot(cx, cy)
     return math.degrees(math.acos(max(-1.0, min(1.0, dot/norm))))
 
-def makeLandmarker(model_path, use_gpu):
+def makeDetector(backend, model_path, use_gpu):
+    # model_path doubles as the rtmpose mode string ('balanced'/'performance'/
+    # 'lightweight'); see the usage comment at the top of the file.
+    if backend == 'rtmpose':
+        return rtmlib.Body(mode=model_path, backend='onnxruntime', device='cuda' if use_gpu else 'cpu')
     delegate = mp.tasks.BaseOptions.Delegate.CPU
     if use_gpu:
         delegate = mp.tasks.BaseOptions.Delegate.GPU
@@ -88,29 +112,51 @@ def makeLandmarker(model_path, use_gpu):
         num_poses=1)
     return mp.tasks.vision.PoseLandmarker.create_from_options(options)
 
-def detectFrame(landmarker, frame_bgr, frame_index, fps, width, height, rotate_180):
+def closeDetector(backend, detector):
+    if backend == 'mediapipe':
+        detector.close()
+
+def mediapipeDetect(landmarker, frame_rgb, time_ms):
+    result = landmarker.detect_for_video(mp.Image(image_format=mp.ImageFormat.SRGB, data=frame_rgb), time_ms)
+    return [[(l.x, l.y, l.visibility) for l in pose] for pose in result.pose_landmarks]
+
+def rtmposeDetect(body, frame_bgr):
+    # keypoints[person][joint] = (x_px, y_px); scores[person][joint] = confidence.
+    keypoints, scores = body(frame_bgr)
+    poses = []
+    for person_points, person_scores in zip(keypoints, scores):
+        pose = [(0.0, 0.0, 0.0)]*33
+        for coco_index, slot in enumerate(COCO_TO_LANDMARK_SLOT):
+            x, y = person_points[coco_index]
+            pose[slot] = (x, y, person_scores[coco_index])
+        poses.append(pose)
+    return poses
+
+def detectFrame(backend, detector, frame_bgr, frame_index, fps, width, height, rotate_180):
     # Returns every detected pose as a list of 33 (x_px, y_px, visibility), in the
     # original (unrotated) frame's pixels.
-    # Frame-count time keeps timestamps strictly increasing, which VIDEO mode requires.
+    # Frame-count time keeps timestamps strictly increasing, which MediaPipe's
+    # VIDEO mode requires; rtmpose ignores it, but we still return it for the CSV.
     time_ms = int(round(frame_index*1000.0/fps))
     if rotate_180:
         frame_bgr = cv2.rotate(frame_bgr, cv2.ROTATE_180)
-    frame_rgb = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
-    image = mp.Image(image_format=mp.ImageFormat.SRGB, data=frame_rgb)
-    result = landmarker.detect_for_video(image, time_ms)
-    poses = []
-    for pose in result.pose_landmarks:
-        if rotate_180:
-            poses.append([(width - l.x*width, height - l.y*height, l.visibility) for l in pose])
-        else:
-            poses.append([(l.x*width, l.y*height, l.visibility) for l in pose])
+
+    if backend == 'rtmpose':
+        poses = rtmposeDetect(detector, frame_bgr)  # BGR straight in, pixel coords straight out
+    else:
+        poses = mediapipeDetect(detector, cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB), time_ms)
+        poses = [[(x*width, y*height, v) for x, y, v in pose] for pose in poses]
+
+    if rotate_180:
+        poses = [[(width - x, height - y, v) for x, y, v in pose] for pose in poses]
     return time_ms, poses
 
 def processImageChunk(job):
-    # One landmarker per process. VIDEO mode tracks from frame to frame, so each
-    # chunk is contiguous; only its first frame runs a full detection.
-    paths, first_frame_index, model_path, use_gpu, rotate_180, fps, width, height = job
-    landmarker = makeLandmarker(model_path, use_gpu)
+    # One detector per process. MediaPipe's VIDEO mode tracks from frame to frame,
+    # so each chunk is contiguous; rtmpose has no such state, but chunking it the
+    # same way is harmless.
+    paths, first_frame_index, backend, model_path, use_gpu, rotate_180, fps, width, height = job
+    detector = makeDetector(backend, model_path, use_gpu)
     frames = []
     for i in range(len(paths)):
         frame_bgr = cv2.imread(paths[i])
@@ -118,9 +164,9 @@ def processImageChunk(job):
         # basename, not split on '/': on Windows glob joins the matched name with
         # '\', giving 'C:/q/.../hspu\20261030_211638.jpg'.
         frame_name = os.path.basename(paths[i])
-        time_ms, poses = detectFrame(landmarker, frame_bgr, first_frame_index + i, fps, width, height, rotate_180)
+        time_ms, poses = detectFrame(backend, detector, frame_bgr, first_frame_index + i, fps, width, height, rotate_180)
         frames.append((first_frame_index + i, frame_name, time_ms, poses))
-    landmarker.close()
+    closeDetector(backend, detector)
     return frames
 
 def pickPerson(tracker, poses, width, height):
@@ -160,6 +206,30 @@ def pickPerson(tracker, poses, width, height):
         tracker['rejected_run'] = 0
     return None, best_distance
 
+# Every l_/r_ pair among the 33 landmark slots, derived from the names so there
+# is one source of truth for which joints mirror each other.
+LR_PAIRS = [(LANDMARK_NAMES.index(n), LANDMARK_NAMES.index('r' + n[1:]))
+            for n in LANDMARK_NAMES if n.startswith('l')]
+
+def fixLeftRight(pose, previous_pose):
+    # Single-frame pose models pick left/right independently per frame, with no
+    # identity tracking. Seen in practice: one joint pair (e.g. ankles) swaps
+    # for a single frame while the rest of the pose stays correct, which then
+    # wrecks any angle computed from that joint. Check each l_/r_ pair on its
+    # own: if swapping just that pair lands closer to the last kept frame's
+    # same pair than leaving it alone does, it was a flip.
+    if previous_pose is None:
+        return pose
+    pose = list(pose)
+    for l, r in LR_PAIRS:
+        same = ((pose[l][0] - previous_pose[l][0])**2 + (pose[l][1] - previous_pose[l][1])**2 +
+                (pose[r][0] - previous_pose[r][0])**2 + (pose[r][1] - previous_pose[r][1])**2)
+        swapped = ((pose[l][0] - previous_pose[r][0])**2 + (pose[l][1] - previous_pose[r][1])**2 +
+                   (pose[r][0] - previous_pose[l][0])**2 + (pose[r][1] - previous_pose[l][1])**2)
+        if swapped < same:
+            pose[l], pose[r] = pose[r], pose[l]
+    return pose
+
 if __name__ == '__main__':
     input_path = sys.argv[1]
     model_path = sys.argv[2]
@@ -178,6 +248,11 @@ if __name__ == '__main__':
         rotation = sys.argv[7]
     assert rotation in ('0', '180'), f'rotation must be 0 or 180, got {rotation}'
     rotate_180 = rotation == '180'
+
+    backend = 'mediapipe'
+    if len(sys.argv) > 8:
+        backend = sys.argv[8]
+    assert backend in ('mediapipe', 'rtmpose'), f'backend must be mediapipe or rtmpose, got {backend}'
 
     # frames: list of (frame_index, frame_name, time_ms, poses), in order.
     frames = []
@@ -201,12 +276,12 @@ if __name__ == '__main__':
             worker_count = int(sys.argv[5])
         worker_count = max(1, min(worker_count, len(frame_paths)))
         print(f'{len(frame_paths)} frames: {frame_paths[0]} .. {frame_paths[-1]}')
-        print(f'{width}x{height} @ {fps:.2f} fps, {"GPU" if use_gpu else "CPU"}, {worker_count} workers, rotate {rotation}')
+        print(f'{width}x{height} @ {fps:.2f} fps, {backend}/{"GPU" if use_gpu else "CPU"}, {worker_count} workers, rotate {rotation}')
 
         jobs = []
         chunk_size = (len(frame_paths) + worker_count - 1)//worker_count
         for start in range(0, len(frame_paths), chunk_size):
-            jobs.append((frame_paths[start:start + chunk_size], start, model_path, use_gpu, rotate_180, fps, width, height))
+            jobs.append((frame_paths[start:start + chunk_size], start, backend, model_path, use_gpu, rotate_180, fps, width, height))
 
         # spawn: each worker builds its own MediaPipe graph instead of inheriting
         # a forked copy of the parent's threads.
@@ -230,24 +305,25 @@ if __name__ == '__main__':
             device = sys.argv[6]
         assert device in ('cpu', 'gpu'), f'device must be cpu or gpu, got {device}'
         use_gpu = device == 'gpu'
-        print(f'{input_path}: {width}x{height} @ {fps:.2f} fps, {"GPU" if use_gpu else "CPU"}, 1 worker, rotate {rotation}')
+        print(f'{input_path}: {width}x{height} @ {fps:.2f} fps, {backend}/{"GPU" if use_gpu else "CPU"}, 1 worker, rotate {rotation}')
 
-        landmarker = makeLandmarker(model_path, use_gpu)
+        detector = makeDetector(backend, model_path, use_gpu)
         frame_index = 0
         while True:
             ok, frame_bgr = capture.read()
             if not ok:
                 break
-            time_ms, poses = detectFrame(landmarker, frame_bgr, frame_index, fps, width, height, rotate_180)
+            time_ms, poses = detectFrame(backend, detector, frame_bgr, frame_index, fps, width, height, rotate_180)
             frames.append((frame_index, '', time_ms, poses))
             frame_index += 1
-        landmarker.close()
+        closeDetector(backend, detector)
 
     # One sequential pass over the whole sequence, so tracking never restarts at
     # a chunk boundary.
     out = open(out_path, 'w')
     out.write(CSV_HEADER)
     tracker = {'center': None, 'rejected_run': 0}
+    previous_pose = None
     missed = 0
     rejected = 0
     for frame_index, frame_name, time_ms, poses in frames:
@@ -262,6 +338,9 @@ if __name__ == '__main__':
                 missed += 1
             out.write(row + EMPTY_COLUMNS + '\n')
             continue
+
+        p = fixLeftRight(p, previous_pose)
+        previous_pose = p
 
         angles = [
             angleDeg(p[L_HIP], p[L_KNEE], p[L_ANKLE]),

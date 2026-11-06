@@ -52,10 +52,12 @@ def drawFrame(job):
             points[name] = (float(row[name + '_x']), float(row[name + '_y']), float(row[name + '_v']))
 
         for a_name, b_name, color in BONES:
-            if color == LEFT_COLOR: continue
+            # if color == LEFT_COLOR: continue
 
             ax, ay, av = points[a_name]
             bx, by, bv = points[b_name]
+            if av == 0.0 or bv == 0.0:
+                continue  # landmark doesn't exist for this backend, not just low-confidence
             if av < LOW_VISIBILITY or bv < LOW_VISIBILITY:
                 steps = 12
                 for i in range(0, steps, 2):
@@ -69,6 +71,8 @@ def drawFrame(job):
         for a_name, b_name, color in BONES:
             for name in [a_name, b_name]:
                 x, y, v = points[name]
+                if v == 0.0:
+                    continue
                 r = 9
                 if v < LOW_VISIBILITY:
                     draw.ellipse([x - r, y - r, x + r, y + r], outline=color, width=3)
@@ -76,7 +80,7 @@ def drawFrame(job):
                     draw.ellipse([x - r, y - r, x + r, y + r], fill=color, outline=(0, 0, 0), width=2)
 
         for angle_name, joint_name, color in ANGLE_JOINTS:
-            if angle_name.endswith('_l'): continue
+            # if angle_name.endswith('_l'): continue
 
             x, y, v = points[joint_name]
             label = f'{float(row[angle_name]):.0f}°'
