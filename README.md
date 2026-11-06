@@ -72,6 +72,24 @@ The C server in [src/workout-server.c](src/workout-server.c) is optional
 experimental work. It does not need to replace the Python server just to move
 from JSON storage to TSV storage.
 
+## Publish the served checkout
+
+Commit the files you want to publish, then run [deploy.sh](deploy.sh):
+
+```sh
+./deploy.sh
+```
+
+The script runs `git pushall` from this repository, then runs
+`ssh -t rpi 'cd dev/norcalisthenics && git pull --ff-only'`. Any failed push
+stops deployment; a failed server pull is reported as a failure. Git handles
+local changes and branch divergence normally, without automatic stashing or
+resetting. The script also works when invoked from another local directory.
+
+This publishes committed changes across the repository. The protein and workout
+pages use the server checkout directly, so reload the browser after deployment.
+Changes to `shared-server.py` also require restarting that server process.
+
 ## Editing notes
 
 - code style is procedural and intentionally old-school
