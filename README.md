@@ -80,11 +80,15 @@ Commit the files you want to publish, then run [deploy.sh](deploy.sh):
 ./deploy.sh
 ```
 
-The script runs `git pushall` from this repository, then runs
-`ssh -t rpi 'cd dev/norcalisthenics && git pull --ff-only'`. Any failed push
-stops deployment; a failed server pull is reported as a failure. Git handles
-local changes and branch divergence normally, without automatic stashing or
-resetting. The script also works when invoked from another local directory.
+The script pushes `forgejo` first, runs
+`ssh -t rpi 'cd dev/norcalisthenics && git pull --ff-only'`, then pushes every
+other remote. Like `git pushall`, it reads the push list from `git remote` and
+uses short SSH timeouts for Git pushes, so configured remotes stay in sync.
+A failed Forgejo push or server pull stops deployment. After the pull, every
+remaining remote is attempted; any failed push makes the script exit with a
+failure status. Git handles local changes and branch divergence normally,
+without automatic stashing or resetting. The script also works when invoked
+from another local directory.
 
 This publishes committed changes across the repository. The protein and workout
 pages use the server checkout directly, so reload the browser after deployment.
