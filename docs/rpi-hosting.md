@@ -152,3 +152,40 @@ grep -cE "type=(netman|dhcpcdui)" ~/.config/lxpanel/LXDE-pi/panels/panel   # wan
 ```
 
 After the fix: ~13 hours overnight with 0 disconnects / 0 scans (was 200+/day).
+
+## WiFi throughput — moving back to 5GHz (2026-11-08)
+
+Once the disconnects were gone, downloads were still slow (~7–20 Mbit/s, highly
+variable) despite an 800+ Mbit/s WAN. Cause: the RPi was on **2.4GHz**, on a
+congested, overlapping channel (channel 4, with 5 APs on it and overlap into
+channels 1 and 6). Rate control collapsed the rx rate to 1 Mbit/s under
+contention; parallel streams made it *worse* (packet loss), confirming RF
+contention rather than a bandwidth cap.
+
+### Why it was stuck on 2.4GHz
+
+While originally fighting the disconnects, the **Deco app's per-client band
+preference for the RPi was set to "2.4 GHz" ("ONLY connect to 2.4 GHz Wi-Fi")**.
+That is an AP-side lock — the RPi would scan and *see* the 5GHz BSSID but never
+complete an association there. Nothing on the RPi blocks 5GHz (no `freq_list`, no
+rfkill, reg domain US allows ch48). The fix was entirely in the Deco app: set the
+RPi client's **Preferred Wi-Fi Band back to "Auto"** (RPi MAC
+`d8:3a:dd:06:3f:e9`). It then associated on 5GHz instantly.
+
+### Fix (persistent)
+
+`wpa_supplicant.conf` now prefers 5GHz with a 2.4GHz fallback:
+
+```text
+network={ ssid="SuperMarket5G"   bssid=3c:64:cf:9b:53:7f  priority=10 ... }  # 5GHz radio, pinned
+network={ ssid="SuperMarket2.4G"                          priority=1  ... }  # fallback
+```
+
+The `bssid=` pin forces the true 5GHz radio (`...:7f`, ch48/5240MHz) rather than
+the merged-SSID 2.4GHz radio; `roamoff=1` keeps the firmware from roaming off it.
+If 5GHz is ever unavailable it drops to the known-good 2.4GHz IoT network instead
+of being stranded.
+
+Result: link rate **390 Mbit/s** (was ~45 on 2.4GHz), stable, no scans/drops.
+5GHz signal is weaker (~-56 dBm vs -38) with some latency jitter — fine for
+serving, but keep the Pi reasonably close to the Deco.
