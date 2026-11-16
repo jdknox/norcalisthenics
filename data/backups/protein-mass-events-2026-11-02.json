@@ -1,0 +1,3908 @@
+{
+  "export_type": "protein-loadout-mass-events",
+  "exported_at": "2026-11-03T06:10:13.804Z",
+  "mass_events": {
+    "2026-09-01": [
+      {
+        "event_type": "steps",
+        "id": "daily_steps_2026-09-01",
+        "steps": 9768,
+        "timestamp": "2026-09-01T12:00"
+      },
+      {
+        "ebike_minutes": 11,
+        "event_type": "ebike_time",
+        "id": "daily_ebike_2026-09-01",
+        "timestamp": "2026-09-01T12:01"
+      },
+      {
+        "ebike_km": 2.25,
+        "event_type": "ebike_km",
+        "id": "daily_ebike_km_2026-09-01",
+        "timestamp": "2026-09-01T12:02"
+      }
+    ],
+    "2026-09-02": [
+      {
+        "event_type": "steps",
+        "id": "daily_steps_2026-09-02",
+        "steps": 4237,
+        "timestamp": "2026-09-02T12:00"
+      },
+      {
+        "ebike_minutes": 22,
+        "event_type": "ebike_time",
+        "id": "daily_ebike_2026-09-02",
+        "timestamp": "2026-09-02T12:01"
+      },
+      {
+        "ebike_km": 5.14,
+        "event_type": "ebike_km",
+        "id": "daily_ebike_km_2026-09-02",
+        "timestamp": "2026-09-02T12:02"
+      }
+    ],
+    "2026-09-03": [
+      {
+        "event_type": "steps",
+        "id": "daily_steps_2026-09-03",
+        "steps": 5976,
+        "timestamp": "2026-09-03T12:00"
+      }
+    ],
+    "2026-09-04": [
+      {
+        "event_type": "steps",
+        "id": "daily_steps_2026-09-04",
+        "steps": 3662,
+        "timestamp": "2026-09-04T12:00"
+      },
+      {
+        "ebike_minutes": 22,
+        "event_type": "ebike_time",
+        "id": "daily_ebike_2026-09-04",
+        "timestamp": "2026-09-04T12:01"
+      },
+      {
+        "ebike_km": 4.23,
+        "event_type": "ebike_km",
+        "id": "daily_ebike_km_2026-09-04",
+        "timestamp": "2026-09-04T12:02"
+      }
+    ],
+    "2026-09-05": [
+      {
+        "event_type": "steps",
+        "id": "daily_steps_2026-09-05",
+        "steps": 10053,
+        "timestamp": "2026-09-05T12:00"
+      },
+      {
+        "ebike_minutes": 8,
+        "event_type": "ebike_time",
+        "id": "daily_ebike_2026-09-05",
+        "timestamp": "2026-09-05T12:01"
+      },
+      {
+        "ebike_km": 2.48,
+        "event_type": "ebike_km",
+        "id": "daily_ebike_km_2026-09-05",
+        "timestamp": "2026-09-05T12:02"
+      }
+    ],
+    "2026-09-06": [
+      {
+        "event_type": "steps",
+        "id": "daily_steps_2026-09-06",
+        "steps": 7077,
+        "timestamp": "2026-09-06T12:00"
+      }
+    ],
+    "2026-09-07": [
+      {
+        "event_type": "steps",
+        "id": "daily_steps_2026-09-07",
+        "steps": 7119,
+        "timestamp": "2026-09-07T12:00"
+      },
+      {
+        "ebike_minutes": 19,
+        "event_type": "ebike_time",
+        "id": "daily_ebike_2026-09-07",
+        "timestamp": "2026-09-07T12:01"
+      },
+      {
+        "ebike_km": 4.62,
+        "event_type": "ebike_km",
+        "id": "daily_ebike_km_2026-09-07",
+        "timestamp": "2026-09-07T12:02"
+      }
+    ],
+    "2026-09-08": [
+      {
+        "event_type": "steps",
+        "id": "daily_steps_2026-09-08",
+        "steps": 7515,
+        "timestamp": "2026-09-08T12:00"
+      }
+    ],
+    "2026-09-09": [
+      {
+        "event_type": "steps",
+        "id": "daily_steps_2026-09-09",
+        "steps": 8870,
+        "timestamp": "2026-09-09T12:00"
+      }
+    ],
+    "2026-09-10": [
+      {
+        "event_type": "steps",
+        "id": "daily_steps_2026-09-10",
+        "steps": 7457,
+        "timestamp": "2026-09-10T12:00"
+      }
+    ],
+    "2026-09-11": [
+      {
+        "event_type": "steps",
+        "id": "daily_steps_2026-09-11",
+        "steps": 10546,
+        "timestamp": "2026-09-11T12:00"
+      }
+    ],
+    "2026-09-12": [
+      {
+        "event_type": "steps",
+        "id": "daily_steps_2026-09-12",
+        "steps": 3547,
+        "timestamp": "2026-09-12T12:00"
+      },
+      {
+        "ebike_minutes": 8,
+        "event_type": "ebike_time",
+        "id": "daily_ebike_2026-09-12",
+        "timestamp": "2026-09-12T12:01"
+      },
+      {
+        "ebike_km": 1.83,
+        "event_type": "ebike_km",
+        "id": "daily_ebike_km_2026-09-12",
+        "timestamp": "2026-09-12T12:02"
+      }
+    ],
+    "2026-09-13": [
+      {
+        "event_type": "steps",
+        "id": "daily_steps_2026-09-13",
+        "steps": 10633,
+        "timestamp": "2026-09-13T12:00"
+      },
+      {
+        "ebike_minutes": 16,
+        "event_type": "ebike_time",
+        "id": "daily_ebike_2026-09-13",
+        "timestamp": "2026-09-13T12:01"
+      },
+      {
+        "ebike_km": 3.53,
+        "event_type": "ebike_km",
+        "id": "daily_ebike_km_2026-09-13",
+        "timestamp": "2026-09-13T12:02"
+      }
+    ],
+    "2026-09-14": [
+      {
+        "event_type": "steps",
+        "id": "daily_steps_2026-09-14",
+        "steps": 7260,
+        "timestamp": "2026-09-14T12:00"
+      }
+    ],
+    "2026-09-15": [
+      {
+        "event_type": "steps",
+        "id": "daily_steps_2026-09-15",
+        "steps": 7345,
+        "timestamp": "2026-09-15T12:00"
+      }
+    ],
+    "2026-09-16": [
+      {
+        "event_type": "steps",
+        "id": "daily_steps_2026-09-16",
+        "steps": 8289,
+        "timestamp": "2026-09-16T12:00"
+      },
+      {
+        "ebike_minutes": 6,
+        "event_type": "ebike_time",
+        "id": "daily_ebike_2026-09-16",
+        "timestamp": "2026-09-16T12:01"
+      },
+      {
+        "ebike_km": 1.42,
+        "event_type": "ebike_km",
+        "id": "daily_ebike_km_2026-09-16",
+        "timestamp": "2026-09-16T12:02"
+      }
+    ],
+    "2026-09-17": [
+      {
+        "event_type": "steps",
+        "id": "daily_steps_2026-09-17",
+        "steps": 9650,
+        "timestamp": "2026-09-17T12:00"
+      }
+    ],
+    "2026-09-18": [
+      {
+        "event_type": "steps",
+        "id": "daily_steps_2026-09-18",
+        "steps": 9984,
+        "timestamp": "2026-09-18T12:00"
+      }
+    ],
+    "2026-09-19": [
+      {
+        "event_type": "steps",
+        "id": "daily_steps_2026-09-19",
+        "steps": 11932,
+        "timestamp": "2026-09-19T12:00"
+      },
+      {
+        "ebike_minutes": 16,
+        "event_type": "ebike_time",
+        "id": "daily_ebike_2026-09-19",
+        "timestamp": "2026-09-19T12:01"
+      },
+      {
+        "ebike_km": 3.61,
+        "event_type": "ebike_km",
+        "id": "daily_ebike_km_2026-09-19",
+        "timestamp": "2026-09-19T12:02"
+      }
+    ],
+    "2026-09-20": [
+      {
+        "body_mass_kg": 81.3,
+        "event_type": "post_restroom_weight",
+        "id": "mubmksg2f8gqwo",
+        "timestamp": "2026-09-20T18:15"
+      },
+      {
+        "event_type": "steps",
+        "id": "daily_steps_2026-09-20",
+        "steps": 7183,
+        "timestamp": "2026-09-20T12:00"
+      }
+    ],
+    "2026-09-21": [
+      {
+        "body_mass_kg": 82.8,
+        "event_type": "post_restroom_weight",
+        "id": "mubled2ocl2vxi",
+        "timestamp": "2026-09-21T12:20",
+        "water_loss": false
+      },
+      {
+        "event_type": "water",
+        "id": "mublwymvyquxlx",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-09-21T12:56",
+        "water_volume_ml": 740
+      },
+      {
+        "body_mass_kg": 83.1,
+        "event_type": "pre_meal_weight",
+        "id": "mubmhexs6d1bj0",
+        "timestamp": "2026-09-21T11:12"
+      },
+      {
+        "body_mass_kg": 83.15,
+        "event_type": "post_meal_weight",
+        "id": "mubmi4aa928o6z",
+        "timestamp": "2026-09-21T11:15"
+      },
+      {
+        "body_mass_kg": 82.3,
+        "event_type": "post_restroom_weight",
+        "id": "mubputqs345m3t",
+        "timestamp": "2026-09-21T14:40",
+        "water_loss": true
+      },
+      {
+        "body_mass_kg": 82.05,
+        "event_type": "post_restroom_weight",
+        "id": "mubpv6vgy335ry",
+        "timestamp": "2026-09-21T14:46",
+        "water_loss": false
+      },
+      {
+        "body_mass_kg": 82.05,
+        "event_type": "pre_meal_weight",
+        "id": "mubqziuoto4xro",
+        "timestamp": "2026-09-21T15:15"
+      },
+      {
+        "anchor_reset": true,
+        "body_mass_kg": 83.2,
+        "event_type": "post_meal_weight",
+        "id": "mubqzwvm3v7ty0",
+        "timestamp": "2026-09-21T15:19"
+      },
+      {
+        "event_type": "water",
+        "id": "mubr50kaufjisr",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-09-21T15:23",
+        "water_volume_ml": 740
+      },
+      {
+        "body_mass_kg": 83.55,
+        "event_type": "pre_meal_weight",
+        "id": "mubrg2iwdh7ode",
+        "timestamp": "2026-09-21T15:31"
+      },
+      {
+        "event_type": "water",
+        "id": "mubuv9r0xiyu4z",
+        "mass_in_kg": 0.45,
+        "timestamp": "2026-09-21T17:07",
+        "water_volume_ml": 450
+      },
+      {
+        "event_type": "water",
+        "id": "mubwio64h557gl",
+        "mass_in_kg": 0.14,
+        "timestamp": "2026-09-21T17:53",
+        "water_volume_ml": 140
+      },
+      {
+        "anchor_reset": false,
+        "body_mass_kg": 84.55,
+        "event_type": "post_meal_weight",
+        "id": "mubwjuzftzgf4g",
+        "timestamp": "2026-09-21T17:54"
+      },
+      {
+        "body_mass_kg": 84.55,
+        "event_type": "pre_meal_weight",
+        "id": "mubwopx0myd2j3",
+        "timestamp": "2026-09-21T17:58"
+      },
+      {
+        "anchor_reset": true,
+        "body_mass_kg": 83.7,
+        "event_type": "post_meal_weight",
+        "id": "mubwrcvq96hs4v",
+        "timestamp": "2026-09-21T18:00"
+      },
+      {
+        "event_type": "water",
+        "id": "muc221044jgtoa",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-09-21T20:28",
+        "water_volume_ml": 740
+      },
+      {
+        "body_mass_kg": 83.8,
+        "event_type": "post_restroom_weight",
+        "id": "muc29cmp4m9ll7",
+        "timestamp": "2026-09-21T20:34",
+        "water_loss": true
+      },
+      {
+        "event_type": "water",
+        "id": "muc7rs1agpypn7",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-09-21T23:08",
+        "water_volume_ml": 740
+      },
+      {
+        "event_type": "water",
+        "id": "mucan6cpphivmg",
+        "mass_in_kg": 0.314,
+        "timestamp": "2026-09-21T23:50",
+        "water_volume_ml": 314
+      },
+      {
+        "body_mass_kg": 84.43,
+        "event_type": "pre_meal_weight",
+        "id": "mucaqt416bjd8o",
+        "timestamp": "2026-09-21T22:29"
+      },
+      {
+        "anchor_reset": false,
+        "body_mass_kg": 85.15,
+        "event_type": "post_meal_weight",
+        "id": "mucarbd15zwbbn",
+        "timestamp": "2026-09-21T23:00"
+      },
+      {
+        "body_mass_kg": 83.95,
+        "event_type": "post_restroom_weight",
+        "id": "mucawi2410a2hu",
+        "timestamp": "2026-09-21T23:55",
+        "water_loss": true
+      },
+      {
+        "anchor_reset": true,
+        "body_mass_kg": 83.55,
+        "event_type": "post_meal_weight",
+        "id": "mucaz3e1wr7st2",
+        "timestamp": "2026-09-21T23:58"
+      },
+      {
+        "event_type": "steps",
+        "id": "daily_steps_2026-09-21",
+        "steps": 7529,
+        "timestamp": "2026-09-21T12:00"
+      }
+    ],
+    "2026-09-22": [
+      {
+        "body_mass_kg": 82.25,
+        "event_type": "post_restroom_weight",
+        "id": "mucsk5806mv8ws",
+        "timestamp": "2026-09-22T08:50",
+        "water_loss": true
+      },
+      {
+        "anchor_reset": false,
+        "body_mass_kg": 83.55,
+        "event_type": "post_meal_weight",
+        "id": "mucsp5ncje4f4k",
+        "timestamp": "2026-09-22T08:49"
+      },
+      {
+        "event_type": "water",
+        "id": "mucujvrja262d8",
+        "mass_in_kg": 0.56,
+        "timestamp": "2026-09-22T09:46",
+        "water_volume_ml": 560
+      },
+      {
+        "event_type": "water",
+        "id": "mucx3x64dvzwsm",
+        "mass_in_kg": 0.3,
+        "timestamp": "2026-09-22T10:58",
+        "water_volume_ml": 300
+      },
+      {
+        "body_mass_kg": 82.8,
+        "event_type": "post_restroom_weight",
+        "id": "mucylj72dk34zk",
+        "timestamp": "2026-09-22T11:39",
+        "water_loss": false
+      },
+      {
+        "body_mass_kg": 82.4,
+        "event_type": "post_restroom_weight",
+        "id": "mucyt4pgszc2ti",
+        "timestamp": "2026-09-22T11:40",
+        "water_loss": true
+      },
+      {
+        "event_type": "food_mass",
+        "id": "mud2mlnpppq3k4",
+        "mass_in_kg": 0.05,
+        "timestamp": "2026-09-22T09:10"
+      },
+      {
+        "event_type": "water",
+        "id": "mud2nfjz55oapw",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-09-22T13:33",
+        "water_volume_ml": 740
+      },
+      {
+        "body_mass_kg": 82.3,
+        "event_type": "post_restroom_weight",
+        "id": "mud2syc8slv809",
+        "timestamp": "2026-09-22T13:37",
+        "water_loss": true
+      },
+      {
+        "anchor_reset": true,
+        "body_mass_kg": 83.5,
+        "event_type": "checkpoint_weight",
+        "id": "mud3sphy4h2tu9",
+        "timestamp": "2026-09-22T14:05"
+      },
+      {
+        "event_type": "water",
+        "id": "mud4z8hugvbzvt",
+        "mass_in_kg": 0.07,
+        "timestamp": "2026-09-22T14:38",
+        "water_volume_ml": 70
+      },
+      {
+        "body_mass_kg": 83.5,
+        "event_type": "pre_meal_weight",
+        "id": "mud5adrkdp8tr1",
+        "timestamp": "2026-09-22T14:46"
+      },
+      {
+        "event_type": "water",
+        "id": "mudcbwv9e599bh",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-09-22T18:04",
+        "water_volume_ml": 740
+      },
+      {
+        "body_mass_kg": 84.95,
+        "event_type": "post_meal_weight",
+        "id": "mudcjyev3nsgpf",
+        "timestamp": "2026-09-22T18:10"
+      },
+      {
+        "event_type": "water",
+        "id": "mudh1nshv3un8v",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-09-22T20:16",
+        "water_volume_ml": 740
+      },
+      {
+        "anchor_reset": false,
+        "body_mass_kg": 85.45,
+        "event_type": "checkpoint_weight",
+        "id": "mudhine0tf661d",
+        "timestamp": "2026-09-22T20:18"
+      },
+      {
+        "anchor_reset": true,
+        "body_mass_kg": 84.6,
+        "event_type": "checkpoint_weight",
+        "id": "mudhmcycbmaap0",
+        "timestamp": "2026-09-22T20:20"
+      },
+      {
+        "event_type": "food_mass",
+        "id": "mudmejnh30th9x",
+        "mass_in_kg": 0.295,
+        "timestamp": "2026-09-22T22:45"
+      },
+      {
+        "event_type": "water",
+        "id": "mudp00acq1lvts",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-09-22T23:58",
+        "water_volume_ml": 740
+      },
+      {
+        "body_mass_kg": 84.8,
+        "event_type": "post_restroom_weight",
+        "id": "mudppykh7wzf8g",
+        "timestamp": "2026-09-22T23:58",
+        "water_loss": true
+      },
+      {
+        "anchor_reset": true,
+        "body_mass_kg": 84.35,
+        "event_type": "checkpoint_weight",
+        "id": "mudpsd3nf529im",
+        "timestamp": "2026-09-22T23:59"
+      },
+      {
+        "event_type": "steps",
+        "id": "daily_steps_2026-09-22",
+        "steps": 10100,
+        "timestamp": "2026-09-22T12:00"
+      }
+    ],
+    "2026-09-23": [
+      {
+        "body_mass_kg": 83.4,
+        "event_type": "post_restroom_weight",
+        "id": "mudwf613e1639a",
+        "timestamp": "2026-09-23T03:26",
+        "water_loss": true
+      },
+      {
+        "event_type": "water",
+        "id": "mueasamp8ladxr",
+        "mass_in_kg": 0.58,
+        "timestamp": "2026-09-23T10:08",
+        "water_volume_ml": 580
+      },
+      {
+        "anchor_reset": false,
+        "body_mass_kg": 83.45,
+        "event_type": "checkpoint_weight",
+        "id": "mueau0qxvzz5mh",
+        "timestamp": "2026-09-23T10:09"
+      },
+      {
+        "anchor_reset": true,
+        "body_mass_kg": 82.9,
+        "event_type": "checkpoint_weight",
+        "id": "mueauplzsewgtj",
+        "timestamp": "2026-09-23T10:13"
+      },
+      {
+        "body_mass_kg": 82.75,
+        "event_type": "post_restroom_weight",
+        "id": "mueaxgozrr2dqx",
+        "timestamp": "2026-09-23T10:12",
+        "water_loss": true
+      },
+      {
+        "event_type": "water",
+        "id": "muedttdeu50xml",
+        "mass_in_kg": 0.3,
+        "timestamp": "2026-09-23T11:33",
+        "water_volume_ml": 300
+      },
+      {
+        "anchor_reset": false,
+        "body_mass_kg": 83.6,
+        "event_type": "checkpoint_weight",
+        "id": "mueiz6hzy2d3hp",
+        "timestamp": "2026-09-23T13:57"
+      },
+      {
+        "anchor_reset": false,
+        "body_mass_kg": 83.4,
+        "event_type": "checkpoint_weight",
+        "id": "muej9pjcuaprbi",
+        "timestamp": "2026-09-23T14:06"
+      },
+      {
+        "body_mass_kg": 82.4,
+        "event_type": "post_restroom_weight",
+        "id": "muejafy8akdnap",
+        "timestamp": "2026-09-23T14:06",
+        "water_loss": true
+      },
+      {
+        "anchor_reset": true,
+        "body_mass_kg": 82.25,
+        "event_type": "checkpoint_weight",
+        "id": "mueju017qjoe5z",
+        "timestamp": "2026-09-23T14:21"
+      },
+      {
+        "anchor_reset": true,
+        "body_mass_kg": 82.8,
+        "event_type": "checkpoint_weight",
+        "id": "mueksrmtllul39",
+        "timestamp": "2026-09-23T14:48"
+      },
+      {
+        "event_type": "water",
+        "id": "muel9q1louq8kf",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-09-23T15:02",
+        "water_volume_ml": 740
+      },
+      {
+        "body_mass_kg": 82.95,
+        "event_type": "pre_meal_weight",
+        "id": "muelagg8wgvsr3",
+        "timestamp": "2026-09-23T16:02"
+      },
+      {
+        "event_type": "water",
+        "id": "muev68zp12nz61",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-09-23T18:30",
+        "water_volume_ml": 740
+      },
+      {
+        "body_mass_kg": 84,
+        "event_type": "post_meal_weight",
+        "id": "muev748j7ti8y4",
+        "timestamp": "2026-09-23T19:40"
+      },
+      {
+        "anchor_reset": true,
+        "body_mass_kg": 83.65,
+        "event_type": "checkpoint_weight",
+        "id": "muevb2fplfj13h",
+        "timestamp": "2026-09-23T19:43"
+      },
+      {
+        "event_type": "water",
+        "id": "muevj7pnff31nf",
+        "mass_in_kg": 0.48,
+        "timestamp": "2026-09-23T16:05",
+        "water_volume_ml": 480
+      },
+      {
+        "body_mass_kg": 82.8,
+        "event_type": "post_restroom_weight",
+        "id": "muf1ho5q741aab",
+        "timestamp": "2026-09-23T22:36",
+        "water_loss": true
+      },
+      {
+        "anchor_reset": true,
+        "body_mass_kg": 82.9,
+        "event_type": "checkpoint_weight",
+        "id": "muf1k2ha04xivs",
+        "timestamp": "2026-09-23T22:37"
+      },
+      {
+        "event_type": "water",
+        "id": "muf4pxcapfnry8",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-09-23T22:40",
+        "water_volume_ml": 740
+      },
+      {
+        "event_type": "water",
+        "id": "muf6wrssyivyrc",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-09-23T23:45",
+        "water_volume_ml": 740
+      },
+      {
+        "anchor_reset": false,
+        "body_mass_kg": 84.45,
+        "event_type": "checkpoint_weight",
+        "id": "muf6zlvlivpziv",
+        "timestamp": "2026-09-23T23:51"
+      },
+      {
+        "anchor_reset": true,
+        "body_mass_kg": 84.1,
+        "event_type": "checkpoint_weight",
+        "id": "muf6zxab1rvc26",
+        "timestamp": "2026-09-23T23:55"
+      },
+      {
+        "event_type": "food_mass",
+        "id": "muf72ci5eewmon",
+        "mass_in_kg": 0.6,
+        "timestamp": "2026-09-23T22:30"
+      },
+      {
+        "event_type": "steps",
+        "id": "daily_steps_2026-09-23",
+        "steps": 11826,
+        "timestamp": "2026-09-23T12:00"
+      },
+      {
+        "ebike_minutes": 25,
+        "event_type": "ebike_time",
+        "id": "daily_ebike_2026-09-23",
+        "timestamp": "2026-09-23T12:01"
+      },
+      {
+        "ebike_km": 6.61,
+        "event_type": "ebike_km",
+        "id": "daily_ebike_km_2026-09-23",
+        "timestamp": "2026-09-23T12:02"
+      }
+    ],
+    "2026-09-24": [
+      {
+        "anchor_reset": true,
+        "body_mass_kg": 84.1,
+        "event_type": "checkpoint_weight",
+        "id": "muf76sxc0nwo8d",
+        "timestamp": "2026-09-24T01:15"
+      },
+      {
+        "body_mass_kg": 83.25,
+        "event_type": "post_restroom_weight",
+        "id": "mufaf7xdmk5lwi",
+        "timestamp": "2026-09-24T02:46",
+        "water_loss": true
+      },
+      {
+        "body_mass_kg": 82.35,
+        "event_type": "post_restroom_weight",
+        "id": "mufrbk9fsovhnw",
+        "timestamp": "2026-09-24T10:39",
+        "water_loss": true
+      },
+      {
+        "event_type": "water",
+        "id": "mufrbu8rgl0jak",
+        "mass_in_kg": 0.58,
+        "timestamp": "2026-09-24T10:00",
+        "water_volume_ml": 580
+      },
+      {
+        "event_type": "food_mass",
+        "id": "muft1top1vt4uy",
+        "mass_in_kg": 0.31,
+        "timestamp": "2026-09-24T11:27"
+      },
+      {
+        "event_type": "water",
+        "id": "mufuvnlf0vi0i4",
+        "mass_in_kg": 0.3,
+        "timestamp": "2026-09-24T12:18",
+        "water_volume_ml": 300
+      },
+      {
+        "event_type": "water",
+        "id": "mufzzyy2ts5fcw",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-09-24T14:42",
+        "water_volume_ml": 740
+      },
+      {
+        "body_mass_kg": 83,
+        "event_type": "post_restroom_weight",
+        "id": "mug0ibz5mqbs9h",
+        "timestamp": "2026-09-24T14:56",
+        "water_loss": false
+      },
+      {
+        "event_type": "water",
+        "id": "mugh1sko92fchb",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-09-24T22:39",
+        "water_volume_ml": 740
+      },
+      {
+        "event_type": "water",
+        "id": "mug7vrtr6r0oa3",
+        "mass_in_kg": 0.35,
+        "timestamp": "2026-09-24T18:22",
+        "water_volume_ml": 350
+      },
+      {
+        "body_mass_kg": 83.3,
+        "event_type": "post_restroom_weight",
+        "id": "mugeoeoyjqzxz7",
+        "timestamp": "2026-09-24T21:33",
+        "water_loss": true
+      },
+      {
+        "anchor_reset": true,
+        "body_mass_kg": 83.7,
+        "event_type": "checkpoint_weight",
+        "id": "mugeok7s56wsl5",
+        "timestamp": "2026-09-24T21:33"
+      },
+      {
+        "event_type": "food_mass",
+        "id": "mugerlwsxx0y2u",
+        "mass_in_kg": 0.422,
+        "timestamp": "2026-09-24T19:35"
+      },
+      {
+        "event_type": "water",
+        "id": "mugk3e6i2zuooo",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-09-24T23:55",
+        "water_volume_ml": 740
+      },
+      {
+        "event_type": "food_mass",
+        "id": "mugk62szggh26x",
+        "mass_in_kg": 0.472,
+        "timestamp": "2026-09-24T23:40"
+      },
+      {
+        "anchor_reset": false,
+        "body_mass_kg": 84.55,
+        "event_type": "checkpoint_weight",
+        "id": "mugk7465y6eyg5",
+        "timestamp": "2026-09-24T23:56"
+      },
+      {
+        "anchor_reset": true,
+        "body_mass_kg": 84.2,
+        "event_type": "checkpoint_weight",
+        "id": "mugk87zgeolb1l",
+        "timestamp": "2026-09-24T23:58"
+      },
+      {
+        "event_type": "steps",
+        "id": "daily_steps_2026-09-24",
+        "steps": 4782,
+        "timestamp": "2026-09-24T12:00"
+      },
+      {
+        "ebike_minutes": 11,
+        "event_type": "ebike_time",
+        "id": "daily_ebike_2026-09-24",
+        "timestamp": "2026-09-24T12:01"
+      },
+      {
+        "ebike_km": 2.63,
+        "event_type": "ebike_km",
+        "id": "daily_ebike_km_2026-09-24",
+        "timestamp": "2026-09-24T12:02"
+      }
+    ],
+    "2026-09-25": [
+      {
+        "anchor_reset": false,
+        "body_mass_kg": 84.2,
+        "event_type": "checkpoint_weight",
+        "id": "mugpd4f95kqbd0",
+        "timestamp": "2026-09-25T01:05"
+      },
+      {
+        "body_mass_kg": 83,
+        "event_type": "post_restroom_weight",
+        "id": "mugpdegc0f1lng",
+        "timestamp": "2026-09-25T02:32",
+        "water_loss": true
+      },
+      {
+        "body_mass_kg": 82.35,
+        "event_type": "post_restroom_weight",
+        "id": "muh8hxgspzctk5",
+        "timestamp": "2026-09-25T11:27",
+        "water_loss": true
+      },
+      {
+        "event_type": "water",
+        "id": "muh8in5bliufua",
+        "mass_in_kg": 0.58,
+        "timestamp": "2026-09-25T11:00",
+        "water_volume_ml": 580
+      },
+      {
+        "event_type": "water",
+        "id": "muhf8r1vwnil2l",
+        "mass_in_kg": 0.3,
+        "timestamp": "2026-09-25T12:36",
+        "water_volume_ml": 300
+      },
+      {
+        "event_type": "water",
+        "id": "muhkygsrfu8npl",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-09-25T16:00",
+        "water_volume_ml": 740
+      },
+      {
+        "event_type": "water",
+        "id": "muhkzo6ufuc4jc",
+        "mass_in_kg": 0.47,
+        "timestamp": "2026-09-25T17:17",
+        "water_volume_ml": 470
+      },
+      {
+        "event_type": "water",
+        "id": "muhs1yl2uwtf3q",
+        "mass_in_kg": 0.37,
+        "timestamp": "2026-09-25T20:35",
+        "water_volume_ml": 370
+      },
+      {
+        "event_type": "water",
+        "id": "muhuzixvx387pm",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-09-25T21:57",
+        "water_volume_ml": 740
+      },
+      {
+        "event_type": "steps",
+        "id": "daily_steps_2026-09-25",
+        "steps": 11778,
+        "timestamp": "2026-09-25T12:00"
+      },
+      {
+        "ebike_minutes": 24,
+        "event_type": "ebike_time",
+        "id": "daily_ebike_2026-09-25",
+        "timestamp": "2026-09-25T12:01"
+      },
+      {
+        "ebike_km": 5.02,
+        "event_type": "ebike_km",
+        "id": "daily_ebike_km_2026-09-25",
+        "timestamp": "2026-09-25T12:02"
+      }
+    ],
+    "2026-09-26": [
+      {
+        "event_type": "water",
+        "id": "mui1x0f0bj77na",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-09-26T01:11",
+        "water_volume_ml": 740
+      },
+      {
+        "event_type": "water",
+        "id": "muiok03mz9f9nr",
+        "mass_in_kg": 0.58,
+        "timestamp": "2026-09-26T11:45",
+        "water_volume_ml": 580
+      },
+      {
+        "anchor_reset": false,
+        "body_mass_kg": 82.25,
+        "event_type": "checkpoint_weight",
+        "id": "muiol1p168ivhw",
+        "timestamp": "2026-09-26T11:45"
+      },
+      {
+        "event_type": "water",
+        "id": "muitajjc8wm1de",
+        "mass_in_kg": 0.3,
+        "timestamp": "2026-09-26T13:22",
+        "water_volume_ml": 300
+      },
+      {
+        "event_type": "water",
+        "id": "muiwrjk77lzpdx",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-09-26T15:35",
+        "water_volume_ml": 740
+      },
+      {
+        "event_type": "water",
+        "id": "muj9ar3s320imt",
+        "mass_in_kg": 0.4,
+        "timestamp": "2026-09-26T21:25",
+        "water_volume_ml": 400
+      },
+      {
+        "event_type": "water",
+        "id": "mujfhgctc2yrx8",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-09-26T23:55",
+        "water_volume_ml": 740
+      },
+      {
+        "event_type": "water",
+        "id": "mujfi7cdf7uqzq",
+        "mass_in_kg": 0.37,
+        "timestamp": "2026-09-26T00:19",
+        "water_volume_ml": 370
+      },
+      {
+        "event_type": "steps",
+        "id": "daily_steps_2026-09-26",
+        "steps": 10087,
+        "timestamp": "2026-09-26T12:00"
+      },
+      {
+        "ebike_minutes": 29,
+        "event_type": "ebike_time",
+        "id": "daily_ebike_2026-09-26",
+        "timestamp": "2026-09-26T12:01"
+      },
+      {
+        "ebike_km": 6.35,
+        "event_type": "ebike_km",
+        "id": "daily_ebike_km_2026-09-26",
+        "timestamp": "2026-09-26T12:02"
+      }
+    ],
+    "2026-09-27": [
+      {
+        "event_type": "water",
+        "id": "muklp5ww1rlras",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-09-27T20:00",
+        "water_volume_ml": 740
+      },
+      {
+        "anchor_reset": false,
+        "body_mass_kg": 82.15,
+        "event_type": "checkpoint_weight",
+        "id": "muk3uph5oza40e",
+        "timestamp": "2026-09-27T11:41"
+      },
+      {
+        "anchor_reset": false,
+        "body_mass_kg": 82.35,
+        "event_type": "checkpoint_weight",
+        "id": "muk3vwz8e0ysvf",
+        "timestamp": "2026-09-27T08:35"
+      },
+      {
+        "event_type": "water",
+        "id": "muk8ari32bhr43",
+        "mass_in_kg": 0.3,
+        "timestamp": "2026-09-27T11:30",
+        "water_volume_ml": 300
+      },
+      {
+        "event_type": "water",
+        "id": "muk8bloxf5wn8o",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-09-27T13:46",
+        "water_volume_ml": 740
+      },
+      {
+        "event_type": "water",
+        "id": "muklqcb2xhk80b",
+        "mass_in_kg": 0.37,
+        "timestamp": "2026-09-27T19:01",
+        "water_volume_ml": 370
+      },
+      {
+        "event_type": "water",
+        "id": "mukvxxjws3mtkp",
+        "mass_in_kg": 0.37,
+        "timestamp": "2026-09-27T15:47",
+        "water_volume_ml": 370
+      },
+      {
+        "event_type": "water",
+        "id": "mukvyy2jp2ldrf",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-09-27T23:59",
+        "water_volume_ml": 740
+      },
+      {
+        "body_mass_kg": 82.15,
+        "event_type": "post_restroom_weight",
+        "id": "mukw1d8oiwnxc5",
+        "timestamp": "2026-09-27T11:42",
+        "water_loss": true
+      },
+      {
+        "event_type": "steps",
+        "id": "daily_steps_2026-09-27",
+        "steps": 6468,
+        "timestamp": "2026-09-27T12:00"
+      }
+    ],
+    "2026-09-28": [
+      {
+        "anchor_reset": false,
+        "body_mass_kg": 82.25,
+        "event_type": "checkpoint_weight",
+        "id": "muljiaodz1fdto",
+        "timestamp": "2026-09-28T11:47"
+      },
+      {
+        "event_type": "water",
+        "id": "mullkpanaosl7m",
+        "mass_in_kg": 0.3,
+        "timestamp": "2026-09-28T12:45",
+        "water_volume_ml": 300
+      },
+      {
+        "event_type": "water",
+        "id": "mulll74jh7axyl",
+        "mass_in_kg": 0.1,
+        "timestamp": "2026-09-28T11:30",
+        "water_volume_ml": 100
+      },
+      {
+        "anchor_reset": false,
+        "body_mass_kg": 82.1,
+        "event_type": "checkpoint_weight",
+        "id": "mulogrt6hgv52o",
+        "timestamp": "2026-09-28T14:05"
+      },
+      {
+        "event_type": "water",
+        "id": "mulr8kg67rqnwq",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-09-28T15:23",
+        "water_volume_ml": 740
+      },
+      {
+        "event_type": "water",
+        "id": "mulzad4gqv2etl",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-09-28T19:09",
+        "water_volume_ml": 740
+      },
+      {
+        "event_type": "water",
+        "id": "mum4umodjdk301",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-09-28T21:44",
+        "water_volume_ml": 740
+      },
+      {
+        "event_type": "water",
+        "id": "mum8o7eeqms7v7",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-09-28T23:31",
+        "water_volume_ml": 740
+      },
+      {
+        "event_type": "water",
+        "id": "mumbtb5df4wde9",
+        "mass_in_kg": 0.44,
+        "timestamp": "2026-09-29T00:59",
+        "water_volume_ml": 440
+      },
+      {
+        "event_type": "steps",
+        "id": "daily_steps_2026-09-28",
+        "steps": 10391,
+        "timestamp": "2026-09-28T12:00"
+      },
+      {
+        "ebike_minutes": 13,
+        "event_type": "ebike_time",
+        "id": "daily_ebike_2026-09-28",
+        "timestamp": "2026-09-28T12:01"
+      },
+      {
+        "ebike_km": 2.6,
+        "event_type": "ebike_km",
+        "id": "daily_ebike_km_2026-09-28",
+        "timestamp": "2026-09-28T12:02"
+      }
+    ],
+    "2026-09-29": [
+      {
+        "anchor_reset": false,
+        "body_mass_kg": 83.6,
+        "event_type": "checkpoint_weight",
+        "id": "mumbxpbg3ve6pj",
+        "timestamp": "2026-09-29T01:02"
+      },
+      {
+        "anchor_reset": false,
+        "body_mass_kg": 82.1,
+        "event_type": "checkpoint_weight",
+        "id": "mumr8irqh9qim9",
+        "timestamp": "2026-09-29T08:11"
+      },
+      {
+        "event_type": "water",
+        "id": "mumznaaw5omb5y",
+        "mass_in_kg": 0.44,
+        "timestamp": "2026-09-29T11:06",
+        "water_volume_ml": 440
+      },
+      {
+        "event_type": "water",
+        "id": "mun1vvgip5lgb3",
+        "mass_in_kg": 0.3,
+        "timestamp": "2026-09-29T13:09",
+        "water_volume_ml": 300
+      },
+      {
+        "event_type": "water",
+        "id": "muna84eupop3ga",
+        "mass_in_kg": 0.65,
+        "timestamp": "2026-09-29T17:02",
+        "water_volume_ml": 650
+      },
+      {
+        "event_type": "water",
+        "id": "muneuhf4zccom8",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-09-29T19:12",
+        "water_volume_ml": 740
+      },
+      {
+        "anchor_reset": false,
+        "body_mass_kg": 81.9,
+        "event_type": "checkpoint_weight",
+        "id": "munew6cc511e45",
+        "timestamp": "2026-09-29T14:30"
+      },
+      {
+        "event_type": "water",
+        "id": "munqavz5btrekp",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-09-30T00:33",
+        "water_volume_ml": 740
+      },
+      {
+        "event_type": "steps",
+        "id": "daily_steps_2026-09-29",
+        "steps": 9605,
+        "timestamp": "2026-09-29T12:00"
+      }
+    ],
+    "2026-09-30": [
+      {
+        "anchor_reset": false,
+        "body_mass_kg": 81.85,
+        "event_type": "checkpoint_weight",
+        "id": "muobzneyd0ktfm",
+        "timestamp": "2026-09-30T10:40"
+      },
+      {
+        "event_type": "water",
+        "id": "muoc1wbf3epstg",
+        "mass_in_kg": 0.35,
+        "timestamp": "2026-09-30T09:41",
+        "water_volume_ml": 350
+      },
+      {
+        "event_type": "water",
+        "id": "muogl5sbkr5p3z",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-09-30T12:48",
+        "water_volume_ml": 740
+      },
+      {
+        "event_type": "water",
+        "id": "mup29xrod66pxe",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-09-30T22:55",
+        "water_volume_ml": 740
+      },
+      {
+        "event_type": "water",
+        "id": "mup2c4f9z92mxy",
+        "mass_in_kg": 0.47,
+        "timestamp": "2026-09-30T16:30",
+        "water_volume_ml": 470
+      },
+      {
+        "anchor_reset": false,
+        "body_mass_kg": 83.85,
+        "event_type": "checkpoint_weight",
+        "id": "mup2hffln3z9xi",
+        "timestamp": "2026-09-30T23:01"
+      },
+      {
+        "event_type": "steps",
+        "id": "daily_steps_2026-09-30",
+        "steps": 10126,
+        "timestamp": "2026-09-30T12:00"
+      }
+    ],
+    "2026-10-01": [
+      {
+        "event_type": "water",
+        "id": "mups1chltw7dn8",
+        "mass_in_kg": 0.58,
+        "timestamp": "2026-10-01T10:57",
+        "water_volume_ml": 580
+      },
+      {
+        "anchor_reset": false,
+        "body_mass_kg": 82.9,
+        "event_type": "checkpoint_weight",
+        "id": "mups241bjslejl",
+        "timestamp": "2026-10-01T10:57"
+      },
+      {
+        "anchor_reset": false,
+        "body_mass_kg": 82.5,
+        "event_type": "checkpoint_weight",
+        "id": "muptndl84rtwm9",
+        "timestamp": "2026-10-01T11:42"
+      },
+      {
+        "anchor_reset": false,
+        "body_mass_kg": 82.4,
+        "event_type": "checkpoint_weight",
+        "id": "muq0yx7u46idl5",
+        "timestamp": "2026-10-01T14:45"
+      },
+      {
+        "event_type": "water",
+        "id": "muq0z13z230g1c",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-10-01T15:07",
+        "water_volume_ml": 740
+      },
+      {
+        "event_type": "water",
+        "id": "muq7yrpnnisl3m",
+        "mass_in_kg": 0.3,
+        "timestamp": "2026-10-01T18:23",
+        "water_volume_ml": 300
+      },
+      {
+        "event_type": "water",
+        "id": "muq80iaz1ou2y2",
+        "mass_in_kg": 0.65,
+        "timestamp": "2026-10-01T18:24",
+        "water_volume_ml": 650
+      },
+      {
+        "event_type": "water",
+        "id": "muqgf0se65n5dt",
+        "mass_in_kg": 0.05,
+        "timestamp": "2026-10-01T22:19",
+        "water_volume_ml": 50
+      },
+      {
+        "event_type": "water",
+        "id": "muqkotp23i7lh5",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-10-02T00:19",
+        "water_volume_ml": 740
+      },
+      {
+        "event_type": "steps",
+        "id": "daily_steps_2026-10-01",
+        "steps": 6932,
+        "timestamp": "2026-10-01T12:00"
+      }
+    ],
+    "2026-10-02": [
+      {
+        "anchor_reset": false,
+        "body_mass_kg": 81.85,
+        "event_type": "checkpoint_weight",
+        "id": "mur4kwajrkuekf",
+        "timestamp": "2026-10-02T09:35"
+      },
+      {
+        "event_type": "water",
+        "id": "mur9hpqlm1hw7k",
+        "mass_in_kg": 0.3,
+        "timestamp": "2026-10-02T11:53",
+        "water_volume_ml": 300
+      },
+      {
+        "event_type": "water",
+        "id": "murb2b0w6qf3n2",
+        "mass_in_kg": 0.39,
+        "timestamp": "2026-10-02T08:37",
+        "water_volume_ml": 390
+      },
+      {
+        "anchor_reset": false,
+        "body_mass_kg": 81.75,
+        "event_type": "checkpoint_weight",
+        "id": "murb2yb18xl7l3",
+        "timestamp": "2026-10-02T12:37"
+      },
+      {
+        "event_type": "water",
+        "id": "murjcxht8sq0zc",
+        "mass_in_kg": 0.58,
+        "timestamp": "2026-10-02T16:29",
+        "water_volume_ml": 580
+      },
+      {
+        "event_type": "water",
+        "id": "murm3pldn2zjfs",
+        "mass_in_kg": 0.58,
+        "timestamp": "2026-10-02T17:46",
+        "water_volume_ml": 580
+      },
+      {
+        "event_type": "water",
+        "id": "murzsc4ppjd0m3",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-10-03T00:09",
+        "water_volume_ml": 740
+      },
+      {
+        "event_type": "steps",
+        "id": "daily_steps_2026-10-02",
+        "steps": 5552,
+        "timestamp": "2026-10-02T12:00"
+      },
+      {
+        "ebike_minutes": 15,
+        "event_type": "ebike_time",
+        "id": "daily_ebike_2026-10-02",
+        "timestamp": "2026-10-02T12:01"
+      },
+      {
+        "ebike_km": 3.61,
+        "event_type": "ebike_km",
+        "id": "daily_ebike_km_2026-10-02",
+        "timestamp": "2026-10-02T12:02"
+      }
+    ],
+    "2026-10-03": [
+      {
+        "anchor_reset": false,
+        "body_mass_kg": 82.05,
+        "event_type": "checkpoint_weight",
+        "id": "musm09z31hire7",
+        "timestamp": "2026-10-03T10:31"
+      },
+      {
+        "event_type": "water",
+        "id": "musm34ecf9njer",
+        "mass_in_kg": 0.35,
+        "timestamp": "2026-10-03T10:33",
+        "water_volume_ml": 350
+      },
+      {
+        "event_type": "water",
+        "id": "mut5wsqhfgj8re",
+        "mass_in_kg": 2.35,
+        "timestamp": "2026-10-03T19:48",
+        "water_volume_ml": 2350
+      },
+      {
+        "event_type": "water",
+        "id": "mutaqh30hparfv",
+        "mass_in_kg": 0.1,
+        "timestamp": "2026-10-03T22:03",
+        "water_volume_ml": 100
+      },
+      {
+        "event_type": "water",
+        "id": "mutcrx70lh6zgf",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-10-03T23:00",
+        "water_volume_ml": 740
+      },
+      {
+        "event_type": "water",
+        "id": "mutg0u9gugcd74",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-10-04T00:31",
+        "water_volume_ml": 740
+      },
+      {
+        "event_type": "steps",
+        "id": "daily_steps_2026-10-03",
+        "steps": 16754,
+        "timestamp": "2026-10-03T12:00"
+      },
+      {
+        "ebike_minutes": 25,
+        "event_type": "ebike_time",
+        "id": "daily_ebike_2026-10-03",
+        "timestamp": "2026-10-03T12:01"
+      },
+      {
+        "ebike_km": 7.61,
+        "event_type": "ebike_km",
+        "id": "daily_ebike_km_2026-10-03",
+        "timestamp": "2026-10-03T12:02"
+      }
+    ],
+    "2026-10-04": [
+      {
+        "anchor_reset": false,
+        "body_mass_kg": 82,
+        "event_type": "checkpoint_weight",
+        "id": "muu4grwbdfooit",
+        "timestamp": "2026-10-04T11:55"
+      },
+      {
+        "event_type": "water",
+        "id": "muu7pwfr8x8wod",
+        "mass_in_kg": 0.58,
+        "timestamp": "2026-10-04T13:27",
+        "water_volume_ml": 580
+      },
+      {
+        "event_type": "water",
+        "id": "muu9khzypxfu1p",
+        "mass_in_kg": 0.05,
+        "timestamp": "2026-10-04T14:18",
+        "water_volume_ml": 50
+      },
+      {
+        "event_type": "water",
+        "id": "muu9kragffkn2w",
+        "mass_in_kg": 0.3,
+        "timestamp": "2026-10-04T13:00",
+        "water_volume_ml": 300
+      },
+      {
+        "event_type": "water",
+        "id": "muuhu7a045zjx3",
+        "mass_in_kg": 0.5,
+        "timestamp": "2026-10-04T18:10",
+        "water_volume_ml": 500
+      },
+      {
+        "event_type": "water",
+        "id": "muuhu7q2gju5oi",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-10-04T18:10",
+        "water_volume_ml": 740
+      },
+      {
+        "event_type": "water",
+        "id": "muunlr2a6ctvpn",
+        "mass_in_kg": 0.5,
+        "timestamp": "2026-10-04T20:51",
+        "water_volume_ml": 500
+      },
+      {
+        "event_type": "water",
+        "id": "muup299v1bbqvc",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-10-04T21:32",
+        "water_volume_ml": 740
+      },
+      {
+        "event_type": "water",
+        "id": "muuu6hfmcbbfm2",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-10-04T23:55",
+        "water_volume_ml": 740
+      },
+      {
+        "event_type": "steps",
+        "id": "daily_steps_2026-10-04",
+        "steps": 10940,
+        "timestamp": "2026-10-04T12:00"
+      }
+    ],
+    "2026-10-05": [
+      {
+        "anchor_reset": false,
+        "body_mass_kg": 82.2,
+        "event_type": "checkpoint_weight",
+        "id": "muvhav5dfey9kb",
+        "timestamp": "2026-10-05T10:43"
+      },
+      {
+        "event_type": "water",
+        "id": "muvn6a3eg2wl8q",
+        "mass_in_kg": 0.3,
+        "timestamp": "2026-10-05T13:27",
+        "water_volume_ml": 300
+      },
+      {
+        "event_type": "water",
+        "id": "muvn6kbmuhtqrr",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-10-05T13:27",
+        "water_volume_ml": 740
+      },
+      {
+        "anchor_reset": false,
+        "body_mass_kg": 82.08,
+        "event_type": "checkpoint_weight",
+        "id": "muvodf81kvumum",
+        "timestamp": "2026-10-05T14:01"
+      },
+      {
+        "event_type": "water",
+        "id": "muvvlqhsbik6uk",
+        "mass_in_kg": 0.5,
+        "timestamp": "2026-10-05T17:23",
+        "water_volume_ml": 500
+      },
+      {
+        "event_type": "water",
+        "id": "muvvmgwpxdvbv2",
+        "mass_in_kg": 0.35,
+        "timestamp": "2026-10-05T17:24",
+        "water_volume_ml": 350
+      },
+      {
+        "event_type": "water",
+        "id": "muw6jz6654uy9u",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-10-05T22:30",
+        "water_volume_ml": 740
+      },
+      {
+        "event_type": "steps",
+        "id": "daily_steps_2026-10-05",
+        "steps": 10211,
+        "timestamp": "2026-10-05T12:00"
+      }
+    ],
+    "2026-10-06": [
+      {
+        "anchor_reset": false,
+        "body_mass_kg": 82.05,
+        "event_type": "checkpoint_weight",
+        "id": "muwwnjr0u9rkxb",
+        "timestamp": "2026-10-06T10:40"
+      },
+      {
+        "event_type": "water",
+        "id": "muwwnrbizf3wgv",
+        "mass_in_kg": 0.1,
+        "timestamp": "2026-10-06T10:40",
+        "water_volume_ml": 100
+      },
+      {
+        "event_type": "water",
+        "id": "muwyd3d752z86p",
+        "mass_in_kg": 0.3,
+        "timestamp": "2026-10-06T11:28",
+        "water_volume_ml": 300
+      },
+      {
+        "event_type": "food_mass",
+        "id": "muwydrtbpyh8t3",
+        "mass_in_kg": 0.405,
+        "timestamp": "2026-10-06T11:00"
+      },
+      {
+        "event_type": "water",
+        "id": "muwzumahz5kdlr",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-10-06T12:10",
+        "water_volume_ml": 740
+      },
+      {
+        "event_type": "water",
+        "id": "muxdtucgk125by",
+        "mass_in_kg": 0.21,
+        "timestamp": "2026-10-06T17:45",
+        "water_volume_ml": 210
+      },
+      {
+        "event_type": "water",
+        "id": "muxdtwuhi42rlo",
+        "mass_in_kg": 0.2,
+        "timestamp": "2026-10-06T18:41",
+        "water_volume_ml": 200
+      },
+      {
+        "event_type": "water",
+        "id": "muxdu2tpllxp1r",
+        "mass_in_kg": 0.4,
+        "timestamp": "2026-10-06T15:30",
+        "water_volume_ml": 400
+      },
+      {
+        "event_type": "water",
+        "id": "muxhcak3bsaifg",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-10-06T20:19",
+        "water_volume_ml": 740
+      },
+      {
+        "event_type": "water",
+        "id": "muxq2dynf4utsv",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-10-07T00:24",
+        "water_volume_ml": 740
+      },
+      {
+        "event_type": "steps",
+        "id": "daily_steps_2026-10-06",
+        "steps": 5012,
+        "timestamp": "2026-10-06T12:00"
+      },
+      {
+        "ebike_minutes": 13,
+        "event_type": "ebike_time",
+        "id": "daily_ebike_2026-10-06",
+        "timestamp": "2026-10-06T12:01"
+      },
+      {
+        "ebike_km": 3.49,
+        "event_type": "ebike_km",
+        "id": "daily_ebike_km_2026-10-06",
+        "timestamp": "2026-10-06T12:02"
+      }
+    ],
+    "2026-10-07": [
+      {
+        "anchor_reset": false,
+        "body_mass_kg": 81.9,
+        "event_type": "checkpoint_weight",
+        "id": "muycver98yzjur",
+        "timestamp": "2026-10-07T11:02"
+      },
+      {
+        "event_type": "water",
+        "id": "muycvu6xo2lcq1",
+        "mass_in_kg": 0.35,
+        "timestamp": "2026-10-07T11:02",
+        "water_volume_ml": 350
+      },
+      {
+        "event_type": "water",
+        "id": "muymb8a9qrrzst",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-10-07T15:26",
+        "water_volume_ml": 740
+      },
+      {
+        "event_type": "water",
+        "id": "muytpkpsemu0sc",
+        "mass_in_kg": 0.3,
+        "timestamp": "2026-10-07T18:53",
+        "water_volume_ml": 300
+      },
+      {
+        "event_type": "water",
+        "id": "muyzv5krpa3m0u",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-10-07T19:46",
+        "water_volume_ml": 740
+      },
+      {
+        "event_type": "water",
+        "id": "muz1vhb5y5sqj7",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-10-07T22:42",
+        "water_volume_ml": 740
+      },
+      {
+        "delete_count": 1,
+        "deleted_at": "2026-10-12T19:12:50.651Z",
+        "event_type": "steps",
+        "id": "mv1a7s7utptqmh",
+        "steps": 8477,
+        "timestamp": "2026-10-07T23:11"
+      },
+      {
+        "delete_count": 1,
+        "deleted_at": "2026-10-11T18:44:06.345Z",
+        "event_type": "steps",
+        "id": "daily_steps_2026-10-07",
+        "steps": 8477,
+        "timestamp": "2026-10-07T12:00"
+      }
+    ],
+    "2026-10-08": [
+      {
+        "event_type": "water",
+        "id": "muzq6jf67e4nyv",
+        "mass_in_kg": 0.58,
+        "timestamp": "2026-10-08T10:02",
+        "water_volume_ml": 580
+      },
+      {
+        "anchor_reset": false,
+        "body_mass_kg": 82.15,
+        "event_type": "checkpoint_weight",
+        "id": "muzq9u8945iu4t",
+        "timestamp": "2026-10-08T10:05"
+      },
+      {
+        "event_type": "water",
+        "id": "muzxvzlvu7ce0d",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-10-08T13:38",
+        "water_volume_ml": 740
+      },
+      {
+        "event_type": "water",
+        "id": "muzxwcxfws6sys",
+        "mass_in_kg": 0.32,
+        "timestamp": "2026-10-08T11:48",
+        "water_volume_ml": 320
+      },
+      {
+        "anchor_reset": false,
+        "body_mass_kg": 81.81,
+        "event_type": "checkpoint_weight",
+        "id": "muzye5w68gnpmf",
+        "timestamp": "2026-10-08T13:52"
+      },
+      {
+        "event_type": "food_mass",
+        "id": "muzyev7bme696m",
+        "mass_in_kg": 0.188,
+        "timestamp": "2026-10-08T11:00"
+      },
+      {
+        "event_type": "water",
+        "id": "mv06t8gb35dbvk",
+        "mass_in_kg": 0.5,
+        "timestamp": "2026-10-08T17:48",
+        "water_volume_ml": 500
+      },
+      {
+        "event_type": "water",
+        "id": "mv0bo9rbbuz3a0",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-10-08T20:04",
+        "water_volume_ml": 740
+      },
+      {
+        "delete_count": 1,
+        "deleted_at": "2026-10-12T19:12:50.651Z",
+        "event_type": "steps",
+        "id": "mv1gbf6rs1k0yz",
+        "steps": 10049,
+        "timestamp": "2026-10-08T23:02"
+      },
+      {
+        "delete_count": 1,
+        "deleted_at": "2026-10-11T18:43:58.656Z",
+        "event_type": "steps",
+        "id": "daily_steps_2026-10-08",
+        "steps": 10049,
+        "timestamp": "2026-10-08T12:00"
+      }
+    ],
+    "2026-10-09": [
+      {
+        "event_type": "water",
+        "id": "mv17bxdzo75m24",
+        "mass_in_kg": 0.58,
+        "timestamp": "2026-10-09T10:50",
+        "water_volume_ml": 580
+      },
+      {
+        "anchor_reset": false,
+        "body_mass_kg": 82.45,
+        "event_type": "checkpoint_weight",
+        "id": "mv17c4z55zkzjd",
+        "timestamp": "2026-10-09T10:50"
+      },
+      {
+        "anchor_reset": false,
+        "body_mass_kg": 82.1,
+        "event_type": "checkpoint_weight",
+        "id": "mv18dn40elwhe1",
+        "timestamp": "2026-10-09T11:19"
+      },
+      {
+        "event_type": "food_mass",
+        "id": "mv18e83ne3c34z",
+        "mass_in_kg": 0.075,
+        "timestamp": "2026-10-09T11:00"
+      },
+      {
+        "event_type": "water",
+        "id": "mv18edw3lf8h9a",
+        "mass_in_kg": 0.3,
+        "timestamp": "2026-10-09T11:00",
+        "water_volume_ml": 300
+      },
+      {
+        "event_type": "water",
+        "id": "mv1g9yf38otvgg",
+        "mass_in_kg": 0.85,
+        "timestamp": "2026-10-09T15:01",
+        "water_volume_ml": 850
+      },
+      {
+        "event_type": "water",
+        "id": "mv1nbo4vxcgrgk",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-10-09T18:18",
+        "water_volume_ml": 740
+      },
+      {
+        "event_type": "water",
+        "id": "mv1rg5sv4upze3",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-10-09T20:13",
+        "water_volume_ml": 740
+      },
+      {
+        "delete_count": 1,
+        "deleted_at": "2026-10-12T19:12:50.651Z",
+        "event_type": "steps",
+        "id": "mv2odueagry06f",
+        "steps": 13418,
+        "timestamp": "2026-10-09T23:35"
+      },
+      {
+        "delete_count": 1,
+        "deleted_at": "2026-10-11T18:43:37.564Z",
+        "event_type": "steps",
+        "id": "daily_steps_2026-10-09",
+        "steps": 13418,
+        "timestamp": "2026-10-09T12:00"
+      },
+      {
+        "ebike_minutes": 15,
+        "event_type": "ebike_time",
+        "id": "daily_ebike_2026-10-09",
+        "timestamp": "2026-10-09T12:01"
+      },
+      {
+        "ebike_km": 3.23,
+        "event_type": "ebike_km",
+        "id": "daily_ebike_km_2026-10-09",
+        "timestamp": "2026-10-09T12:02"
+      }
+    ],
+    "2026-10-10": [
+      {
+        "event_type": "water",
+        "id": "mv2oa7xpnma8op",
+        "mass_in_kg": 0.2,
+        "timestamp": "2026-10-10T10:33",
+        "water_volume_ml": 200
+      },
+      {
+        "anchor_reset": false,
+        "body_mass_kg": 82.6,
+        "event_type": "checkpoint_weight",
+        "id": "mv2oakbe7ubx2f",
+        "timestamp": "2026-10-10T11:11"
+      },
+      {
+        "event_type": "food_mass",
+        "id": "mv2od0t6juirvz",
+        "mass_in_kg": 0.31,
+        "timestamp": "2026-10-10T11:35"
+      },
+      {
+        "event_type": "water",
+        "id": "mv2v9pauntcvju",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-10-10T14:48",
+        "water_volume_ml": 740
+      },
+      {
+        "event_type": "water",
+        "id": "mv2va7lxsz7xue",
+        "mass_in_kg": 0.3,
+        "timestamp": "2026-10-10T12:32",
+        "water_volume_ml": 300
+      },
+      {
+        "anchor_reset": false,
+        "body_mass_kg": 82.49,
+        "event_type": "checkpoint_weight",
+        "id": "mv2vce51sc7qd8",
+        "timestamp": "2026-10-10T14:50"
+      },
+      {
+        "event_type": "water",
+        "id": "mv3ephcoi1q7vt",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-10-10T23:52",
+        "water_volume_ml": 740
+      },
+      {
+        "event_type": "water",
+        "id": "mv3eq8kamtocmy",
+        "mass_in_kg": 0.25,
+        "timestamp": "2026-10-10T23:53",
+        "water_volume_ml": 250
+      },
+      {
+        "event_type": "steps",
+        "id": "mv3euse051ybrn",
+        "steps": 11135,
+        "timestamp": "2026-10-10T23:56"
+      }
+    ],
+    "2026-10-11": [
+      {
+        "anchor_reset": false,
+        "body_mass_kg": 82.3,
+        "event_type": "checkpoint_weight",
+        "id": "mv447rnt4obtz5",
+        "timestamp": "2026-10-11T11:46"
+      },
+      {
+        "anchor_reset": false,
+        "body_mass_kg": 81.8,
+        "event_type": "checkpoint_weight",
+        "id": "mv49iku1qhwcon",
+        "timestamp": "2026-10-11T14:15"
+      },
+      {
+        "event_type": "water",
+        "id": "mv49izcwqga5rv",
+        "mass_in_kg": 0.3,
+        "timestamp": "2026-10-11T13:15",
+        "water_volume_ml": 300
+      },
+      {
+        "event_type": "water",
+        "id": "mv49j7nfppkai7",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-10-11T14:15",
+        "water_volume_ml": 740
+      },
+      {
+        "event_type": "water",
+        "id": "mv4aohg7znq0e1",
+        "mass_in_kg": 0.58,
+        "timestamp": "2026-10-11T14:47",
+        "water_volume_ml": 580
+      },
+      {
+        "event_type": "water",
+        "id": "mv4q93qw51ruda",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-10-11T22:03",
+        "water_volume_ml": 740
+      },
+      {
+        "event_type": "food_mass",
+        "id": "mv4st7w9xkstd6",
+        "mass_in_kg": 0.564,
+        "timestamp": "2026-10-11T23:15"
+      },
+      {
+        "event_type": "steps",
+        "id": "mv4sutq9exvm47",
+        "steps": 10036,
+        "timestamp": "2026-10-11T23:16"
+      }
+    ],
+    "2026-10-12": [
+      {
+        "anchor_reset": false,
+        "body_mass_kg": 82.3,
+        "event_type": "checkpoint_weight",
+        "id": "mv5h7g61v1rkqm",
+        "timestamp": "2026-10-12T10:38"
+      },
+      {
+        "event_type": "water",
+        "id": "mv5h8kc4hrnuyx",
+        "mass_in_kg": 0.58,
+        "timestamp": "2026-10-12T10:39",
+        "water_volume_ml": 580
+      },
+      {
+        "event_type": "water",
+        "id": "mv5nn13vi75itk",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-10-12T13:38",
+        "water_volume_ml": 740
+      },
+      {
+        "event_type": "water",
+        "id": "mv5nn9mvmi19qz",
+        "mass_in_kg": 0.3,
+        "timestamp": "2026-10-12T11:38",
+        "water_volume_ml": 300
+      },
+      {
+        "event_type": "water",
+        "id": "mv5wii7z2wun3x",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-10-12T17:46",
+        "water_volume_ml": 740
+      },
+      {
+        "event_type": "water",
+        "id": "mv69kotx3tx0lh",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-10-12T23:52",
+        "water_volume_ml": 740
+      },
+      {
+        "event_type": "water",
+        "id": "mv6cgrovo85q0n",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-10-12T23:55",
+        "water_volume_ml": 740
+      }
+    ],
+    "2026-10-13": [
+      {
+        "buried_at": "2026-10-13T07:13:08.323Z",
+        "delete_count": 2,
+        "deleted_at": "2026-10-13T07:13:07.494Z",
+        "event_type": "water",
+        "id": "mv6cg7iqovb90l",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-10-13T01:12",
+        "water_volume_ml": 740
+      },
+      {
+        "anchor_reset": false,
+        "body_mass_kg": 81.85,
+        "event_type": "checkpoint_weight",
+        "id": "mv6x5msstnht5c",
+        "timestamp": "2026-10-13T10:52"
+      },
+      {
+        "event_type": "water",
+        "id": "mv6xmbn8gjswns",
+        "mass_in_kg": 0.58,
+        "timestamp": "2026-10-13T11:05",
+        "water_volume_ml": 580
+      },
+      {
+        "anchor_reset": false,
+        "body_mass_kg": 81.6,
+        "event_type": "checkpoint_weight",
+        "id": "mv74pz5o0oxad4",
+        "timestamp": "2026-10-13T14:24"
+      },
+      {
+        "event_type": "water",
+        "id": "mv74qx4k2yhb7z",
+        "mass_in_kg": 0.3,
+        "timestamp": "2026-10-13T11:25",
+        "water_volume_ml": 300
+      },
+      {
+        "event_type": "water",
+        "id": "mv7ig39dkfmz1i",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-10-13T20:48",
+        "water_volume_ml": 740
+      },
+      {
+        "event_type": "water",
+        "id": "mv7onmo6d2jowm",
+        "mass_in_kg": 0.19,
+        "timestamp": "2026-10-13T23:42",
+        "water_volume_ml": 190
+      },
+      {
+        "event_type": "water",
+        "id": "mv7oo0uf66t461",
+        "mass_in_kg": 0.5,
+        "timestamp": "2026-10-13T18:30",
+        "water_volume_ml": 500
+      },
+      {
+        "event_type": "water",
+        "id": "mv7op0dgoynpy2",
+        "mass_in_kg": 0.35,
+        "timestamp": "2026-10-13T18:30",
+        "water_volume_ml": 350
+      },
+      {
+        "event_type": "water",
+        "id": "mv7op3nq6dxku5",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-10-13T23:43",
+        "water_volume_ml": 740
+      }
+    ],
+    "2026-10-14": [
+      {
+        "event_type": "water",
+        "id": "mv8hcq46vwqjmo",
+        "mass_in_kg": 0.58,
+        "timestamp": "2026-10-14T13:05",
+        "water_volume_ml": 580
+      },
+      {
+        "event_type": "water",
+        "id": "mv8hd1p35qspy7",
+        "mass_in_kg": 0.3,
+        "timestamp": "2026-10-14T13:05",
+        "water_volume_ml": 300
+      },
+      {
+        "event_type": "water",
+        "id": "mv8s59rvnfty3o",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-10-14T18:07",
+        "water_volume_ml": 740
+      },
+      {
+        "anchor_reset": false,
+        "body_mass_kg": 81.9,
+        "event_type": "checkpoint_weight",
+        "id": "mv938a038nc9fw",
+        "timestamp": "2026-10-14T11:17"
+      },
+      {
+        "event_type": "water",
+        "id": "mv95p0kar4h5cd",
+        "mass_in_kg": 0.36,
+        "timestamp": "2026-10-15T00:27",
+        "water_volume_ml": 360
+      },
+      {
+        "event_type": "water",
+        "id": "mv95p2xzl64l3u",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-10-15T00:27",
+        "water_volume_ml": 740
+      }
+    ],
+    "2026-10-15": [
+      {
+        "event_type": "water",
+        "id": "mv9rtupt47l4my",
+        "mass_in_kg": 0.58,
+        "timestamp": "2026-10-15T10:46",
+        "water_volume_ml": 580
+      },
+      {
+        "anchor_reset": false,
+        "body_mass_kg": 81.8,
+        "event_type": "checkpoint_weight",
+        "id": "mv9t9w6635xf4q",
+        "timestamp": "2026-10-15T10:27"
+      },
+      {
+        "event_type": "water",
+        "id": "mv9xrl3ni8hjxh",
+        "mass_in_kg": 0.3,
+        "timestamp": "2026-10-15T11:32",
+        "water_volume_ml": 300
+      },
+      {
+        "anchor_reset": false,
+        "body_mass_kg": 81.85,
+        "event_type": "checkpoint_weight",
+        "id": "mv9xsw9da36c8i",
+        "timestamp": "2026-10-15T13:33"
+      },
+      {
+        "event_type": "water",
+        "id": "mva0oxkw3ea9y2",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-10-15T14:54",
+        "water_volume_ml": 740
+      },
+      {
+        "event_type": "water",
+        "id": "mvadziu6i555e5",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-10-15T21:06",
+        "water_volume_ml": 740
+      },
+      {
+        "event_type": "water",
+        "id": "mvak8v4jsmg5ag",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-10-16T00:02",
+        "water_volume_ml": 740
+      }
+    ],
+    "2026-10-16": [
+      {
+        "anchor_reset": false,
+        "body_mass_kg": 81.65,
+        "event_type": "checkpoint_weight",
+        "id": "mvb70oc3wjsiod",
+        "timestamp": "2026-10-16T10:39"
+      },
+      {
+        "event_type": "water",
+        "id": "mvba0ii7n4xvq4",
+        "mass_in_kg": 0.3,
+        "timestamp": "2026-10-16T12:03",
+        "water_volume_ml": 300
+      },
+      {
+        "event_type": "water",
+        "id": "mvba0kv9jxlc4z",
+        "mass_in_kg": 0.5,
+        "timestamp": "2026-10-16T12:03",
+        "water_volume_ml": 500
+      },
+      {
+        "event_type": "water",
+        "id": "mvbgh4iox6bpq1",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-10-16T15:04",
+        "water_volume_ml": 740
+      },
+      {
+        "anchor_reset": false,
+        "body_mass_kg": 81.9,
+        "event_type": "checkpoint_weight",
+        "id": "mvbi12dqnv415k",
+        "timestamp": "2026-10-16T15:47"
+      },
+      {
+        "event_type": "water",
+        "id": "mvbxxyo5yvn64u",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-10-16T23:13",
+        "water_volume_ml": 740
+      },
+      {
+        "event_type": "water",
+        "id": "mvc1mnsex68bnw",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-10-17T00:56",
+        "water_volume_ml": 740
+      }
+    ],
+    "2026-10-17": [
+      {
+        "anchor_reset": false,
+        "body_mass_kg": 81.25,
+        "event_type": "checkpoint_weight",
+        "id": "mvcmum11a707k1",
+        "timestamp": "2026-10-17T10:30"
+      },
+      {
+        "event_type": "water",
+        "id": "mvcpc1qxhunb9e",
+        "mass_in_kg": 0.3,
+        "timestamp": "2026-10-17T12:00",
+        "water_volume_ml": 300
+      },
+      {
+        "event_type": "water",
+        "id": "mvd03hcamzc2wc",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-10-17T17:01",
+        "water_volume_ml": 740
+      },
+      {
+        "event_type": "water",
+        "id": "mvd9a6jkzrv3xd",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-10-17T21:18",
+        "water_volume_ml": 740
+      },
+      {
+        "event_type": "water",
+        "id": "mvd9aboxae8dqy",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-10-17T21:18",
+        "water_volume_ml": 740
+      },
+      {
+        "event_type": "water",
+        "id": "mvdeuk6wfuddvu",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-10-17T23:54",
+        "water_volume_ml": 740
+      }
+    ],
+    "2026-10-18": [
+      {
+        "anchor_reset": false,
+        "body_mass_kg": 80.7,
+        "event_type": "checkpoint_weight",
+        "id": "mve3f6btqwqhoh",
+        "timestamp": "2026-10-18T11:22"
+      },
+      {
+        "event_type": "water",
+        "id": "mvei504c6o67yi",
+        "mass_in_kg": 0.25,
+        "timestamp": "2026-10-18T18:14",
+        "water_volume_ml": 250
+      },
+      {
+        "event_type": "water",
+        "id": "mvei5p2ozq5sgc",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-10-18T18:14",
+        "water_volume_ml": 740
+      },
+      {
+        "event_type": "water",
+        "id": "mvei6f9ifpkk9d",
+        "mass_in_kg": 0.1,
+        "timestamp": "2026-10-18T18:15",
+        "water_volume_ml": 100
+      },
+      {
+        "event_type": "water",
+        "id": "mvet31tqp7hiyq",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-10-18T20:20",
+        "water_volume_ml": 740
+      },
+      {
+        "event_type": "water",
+        "id": "mvet33ebjrvhaz",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-10-18T23:20",
+        "water_volume_ml": 740
+      },
+      {
+        "event_type": "water",
+        "id": "mvevm96esbrjeu",
+        "mass_in_kg": 0.5,
+        "timestamp": "2026-10-18T15:45",
+        "water_volume_ml": 500
+      },
+      {
+        "anchor_reset": false,
+        "body_mass_kg": 82.55,
+        "event_type": "checkpoint_weight",
+        "id": "mvevnm2xa2bpf8",
+        "timestamp": "2026-10-19T00:32"
+      }
+    ],
+    "2026-10-19": [
+      {
+        "event_type": "water",
+        "id": "mvfhul29nf0upb",
+        "mass_in_kg": 0.58,
+        "timestamp": "2026-10-19T10:53",
+        "water_volume_ml": 580
+      },
+      {
+        "anchor_reset": false,
+        "body_mass_kg": 81.1,
+        "event_type": "checkpoint_weight",
+        "id": "mvfj1me7b6i5th",
+        "timestamp": "2026-10-19T10:27"
+      },
+      {
+        "event_type": "water",
+        "id": "mvfkc20fgijbri",
+        "mass_in_kg": 0.3,
+        "timestamp": "2026-10-19T12:03",
+        "water_volume_ml": 300
+      },
+      {
+        "event_type": "water",
+        "id": "mvfq4giybkxpf2",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-10-19T14:45",
+        "water_volume_ml": 740
+      },
+      {
+        "event_type": "water",
+        "id": "mvfw9xipheajvq",
+        "mass_in_kg": 0.36,
+        "timestamp": "2026-10-19T15:55",
+        "water_volume_ml": 360
+      },
+      {
+        "event_type": "water",
+        "id": "mvg8kdy677jrrl",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-10-19T23:21",
+        "water_volume_ml": 740
+      },
+      {
+        "event_type": "water",
+        "id": "mvg8kmk0f6j1m6",
+        "mass_in_kg": 0.35,
+        "timestamp": "2026-10-19T23:22",
+        "water_volume_ml": 350
+      }
+    ],
+    "2026-10-20": [
+      {
+        "event_type": "water",
+        "id": "mvgyt59i3anrbc",
+        "mass_in_kg": 0.58,
+        "timestamp": "2026-10-20T10:36",
+        "water_volume_ml": 580
+      },
+      {
+        "event_type": "water",
+        "id": "mvgyzog85i1n3f",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-10-20T11:41",
+        "water_volume_ml": 740
+      },
+      {
+        "event_type": "water",
+        "id": "mvh1ro6cfacgx8",
+        "mass_in_kg": 0.3,
+        "timestamp": "2026-10-20T12:30",
+        "water_volume_ml": 300
+      },
+      {
+        "event_type": "water",
+        "id": "mvhbosh3dfecm7",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-10-20T17:36",
+        "water_volume_ml": 740
+      },
+      {
+        "event_type": "water",
+        "id": "mvhbp3uu2svgj2",
+        "mass_in_kg": 0.1,
+        "timestamp": "2026-10-20T14:37",
+        "water_volume_ml": 100
+      },
+      {
+        "event_type": "water",
+        "id": "mvhcy74xloajxz",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-10-20T18:12",
+        "water_volume_ml": 740
+      },
+      {
+        "event_type": "water",
+        "id": "mvhqa3kgmo11fg",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-10-21T00:25",
+        "water_volume_ml": 740
+      }
+    ],
+    "2026-10-21": [
+      {
+        "anchor_reset": false,
+        "body_mass_kg": 81.55,
+        "event_type": "checkpoint_weight",
+        "id": "mvi9woffjjqerz",
+        "timestamp": "2026-10-21T09:34"
+      },
+      {
+        "event_type": "water",
+        "id": "mvidw3sdwkwp17",
+        "mass_in_kg": 0.28,
+        "timestamp": "2026-10-21T11:26",
+        "water_volume_ml": 280
+      },
+      {
+        "anchor_reset": false,
+        "body_mass_kg": 81.4,
+        "event_type": "checkpoint_weight",
+        "id": "mvihgudoiqahjj",
+        "timestamp": "2026-10-21T13:06"
+      },
+      {
+        "anchor_reset": false,
+        "body_mass_kg": 81.33,
+        "event_type": "checkpoint_weight",
+        "id": "mvim5fmrm3w9ht",
+        "timestamp": "2026-10-21T15:17"
+      },
+      {
+        "event_type": "water",
+        "id": "mvj3rxksyrfq6q",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-10-21T23:31",
+        "water_volume_ml": 740
+      }
+    ],
+    "2026-10-22": [
+      {
+        "anchor_reset": false,
+        "body_mass_kg": 81.9,
+        "event_type": "checkpoint_weight",
+        "id": "mvjqr1e871u1jn",
+        "timestamp": "2026-10-22T10:14"
+      },
+      {
+        "anchor_reset": false,
+        "body_mass_kg": 81.8,
+        "event_type": "checkpoint_weight",
+        "id": "mvjsc3lxac4b2b",
+        "timestamp": "2026-10-22T10:58"
+      },
+      {
+        "event_type": "food_mass",
+        "id": "mvjwc12jzcg84q",
+        "mass_in_kg": 0.25,
+        "timestamp": "2026-10-22T12:50"
+      },
+      {
+        "event_type": "water",
+        "id": "mvk3sd5xktf45n",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-10-22T16:19",
+        "water_volume_ml": 740
+      },
+      {
+        "anchor_reset": false,
+        "body_mass_kg": 81.4,
+        "event_type": "checkpoint_weight",
+        "id": "mvk1g622b9pk7y",
+        "timestamp": "2026-10-22T15:13"
+      },
+      {
+        "event_type": "water",
+        "id": "mvkhnhnn56465d",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-10-22T22:47",
+        "water_volume_ml": 740
+      },
+      {
+        "event_type": "water",
+        "id": "mvkjy7x2p70fay",
+        "mass_in_kg": 0.25,
+        "timestamp": "2026-10-22T11:51",
+        "water_volume_ml": 250
+      },
+      {
+        "event_type": "water",
+        "id": "mvkk6e5p742o8n",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-10-22T23:57",
+        "water_volume_ml": 740
+      }
+    ],
+    "2026-10-23": [
+      {
+        "event_type": "water",
+        "id": "mvl90m6dhhj9pn",
+        "mass_in_kg": 0.58,
+        "timestamp": "2026-10-23T09:33",
+        "water_volume_ml": 580
+      },
+      {
+        "anchor_reset": false,
+        "body_mass_kg": 81.35,
+        "event_type": "checkpoint_weight",
+        "id": "mvl91tb2agpdse",
+        "timestamp": "2026-10-23T10:33"
+      },
+      {
+        "event_type": "water",
+        "id": "mvl9fjrsvfxzfl",
+        "mass_in_kg": 0.23,
+        "timestamp": "2026-10-23T11:44",
+        "water_volume_ml": 230
+      },
+      {
+        "event_type": "water",
+        "id": "mvlkaqa7c8ii95",
+        "mass_in_kg": 0.65,
+        "timestamp": "2026-10-23T16:49",
+        "water_volume_ml": 650
+      },
+      {
+        "event_type": "water",
+        "id": "mvlq6yd6zpujok",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-10-23T19:34",
+        "water_volume_ml": 740
+      },
+      {
+        "event_type": "water",
+        "id": "mvlt4a099bttgz",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-10-23T20:56",
+        "water_volume_ml": 740
+      },
+      {
+        "event_type": "water",
+        "id": "mvm0ir4htgb1v2",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-10-24T00:23",
+        "water_volume_ml": 740
+      }
+    ],
+    "2026-10-24": [
+      {
+        "anchor_reset": false,
+        "body_mass_kg": 80.9,
+        "event_type": "checkpoint_weight",
+        "id": "mvmp9trvjoi5v7",
+        "timestamp": "2026-10-24T11:56"
+      },
+      {
+        "event_type": "water",
+        "id": "mvmpbi6za8f3qr",
+        "mass_in_kg": 0.58,
+        "timestamp": "2026-10-24T11:57",
+        "water_volume_ml": 580
+      },
+      {
+        "event_type": "water",
+        "id": "mvmr1u4w8wj99j",
+        "mass_in_kg": 0.25,
+        "timestamp": "2026-10-24T12:45",
+        "water_volume_ml": 250
+      },
+      {
+        "event_type": "water",
+        "id": "mvmz09jng2cswd",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-10-24T16:28",
+        "water_volume_ml": 740
+      },
+      {
+        "event_type": "water",
+        "id": "mvn0sweq5okv6e",
+        "mass_in_kg": 0.2,
+        "timestamp": "2026-10-24T17:18",
+        "water_volume_ml": 200
+      },
+      {
+        "event_type": "water",
+        "id": "mvner04ay82mnp",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-10-24T23:49",
+        "water_volume_ml": 740
+      },
+      {
+        "event_type": "water",
+        "id": "mvner889w4eoew",
+        "mass_in_kg": 0.15,
+        "timestamp": "2026-10-24T23:49",
+        "water_volume_ml": 150
+      },
+      {
+        "event_type": "water",
+        "id": "mvngnacts95os7",
+        "mass_in_kg": 0.15,
+        "timestamp": "2026-10-25T00:42",
+        "water_volume_ml": 150
+      }
+    ],
+    "2026-10-25": [
+      {
+        "event_type": "water",
+        "id": "mvo5kwmxc92hti",
+        "mass_in_kg": 0.58,
+        "timestamp": "2026-10-25T12:20",
+        "water_volume_ml": 580
+      },
+      {
+        "anchor_reset": false,
+        "body_mass_kg": 80.9,
+        "event_type": "checkpoint_weight",
+        "id": "mvo5lpgq3h1bh3",
+        "timestamp": "2026-10-25T12:20"
+      },
+      {
+        "event_type": "water",
+        "id": "mvo9xbi7lof2y9",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-10-25T14:22",
+        "water_volume_ml": 740
+      },
+      {
+        "event_type": "food_mass",
+        "id": "mvr12oz57jxe0w",
+        "mass_in_kg": 0.5,
+        "timestamp": "2026-10-25T14:37"
+      },
+      {
+        "event_type": "food_mass",
+        "id": "mvr1447lhrhg2g",
+        "mass_in_kg": 0.08,
+        "timestamp": "2026-10-25T20:38"
+      }
+    ],
+    "2026-10-26": [
+      {
+        "event_type": "water",
+        "id": "mvpi2rfcku7y8v",
+        "mass_in_kg": 0.58,
+        "timestamp": "2026-10-26T10:57",
+        "water_volume_ml": 580
+      },
+      {
+        "event_type": "water",
+        "id": "mvpi2z4vowfqfm",
+        "mass_in_kg": 0.2,
+        "timestamp": "2026-10-26T10:58",
+        "water_volume_ml": 200
+      },
+      {
+        "event_type": "water",
+        "id": "mvpkzzi9rmdq3a",
+        "mass_in_kg": 0.28,
+        "timestamp": "2026-10-26T12:19",
+        "water_volume_ml": 280
+      },
+      {
+        "event_type": "water",
+        "id": "mvpwfw1yufij0c",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-10-26T17:40",
+        "water_volume_ml": 740
+      },
+      {
+        "event_type": "water",
+        "id": "mvqc1hihawsriv",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-10-27T00:56",
+        "water_volume_ml": 740
+      },
+      {
+        "anchor_reset": false,
+        "body_mass_kg": 81.05,
+        "buried_at": "2026-10-27T16:00:37.498Z",
+        "delete_count": 2,
+        "deleted_at": "2026-10-27T16:00:22.932Z",
+        "event_type": "checkpoint_weight",
+        "id": "mvqvg2qcymlfvw",
+        "timestamp": "2026-10-26T09:59"
+      },
+      {
+        "anchor_reset": false,
+        "body_mass_kg": 80.95,
+        "event_type": "checkpoint_weight",
+        "id": "mvqvgzvw3wj76r",
+        "timestamp": "2026-10-26T10:00"
+      }
+    ],
+    "2026-10-27": [
+      {
+        "anchor_reset": false,
+        "body_mass_kg": 81.05,
+        "event_type": "checkpoint_weight",
+        "id": "mvqvfjk581368r",
+        "timestamp": "2026-10-27T09:59"
+      },
+      {
+        "event_type": "water",
+        "id": "mvqvhh7t08bxk9",
+        "mass_in_kg": 0.58,
+        "timestamp": "2026-10-27T10:01",
+        "water_volume_ml": 580
+      },
+      {
+        "event_type": "water",
+        "id": "mvqvzdwm6p297s",
+        "mass_in_kg": 0.24,
+        "timestamp": "2026-10-27T10:15",
+        "water_volume_ml": 240
+      },
+      {
+        "anchor_reset": false,
+        "body_mass_kg": 80.75,
+        "event_type": "checkpoint_weight",
+        "id": "mvqyeyhc7sb2wq",
+        "timestamp": "2026-10-27T11:23"
+      },
+      {
+        "anchor_reset": false,
+        "body_mass_kg": 80.45,
+        "event_type": "checkpoint_weight",
+        "id": "mvr9bv42ktme1w",
+        "timestamp": "2026-10-27T16:28"
+      },
+      {
+        "event_type": "water",
+        "id": "mvri6trt4ex95t",
+        "mass_in_kg": 0.45,
+        "timestamp": "2026-10-27T20:36",
+        "water_volume_ml": 450
+      },
+      {
+        "event_type": "water",
+        "id": "mvri75eefhw3qq",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-10-27T20:36",
+        "water_volume_ml": 740
+      },
+      {
+        "event_type": "water",
+        "id": "mvrq08j3ayu753",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-10-28T00:15",
+        "water_volume_ml": 740
+      }
+    ],
+    "2026-10-28": [
+      {
+        "event_type": "water",
+        "id": "mvscwujf4cgzyj",
+        "mass_in_kg": 0.58,
+        "timestamp": "2026-10-28T10:56",
+        "water_volume_ml": 580
+      },
+      {
+        "delete_count": 1,
+        "deleted_at": "2026-10-28T16:59:22.093Z",
+        "event_type": "water",
+        "id": "mvscx5ykps77yp",
+        "mass_in_kg": 0.22,
+        "timestamp": "2026-10-28T10:56",
+        "water_volume_ml": 220
+      },
+      {
+        "event_type": "water",
+        "id": "mvsd06g6oepix4",
+        "mass_in_kg": 0.26,
+        "timestamp": "2026-10-28T10:59",
+        "water_volume_ml": 260
+      },
+      {
+        "event_type": "water",
+        "id": "mvsd97h5gqj6jr",
+        "mass_in_kg": 0.25,
+        "timestamp": "2026-10-28T11:06",
+        "water_volume_ml": 250
+      },
+      {
+        "anchor_reset": false,
+        "body_mass_kg": 80.95,
+        "event_type": "checkpoint_weight",
+        "id": "mvsd9rwj3qq7hd",
+        "timestamp": "2026-10-28T11:06"
+      },
+      {
+        "event_type": "water",
+        "id": "mvshi9bac70xd5",
+        "mass_in_kg": 0.1,
+        "timestamp": "2026-10-28T13:05",
+        "water_volume_ml": 100
+      },
+      {
+        "event_type": "water",
+        "id": "mvsnyauabl6tla",
+        "mass_in_kg": 0.5,
+        "timestamp": "2026-10-28T16:05",
+        "water_volume_ml": 500
+      },
+      {
+        "event_type": "water",
+        "id": "mvsnyfpx1ynlin",
+        "mass_in_kg": 0.16,
+        "timestamp": "2026-10-28T16:05",
+        "water_volume_ml": 160
+      }
+    ],
+    "2026-10-29": [
+      {
+        "anchor_reset": false,
+        "body_mass_kg": 81.2,
+        "event_type": "checkpoint_weight",
+        "id": "mvtrsor0wkeyr5",
+        "timestamp": "2026-10-29T10:41"
+      },
+      {
+        "event_type": "water",
+        "id": "mvtrsuv84vszv7",
+        "mass_in_kg": 0.58,
+        "timestamp": "2026-10-29T10:41",
+        "water_volume_ml": 580
+      },
+      {
+        "event_type": "water",
+        "id": "mvtrt67ypf1atm",
+        "mass_in_kg": 0.26,
+        "timestamp": "2026-10-29T10:41",
+        "water_volume_ml": 260
+      },
+      {
+        "anchor_reset": false,
+        "body_mass_kg": 81.05,
+        "event_type": "checkpoint_weight",
+        "id": "mvty8s7ktr80ik",
+        "timestamp": "2026-10-29T13:41"
+      },
+      {
+        "anchor_reset": false,
+        "body_mass_kg": 80.95,
+        "event_type": "checkpoint_weight",
+        "id": "mvu1jm8zal8s2z",
+        "timestamp": "2026-10-29T15:13"
+      },
+      {
+        "event_type": "water",
+        "id": "mvu78h81x05qod",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-10-29T15:53",
+        "water_volume_ml": 740
+      },
+      {
+        "event_type": "water",
+        "id": "mvu78lh1vb75qi",
+        "mass_in_kg": 0.3,
+        "timestamp": "2026-10-29T17:53",
+        "water_volume_ml": 300
+      },
+      {
+        "event_type": "water",
+        "id": "mvuesygu35hmex",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-10-29T21:25",
+        "water_volume_ml": 740
+      }
+    ],
+    "2026-10-30": [
+      {
+        "anchor_reset": false,
+        "body_mass_kg": 81.5,
+        "event_type": "checkpoint_weight",
+        "id": "mvv741s81c7grc",
+        "timestamp": "2026-10-30T09:37"
+      },
+      {
+        "event_type": "water",
+        "id": "mvv7492v26k7u2",
+        "mass_in_kg": 0.58,
+        "timestamp": "2026-10-30T10:37",
+        "water_volume_ml": 580
+      },
+      {
+        "event_type": "water",
+        "id": "mvv7xo89up16gp",
+        "mass_in_kg": 0.2,
+        "timestamp": "2026-10-30T11:00",
+        "water_volume_ml": 200
+      },
+      {
+        "anchor_reset": false,
+        "body_mass_kg": 81,
+        "event_type": "checkpoint_weight",
+        "id": "mvvichk9w372k6",
+        "timestamp": "2026-10-30T14:51"
+      },
+      {
+        "event_type": "water",
+        "id": "mvvjpalmiijnpx",
+        "mass_in_kg": 0.47,
+        "timestamp": "2026-10-30T16:30",
+        "water_volume_ml": 470
+      },
+      {
+        "event_type": "water",
+        "id": "mvvk6ttoakk6zo",
+        "mass_in_kg": 0.4,
+        "timestamp": "2026-10-30T16:43",
+        "water_volume_ml": 400
+      },
+      {
+        "event_type": "water",
+        "id": "mvvr13va5jsl35",
+        "mass_in_kg": 0.5,
+        "timestamp": "2026-10-30T19:55",
+        "water_volume_ml": 500
+      },
+      {
+        "event_type": "water",
+        "id": "mvvycai8iocqtr",
+        "mass_in_kg": 0.35,
+        "timestamp": "2026-10-30T23:19",
+        "water_volume_ml": 350
+      },
+      {
+        "event_type": "water",
+        "id": "mvvycjp1nom5n1",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-10-30T21:20",
+        "water_volume_ml": 740
+      },
+      {
+        "delete_count": 1,
+        "deleted_at": "2026-10-31T18:35:48.388Z",
+        "event_type": "water",
+        "id": "mvwqr3m1vhy242",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-10-30T00:35",
+        "water_volume_ml": 740
+      }
+    ],
+    "2026-10-31": [
+      {
+        "anchor_reset": false,
+        "body_mass_kg": 81.05,
+        "event_type": "checkpoint_weight",
+        "id": "mvwpb3fue6289d",
+        "timestamp": "2026-10-31T11:54"
+      },
+      {
+        "event_type": "water",
+        "id": "mvwpfg5trot4d1",
+        "mass_in_kg": 0.58,
+        "timestamp": "2026-10-31T11:58",
+        "water_volume_ml": 580
+      },
+      {
+        "event_type": "water",
+        "id": "mvwqs4eyanp86z",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-10-31T00:36",
+        "water_volume_ml": 740
+      },
+      {
+        "event_type": "water",
+        "id": "mvwyzmdjjoildn",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-10-31T16:25",
+        "water_volume_ml": 740
+      },
+      {
+        "event_type": "water",
+        "id": "mvwtmk9jj3mveo",
+        "mass_in_kg": 0.24,
+        "timestamp": "2026-10-31T13:55",
+        "water_volume_ml": 240
+      },
+      {
+        "anchor_reset": false,
+        "body_mass_kg": 81.5,
+        "event_type": "checkpoint_weight",
+        "id": "mvwty4hlac8tlc",
+        "timestamp": "2026-10-31T14:04"
+      },
+      {
+        "event_type": "water",
+        "id": "mvwtz1shffm12s",
+        "mass_in_kg": 0.3,
+        "timestamp": "2026-10-31T12:05",
+        "water_volume_ml": 300
+      },
+      {
+        "event_type": "water",
+        "id": "mvx8lxp8eflsp4",
+        "mass_in_kg": 0.3,
+        "timestamp": "2026-10-31T17:55",
+        "water_volume_ml": 300
+      },
+      {
+        "event_type": "water",
+        "id": "mvxe00ta5p5avr",
+        "mass_in_kg": 0.5,
+        "timestamp": "2026-10-31T23:26",
+        "water_volume_ml": 500
+      },
+      {
+        "anchor_reset": false,
+        "body_mass_kg": 81,
+        "event_type": "checkpoint_weight",
+        "id": "mvy37dsqi3le3d",
+        "timestamp": "2026-10-31T16:11"
+      }
+    ],
+    "2026-11-01": [
+      {
+        "anchor_reset": false,
+        "body_mass_kg": 81.15,
+        "event_type": "checkpoint_weight",
+        "id": "mvy34gxnlsh7up",
+        "timestamp": "2026-11-01T11:09"
+      },
+      {
+        "event_type": "water",
+        "id": "mvy3k5l1lrxy0f",
+        "mass_in_kg": 0.58,
+        "timestamp": "2026-11-01T11:21",
+        "water_volume_ml": 580
+      },
+      {
+        "event_type": "water",
+        "id": "mvy6d71t3cuv5d",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-11-01T12:40",
+        "water_volume_ml": 740
+      },
+      {
+        "buried_at": "2026-11-01T18:40:31.817Z",
+        "delete_count": 2,
+        "deleted_at": "2026-11-01T18:40:30.393Z",
+        "event_type": "water",
+        "id": "mvy6dmfyplh3mn",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-11-01T12:40",
+        "water_volume_ml": 740
+      },
+      {
+        "event_type": "water",
+        "id": "mvymqi5cib32cl",
+        "mass_in_kg": 0.36,
+        "timestamp": "2026-11-01T18:18",
+        "water_volume_ml": 360
+      },
+      {
+        "event_type": "water",
+        "id": "mvymqwols4hw71",
+        "mass_in_kg": 0.5,
+        "timestamp": "2026-11-01T19:18",
+        "water_volume_ml": 500
+      },
+      {
+        "event_type": "water",
+        "id": "mvymrqpwz6qozc",
+        "mass_in_kg": 0.25,
+        "timestamp": "2026-11-01T12:19",
+        "water_volume_ml": 250
+      },
+      {
+        "anchor_reset": false,
+        "body_mass_kg": 82.6,
+        "event_type": "checkpoint_weight",
+        "id": "mvynr1ey7534g6",
+        "timestamp": "2026-11-01T20:46"
+      },
+      {
+        "event_type": "water",
+        "id": "mvypyx6ryvgc8c",
+        "mass_in_kg": 0.74,
+        "timestamp": "2026-11-01T21:48",
+        "water_volume_ml": 740
+      },
+      {
+        "anchor_reset": false,
+        "body_mass_kg": 82,
+        "event_type": "checkpoint_weight",
+        "id": "mvyt9gf5f4ykjg",
+        "timestamp": "2026-11-01T23:20"
+      }
+    ],
+    "2026-11-02": [
+      {
+        "anchor_reset": false,
+        "body_mass_kg": 80.25,
+        "event_type": "checkpoint_weight",
+        "id": "mvzhaks9sxdwwa",
+        "timestamp": "2026-11-02T10:33"
+      },
+      {
+        "event_type": "water",
+        "id": "mvzhasktnl6g76",
+        "mass_in_kg": 0.58,
+        "timestamp": "2026-11-02T06:24",
+        "water_volume_ml": 580
+      },
+      {
+        "event_type": "water",
+        "id": "mvzl056za42sgh",
+        "mass_in_kg": 0.29,
+        "timestamp": "2026-11-02T12:17",
+        "water_volume_ml": 290
+      }
+    ]
+  },
+  "daily_activity": {
+    "2026-07-01": {
+      "steps": 8414,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-07-02": {
+      "steps": 7767,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-07-03": {
+      "steps": 6675,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-07-04": {
+      "steps": 15431,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-07-05": {
+      "steps": 9264,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-07-06": {
+      "steps": 8668,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-07-07": {
+      "steps": 7232,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-07-08": {
+      "steps": 8078,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-07-09": {
+      "steps": 4640,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-07-10": {
+      "steps": 2808,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-07-11": {
+      "steps": 6152,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-07-12": {
+      "steps": 9983,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-07-13": {
+      "steps": 7921,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-07-14": {
+      "steps": 8417,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-07-15": {
+      "steps": 8363,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-07-16": {
+      "steps": 7048,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-07-17": {
+      "steps": 22176,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-07-18": {
+      "steps": 15178,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-07-19": {
+      "steps": 4960,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-07-20": {
+      "steps": 11141,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-07-21": {
+      "steps": 8896,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-07-22": {
+      "steps": 16457,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-07-23": {
+      "steps": 6534,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-07-24": {
+      "steps": 5986,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-07-25": {
+      "steps": 8856,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-07-26": {
+      "steps": 11565,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-07-27": {
+      "steps": 7368,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-07-28": {
+      "steps": 15250,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-07-29": {
+      "steps": 18989,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-07-30": {
+      "steps": 12010,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-07-31": {
+      "steps": 4859,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-08-01": {
+      "steps": 4006,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-08-02": {
+      "steps": 6139,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-08-03": {
+      "steps": 5546,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-08-04": {
+      "steps": 5604,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-08-05": {
+      "steps": 9947,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-08-06": {
+      "steps": 6186,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-08-07": {
+      "steps": 6957,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-08-08": {
+      "steps": 9162,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-08-09": {
+      "steps": 9678,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-08-10": {
+      "steps": 7081,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-08-11": {
+      "steps": 8594,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-08-12": {
+      "steps": 17084,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-08-13": {
+      "steps": 7900,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-08-14": {
+      "steps": 8876,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-08-15": {
+      "steps": 9644,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-08-16": {
+      "steps": 6369,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-08-17": {
+      "steps": 13740,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-08-18": {
+      "steps": 7118,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-08-19": {
+      "steps": 4707,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-08-20": {
+      "steps": 10289,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-08-21": {
+      "steps": 11311,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-08-22": {
+      "steps": 16331,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-08-23": {
+      "steps": 10112,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-08-24": {
+      "steps": 9363,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-08-25": {
+      "steps": 9181,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-08-26": {
+      "steps": 15388,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-08-27": {
+      "steps": 638,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-08-28": {
+      "steps": 5053,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-08-29": {
+      "steps": 7890,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-08-30": {
+      "steps": 2826,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-08-31": {
+      "steps": 6689,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-09-01": {
+      "steps": 9768,
+      "ebike_minutes": 11,
+      "ebike_km": 2.25
+    },
+    "2026-09-02": {
+      "steps": 4237,
+      "ebike_minutes": 22,
+      "ebike_km": 5.14
+    },
+    "2026-09-03": {
+      "steps": 5976,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-09-04": {
+      "steps": 3662,
+      "ebike_minutes": 22,
+      "ebike_km": 4.23
+    },
+    "2026-09-05": {
+      "steps": 10053,
+      "ebike_minutes": 8,
+      "ebike_km": 2.48
+    },
+    "2026-09-06": {
+      "steps": 7077,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-09-07": {
+      "steps": 7119,
+      "ebike_minutes": 19,
+      "ebike_km": 4.62
+    },
+    "2026-09-08": {
+      "steps": 7515,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-09-09": {
+      "steps": 8870,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-09-10": {
+      "steps": 7457,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-09-11": {
+      "steps": 10546,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-09-12": {
+      "steps": 3547,
+      "ebike_minutes": 8,
+      "ebike_km": 1.83
+    },
+    "2026-09-13": {
+      "steps": 10633,
+      "ebike_minutes": 16,
+      "ebike_km": 3.53
+    },
+    "2026-09-14": {
+      "steps": 7260,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-09-15": {
+      "steps": 7345,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-09-16": {
+      "steps": 8289,
+      "ebike_minutes": 6,
+      "ebike_km": 1.42
+    },
+    "2026-09-17": {
+      "steps": 9650,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-09-18": {
+      "steps": 9984,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-09-19": {
+      "steps": 11932,
+      "ebike_minutes": 16,
+      "ebike_km": 3.61
+    },
+    "2026-09-20": {
+      "steps": 7183,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-09-21": {
+      "steps": 7529,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-09-22": {
+      "steps": 10100,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-09-23": {
+      "steps": 11826,
+      "ebike_minutes": 25,
+      "ebike_km": 6.61
+    },
+    "2026-09-24": {
+      "steps": 4782,
+      "ebike_minutes": 11,
+      "ebike_km": 2.63
+    },
+    "2026-09-25": {
+      "steps": 11778,
+      "ebike_minutes": 24,
+      "ebike_km": 5.02
+    },
+    "2026-09-26": {
+      "steps": 10087,
+      "ebike_minutes": 29,
+      "ebike_km": 6.35
+    },
+    "2026-09-27": {
+      "steps": 6468,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-09-28": {
+      "steps": 10391,
+      "ebike_minutes": 13,
+      "ebike_km": 2.6
+    },
+    "2026-09-29": {
+      "steps": 9605,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-09-30": {
+      "steps": 10126,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-10-01": {
+      "steps": 6932,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-10-02": {
+      "steps": 5552,
+      "ebike_minutes": 15,
+      "ebike_km": 3.61
+    },
+    "2026-10-03": {
+      "steps": 16754,
+      "ebike_minutes": 25,
+      "ebike_km": 7.61
+    },
+    "2026-10-04": {
+      "steps": 10940,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-10-05": {
+      "steps": 10211,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-10-06": {
+      "steps": 5012,
+      "ebike_minutes": 13,
+      "ebike_km": 3.49
+    },
+    "2026-10-07": {
+      "steps": 8477,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-10-08": {
+      "steps": 10049,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-10-09": {
+      "steps": 13418,
+      "ebike_minutes": 15,
+      "ebike_km": 3.23
+    },
+    "2026-10-10": {
+      "steps": 11135,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-10-11": {
+      "steps": 10518,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-10-12": {
+      "steps": 5244,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-10-13": {
+      "steps": 7274,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-10-14": {
+      "steps": 9864,
+      "ebike_minutes": 91,
+      "ebike_km": 17
+    },
+    "2026-10-15": {
+      "steps": 4656,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-10-16": {
+      "steps": 9418,
+      "ebike_minutes": 55,
+      "ebike_km": 22.7
+    },
+    "2026-10-17": {
+      "steps": 17178,
+      "ebike_minutes": 53,
+      "ebike_km": 14.13
+    },
+    "2026-10-18": {
+      "steps": 10703,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-10-19": {
+      "steps": 6997,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-10-20": {
+      "steps": 13176,
+      "ebike_minutes": 6,
+      "ebike_km": 1.1
+    },
+    "2026-10-21": {
+      "steps": 8037,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-10-22": {
+      "steps": 13174,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-10-23": {
+      "steps": 12951,
+      "ebike_minutes": 46,
+      "ebike_km": 12.2
+    },
+    "2026-10-24": {
+      "steps": 9889,
+      "ebike_minutes": 21,
+      "ebike_km": 4.7
+    },
+    "2026-10-25": {
+      "steps": 4289,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-10-26": {
+      "steps": 7001,
+      "ebike_minutes": 22,
+      "ebike_km": 5.2
+    },
+    "2026-10-27": {
+      "steps": 5670,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-10-28": {
+      "steps": 11142,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-10-29": {
+      "steps": 8206,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-10-30": {
+      "steps": 16061,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-10-31": {
+      "steps": 9362,
+      "ebike_minutes": 0,
+      "ebike_km": 0
+    },
+    "2026-11-01": {
+      "steps": 14867,
+      "ebike_minutes": 26,
+      "ebike_km": 6.7
+    }
+  }
+}

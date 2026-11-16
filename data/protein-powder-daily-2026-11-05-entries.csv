@@ -1,0 +1,97 @@
+date,source_line,item,logged_food_mass_g,logged_total_food_protein_g,comparison_protein_g,comparison_precision,status,once_again_powder_g,just_one_ingredient_powder_g,simply_teras_powder_g,ascent_powder_g,accounted_powder_g,accounted_protein_from_powders_g,basis
+2026-09-09,620,Protein,12,10,10,rounded text export,direct powder entry,0,12,0,0,12,10.3,Logged powder mass; protein calculated using pantry protein-to-mass ratio.
+2026-09-09,625,Protein,12,10,10,rounded text export,direct powder entry,0,12,0,0,12,10.3,Logged powder mass; protein calculated using pantry protein-to-mass ratio.
+2026-09-10,645,Protein,12,10,10,rounded text export,direct powder entry,0,12,0,0,12,10.3,Logged powder mass; protein calculated using pantry protein-to-mass ratio.
+2026-09-11,661,Protein,12,10,10,rounded text export,direct powder entry,0,12,0,0,12,10.3,Logged powder mass; protein calculated using pantry protein-to-mass ratio.
+2026-09-11,663,Protein,12,10,10,rounded text export,direct powder entry,0,12,0,0,12,10.3,Logged powder mass; protein calculated using pantry protein-to-mass ratio.
+2026-09-12,670,Protein,12,10,10,rounded text export,direct powder entry,0,12,0,0,12,10.3,Logged powder mass; protein calculated using pantry protein-to-mass ratio.
+2026-09-13,690,Protein,12,10,10,rounded text export,direct powder entry,0,12,0,0,12,10.3,Logged powder mass; protein calculated using pantry protein-to-mass ratio.
+2026-09-15,724,Protein,13.2,11,11,rounded text export,direct powder entry,0,13.2,0,0,13.2,11.33,Logged powder mass; protein calculated using pantry protein-to-mass ratio.
+2026-09-15,728,Protein,2.5,2,2,rounded text export,direct powder entry,0,2.5,0,0,2.5,2.145833,Logged powder mass; protein calculated using pantry protein-to-mass ratio.
+2026-09-16,735,Protein,12,10,10,rounded text export,direct powder entry,0,12,0,0,12,10.3,Logged powder mass; protein calculated using pantry protein-to-mass ratio.
+2026-09-17,758,Protein,12,10,10,rounded text export,direct powder entry,0,12,0,0,12,10.3,Logged powder mass; protein calculated using pantry protein-to-mass ratio.
+2026-09-18,769,Protein,13.8,12,12,rounded text export,direct powder entry,0,13.8,0,0,13.8,11.845,Logged powder mass; protein calculated using pantry protein-to-mass ratio.
+2026-09-20,807,Protein,12,10,10,rounded text export,direct powder entry,0,12,0,0,12,10.3,Logged powder mass; protein calculated using pantry protein-to-mass ratio.
+2026-09-21,820,Protein,12,10,10,rounded text export,direct powder entry,0,12,0,0,12,10.3,Logged powder mass; protein calculated using pantry protein-to-mass ratio.
+2026-09-22,831,Protein,12,10,10,rounded text export,direct powder entry,0,12,0,0,12,10.3,Logged powder mass; protein calculated using pantry protein-to-mass ratio.
+2026-09-22,834,Protein,12,10,10,rounded text export,direct powder entry,0,12,0,0,12,10.3,Logged powder mass; protein calculated using pantry protein-to-mass ratio.
+2026-09-24,869,Protein,12,10,10,rounded text export,direct powder entry,0,12,0,0,12,10.3,Logged powder mass; protein calculated using pantry protein-to-mass ratio.
+2026-09-25,879,Protein,8,7,7,rounded text export,direct powder entry,0,8,0,0,8,6.866667,Logged powder mass; protein calculated using pantry protein-to-mass ratio.
+2026-09-26,893,Protein,8.4,7,7,rounded text export,direct powder entry,0,8.4,0,0,8.4,7.21,Logged powder mass; protein calculated using pantry protein-to-mass ratio.
+2026-09-26,903,Protein,5,4,4,rounded text export,direct powder entry,0,5,0,0,5,4.291667,Logged powder mass; protein calculated using pantry protein-to-mass ratio.
+2026-09-27,911,Protein,9,8,8,rounded text export,direct powder entry,0,9,0,0,9,7.725,Logged powder mass; protein calculated using pantry protein-to-mass ratio.
+2026-09-28,931,Protein,6,5,5,rounded text export,direct powder entry,0,6,0,0,6,5.15,Logged powder mass; protein calculated using pantry protein-to-mass ratio.
+2026-09-28,936,Protein,7.5,6,6,rounded text export,direct powder entry,0,7.5,0,0,7.5,6.4375,Logged powder mass; protein calculated using pantry protein-to-mass ratio.
+2026-09-29,947,Protein,12,10,10,rounded text export,direct powder entry,0,12,0,0,12,10.3,Logged powder mass; protein calculated using pantry protein-to-mass ratio.
+2026-09-29,956,Protein,6,5,5,rounded text export,direct powder entry,0,6,0,0,6,5.15,Logged powder mass; protein calculated using pantry protein-to-mass ratio.
+2026-09-30,962,Protein,12,10,10,rounded text export,direct powder entry,0,12,0,0,12,10.3,Logged powder mass; protein calculated using pantry protein-to-mass ratio.
+2026-09-30,973,Protein,12,10,10,rounded text export,direct powder entry,0,12,0,0,12,10.3,Logged powder mass; protein calculated using pantry protein-to-mass ratio.
+2026-10-01,983,Protein,12,10,10,rounded text export,direct powder entry,0,12,0,0,12,10.3,Logged powder mass; protein calculated using pantry protein-to-mass ratio.
+2026-10-02,1004,Protein,9.5,8,8,rounded text export,direct powder entry,0,9.5,0,0,9.5,8.154167,Logged powder mass; protein calculated using pantry protein-to-mass ratio.
+2026-10-04,1051,Protein,3.5,3,3,rounded text export,direct powder entry,0,3.5,0,0,3.5,3.004167,Logged powder mass; protein calculated using pantry protein-to-mass ratio.
+2026-10-05,1060,Protein,6,5,5,rounded text export,direct powder entry,0,6,0,0,6,5.15,Logged powder mass; protein calculated using pantry protein-to-mass ratio.
+2026-10-06,1073,Protein,14,12,12,rounded text export,direct powder entry,0,14,0,0,14,12.016667,Logged powder mass; protein calculated using pantry protein-to-mass ratio.
+2026-10-07,1088,Peanut Protein Powder,3,2,2,rounded text export,direct powder entry,3,0,0,0,3,2.2,Logged powder mass; protein calculated using pantry protein-to-mass ratio.
+2026-10-07,1102,Peanut Protein Powder,7.5,5,5,rounded text export,direct powder entry,7.5,0,0,0,7.5,5.5,Logged powder mass; protein calculated using pantry protein-to-mass ratio.
+2026-10-08,1113,Peanut Protein Powder,8,6,6,rounded text export,direct powder entry,8,0,0,0,8,5.866667,Logged powder mass; protein calculated using pantry protein-to-mass ratio.
+2026-10-08,1114,Protein,6,5,5,rounded text export,direct powder entry,0,6,0,0,6,5.15,Logged powder mass; protein calculated using pantry protein-to-mass ratio.
+2026-10-09,1143,Peanut Protein Powder,10.9,8,8,rounded text export,direct powder entry,10.9,0,0,0,10.9,7.993333,Logged powder mass; protein calculated using pantry protein-to-mass ratio.
+2026-10-10,1150,Protein,4.5,4,4,rounded text export,direct powder entry,0,4.5,0,0,4.5,3.8625,Logged powder mass; protein calculated using pantry protein-to-mass ratio.
+2026-10-10,1151,Peanut Protein Powder,17,12,12,rounded text export,direct powder entry,17,0,0,0,17,12.466667,Logged powder mass; protein calculated using pantry protein-to-mass ratio.
+2026-10-11,1169,Peanut Protein Powder,17,12,12,rounded text export,direct powder entry,17,0,0,0,17,12.466667,Logged powder mass; protein calculated using pantry protein-to-mass ratio.
+2026-10-11,1170,Protein,11.2,10,10,rounded text export,direct powder entry,0,11.2,0,0,11.2,9.613333,Logged powder mass; protein calculated using pantry protein-to-mass ratio.
+2026-10-12,1187,Peanut Protein Powder,7.5,5,5,rounded text export,direct powder entry,7.5,0,0,0,7.5,5.5,Logged powder mass; protein calculated using pantry protein-to-mass ratio.
+2026-10-12,1188,Protein,8.3,7,7,rounded text export,direct powder entry,0,8.3,0,0,8.3,7.124167,Logged powder mass; protein calculated using pantry protein-to-mass ratio.
+2026-10-14,1208,Peanut Protein Powder,8,6,6,rounded text export,direct powder entry,8,0,0,0,8,5.866667,Logged powder mass; protein calculated using pantry protein-to-mass ratio.
+2026-10-14,1209,Protein,7.5,6,6,rounded text export,direct powder entry,0,7.5,0,0,7.5,6.4375,Logged powder mass; protein calculated using pantry protein-to-mass ratio.
+2026-10-15,1229,Peanut Protein Powder,17,12,12,rounded text export,direct powder entry,17,0,0,0,17,12.466667,Logged powder mass; protein calculated using pantry protein-to-mass ratio.
+2026-10-15,1230,Protein,5,4,4,rounded text export,excluded deleted entry,,,,,,,
+2026-10-15,1231,Protein,6,5,5,rounded text export,direct powder entry,0,6,0,0,6,5.15,Logged powder mass; protein calculated using pantry protein-to-mass ratio.
+2026-10-16,1250,Peanut Protein Powder,11.6,8,8,rounded text export,direct powder entry,11.6,0,0,0,11.6,8.506667,Logged powder mass; protein calculated using pantry protein-to-mass ratio.
+2026-10-16,1251,Protein,8,7,7,rounded text export,direct powder entry,0,8,0,0,8,6.866667,Logged powder mass; protein calculated using pantry protein-to-mass ratio.
+2026-10-17,1269,Peanut Protein Powder,5,4,4,rounded text export,direct powder entry,5,0,0,0,5,3.666667,Logged powder mass; protein calculated using pantry protein-to-mass ratio.
+2026-10-17,1270,Protein,4.5,4,4,rounded text export,direct powder entry,0,4.5,0,0,4.5,3.8625,Logged powder mass; protein calculated using pantry protein-to-mass ratio.
+2026-10-18,1298,Peanut Protein Powder,11.6,8,8,rounded text export,direct powder entry,11.6,0,0,0,11.6,8.506667,Logged powder mass; protein calculated using pantry protein-to-mass ratio.
+2026-10-18,1299,Protein,7,6,6,rounded text export,direct powder entry,0,7,0,0,7,6.008333,Logged powder mass; protein calculated using pantry protein-to-mass ratio.
+2026-10-19,1314,Peanut Protein Powder,12.3,9,9,rounded text export,direct powder entry,12.3,0,0,0,12.3,9.02,Logged powder mass; protein calculated using pantry protein-to-mass ratio.
+2026-10-19,1315,Protein,12.4,11,11,rounded text export,direct powder entry,0,12.4,0,0,12.4,10.643333,Logged powder mass; protein calculated using pantry protein-to-mass ratio.
+2026-10-20,1332,.knox Greek yogurt bowl,291,49,48.695548,full precision from Nov 2 TSV backup,unresolved recipe composition,,,,,,,"No saved recipe snapshot matches logged protein, or matching snapshots imply different powder amounts. Historical recipe version is missing."
+2026-10-21,1349,.knox Greek yogurt bowl,268.5,39,38.744524,full precision from Nov 2 TSV backup,unresolved recipe composition,,,,,,,"No saved recipe snapshot matches logged protein, or matching snapshots imply different powder amounts. Historical recipe version is missing."
+2026-10-21,1353,Peanut Protein Powder,10.2,7,7,rounded text export,direct powder entry,10.2,0,0,0,10.2,7.48,Logged powder mass; protein calculated using pantry protein-to-mass ratio.
+2026-10-21,1360,Protein,3,3,3,rounded text export,direct powder entry,0,3,0,0,3,2.575,Logged powder mass; protein calculated using pantry protein-to-mass ratio.
+2026-10-22,1370,.knox Greek yogurt bowl,371.51,49,48.808167,full precision from Nov 2 TSV backup,unresolved recipe composition,,,,,,,"No saved recipe snapshot matches logged protein, or matching snapshots imply different powder amounts. Historical recipe version is missing."
+2026-10-23,1382,.knox Greek yogurt bowl,344.5,48,48.063226,full precision from Nov 2 TSV backup,reconstructed from matching recipe snapshot,7.5,8.5,0,0,16,12.795833,data/shared-storage.json; batch 344.5 g; full-meal nutrition matches logged protein. Ingredients are not preserved per log entry.
+2026-10-24,1390,Whey skyr bowl,390,59,58.694455,full precision from Nov 2 TSV backup,reconstructed from matching recipe snapshot,0,0,0,15,15,12.0975,data/shared-storage.json; batch 390 g; full-meal nutrition matches logged protein. Ingredients are not preserved per log entry.
+2026-10-24,1393,Grilled salmon pita mix,151.9,31,31.495464,full precision from Nov 2 TSV backup,unresolved recipe composition,,,,,,,"No saved recipe snapshot matches logged protein, or matching snapshots imply different powder amounts. Historical recipe version is missing."
+2026-10-26,1418,Soy milk bowl,320.5,42,42.054869,full precision from Nov 2 TSV backup,unresolved recipe composition,,,,,,,"No saved recipe snapshot matches logged protein, or matching snapshots imply different powder amounts. Historical recipe version is missing."
+2026-10-27,1425,Soy milk bowl,303,31,30.772635,full precision from Nov 2 TSV backup,reconstructed from matching recipe snapshot,0,9,0,0,9,7.725,data/backups/protein-loadout-export-2026-11-02.tsv; batch 303 g; full-meal nutrition matches logged protein. Ingredients are not preserved per log entry.
+2026-10-27,1429,Protein,7.5,6,6,rounded text export,direct powder entry,0,7.5,0,0,7.5,6.4375,Logged powder mass; protein calculated using pantry protein-to-mass ratio.
+2026-10-27,1430,Protein,5,4,4,rounded text export,direct powder entry,0,5,0,0,5,4.291667,Logged powder mass; protein calculated using pantry protein-to-mass ratio.
+2026-10-27,1431,.knox Greek yogurt bowl,278,41,41,rounded text export,excluded deleted entry,,,,,,,
+2026-10-27,1432,.knox Greek yogurt bowl,200,29,29,rounded text export,excluded deleted entry,,,,,,,
+2026-10-27,1433,.knox Greek yogurt bowl,200,29,29.182597,full precision from Nov 2 TSV backup,unresolved recipe composition,,,,,,,"No saved recipe snapshot matches logged protein, or matching snapshots imply different powder amounts. Historical recipe version is missing."
+2026-10-28,1438,.knox Greek yogurt bowl,78,11,11,rounded text export,excluded deleted entry,,,,,,,
+2026-10-28,1439,.knox Greek yogurt bowl,78,11,11.381213,full precision from Nov 2 TSV backup,unresolved recipe composition,,,,,,,"No saved recipe snapshot matches logged protein, or matching snapshots imply different powder amounts. Historical recipe version is missing."
+2026-10-28,1443,.knox Greek yogurt bowl,497,81,80.57281,full precision from Nov 2 TSV backup,unresolved recipe composition,,,,,,,"No saved recipe snapshot matches logged protein, or matching snapshots imply different powder amounts. Historical recipe version is missing."
+2026-10-28,1444,Spanish Rice w/TVP and Soyrizo,40,2,2.416223,full precision from Nov 2 TSV backup,reconstructed from matching recipe snapshot,0,0.22541,0,0,0.22541,0.193477,data/backups/protein-loadout-export-2026-11-02.tsv; batch 2928 g; full-meal nutrition matches logged protein. Ingredients are not preserved per log entry.
+2026-10-29,1454,Spanish Rice w/TVP and Soyrizo,150,9,9.060835,full precision from Nov 2 TSV backup,reconstructed from matching recipe snapshot,0,0.845287,0,0,0.845287,0.725538,data/backups/protein-loadout-export-2026-11-02.tsv; batch 2928 g; full-meal nutrition matches logged protein. Ingredients are not preserved per log entry.
+2026-10-30,1465,Spanish rice and egg,414,42,42.265541,full precision from Nov 2 TSV backup,unresolved recipe composition,,,,,,,"No saved recipe snapshot matches logged protein, or matching snapshots imply different powder amounts. Historical recipe version is missing."
+2026-10-30,1467,.knox Greek yogurt bowl,71.5,13,13.086667,full precision from Nov 2 TSV backup,unresolved recipe composition,,,,,,,"No saved recipe snapshot matches logged protein, or matching snapshots imply different powder amounts. Historical recipe version is missing."
+2026-10-31,1478,Spanish rice and egg,446.5,53,52.623068,full precision from Nov 2 TSV backup,reconstructed from matching recipe snapshot,0,11.728484,0,0,11.728484,10.066948,data/backups/protein-loadout-export-2026-11-02.tsv; batch 446.5 g; full-meal nutrition matches logged protein. Ingredients are not preserved per log entry.
+2026-10-31,1479,.knox Greek yogurt bowl,200.5,27,27.499548,full precision from Nov 2 TSV backup,reconstructed from matching recipe snapshot,0,0,8.5,0,8.5,6.375,data/backups/protein-loadout-export-2026-11-02.tsv; batch 200.5 g; full-meal nutrition matches logged protein. Ingredients are not preserved per log entry.
+2026-11-01,1493,.knox Greek bowl 2,107,15,14.703712,full precision from Nov 2 TSV backup,reconstructed from matching recipe snapshot,0,0,4.424779,0,4.424779,3.318584,data/backups/protein-loadout-export-2026-11-02.tsv; batch 107 g; full-meal nutrition matches logged protein. Ingredients are not preserved per log entry.
+2026-11-01,1494,Whey protein,4,3,3,rounded text export,excluded deleted entry,,,,,,,
+2026-11-01,1495,Whey protein,8.5,6,6,rounded text export,direct powder entry,0,0,8.5,0,8.5,6.375,Logged powder mass; protein calculated using pantry protein-to-mass ratio.
+2026-11-01,1497,"Whey Protein, Vanilla",11.5,9,9,rounded text export,direct powder entry,0,0,0,11.5,11.5,9.27475,Logged powder mass; protein calculated using pantry protein-to-mass ratio.
+2026-11-02,1503,Whey protein,15,11,11,rounded text export,excluded deleted entry,,,,,,,
+2026-11-02,1504,Carrot protein,153,12,12.4,full precision from Nov 2 TSV backup,reconstructed from matching recipe snapshot,0,0,15,0,15,11.25,data/backups/protein-loadout-export-2026-11-02.tsv; batch 153 g; full-meal nutrition matches logged protein. Ingredients are not preserved per log entry.
+2026-11-02,1510,.knox Greek bowl 2,268,45,45.073245,full precision from Nov 2 TSV backup,reconstructed from matching recipe snapshot,0,5,18.469027,0,23.469027,18.143437,data/backups/protein-loadout-export-2026-11-02_b.tsv; batch 268 g; full-meal nutrition matches logged protein. Ingredients are not preserved per log entry.
+2026-11-02,1511,Carrot protein,99,17,16.770833,full precision from Nov 2 TSV backup,reconstructed from matching recipe snapshot,0,0,21.5,0,21.5,16.125,data/backups/protein-loadout-export-2026-11-02_b.tsv; batch 99 g; full-meal nutrition matches logged protein. Ingredients are not preserved per log entry.
+2026-11-03,1517,Carrot protein,161,21,21,rounded text export,unresolved recipe composition,,,,,,,"No saved recipe snapshot matches logged protein, or matching snapshots imply different powder amounts. Historical recipe version is missing."
+2026-11-03,1521,.knox Greek bowl 2,227,40,40,rounded text export,unresolved recipe composition,,,,,,,"No saved recipe snapshot matches logged protein, or matching snapshots imply different powder amounts. Historical recipe version is missing."
+2026-11-03,1522,Spanish rice and egg,289,37,37,rounded text export,unresolved recipe composition,,,,,,,"No saved recipe snapshot matches logged protein, or matching snapshots imply different powder amounts. Historical recipe version is missing."
+2026-11-04,1528,Carrot protein,250,18,18,rounded text export,unresolved recipe composition,,,,,,,"No saved recipe snapshot matches logged protein, or matching snapshots imply different powder amounts. Historical recipe version is missing."
+2026-11-04,1537,.knox Greek bowl 2,252,38,38,rounded text export,unresolved recipe composition,,,,,,,"No saved recipe snapshot matches logged protein, or matching snapshots imply different powder amounts. Historical recipe version is missing."
+2026-11-05,1542,Carrot protein,172,24,24,rounded text export,unresolved recipe composition,,,,,,,"No saved recipe snapshot matches logged protein, or matching snapshots imply different powder amounts. Historical recipe version is missing."
+2026-11-05,1543,Spanish rice and egg,445,54,54,rounded text export,unresolved recipe composition,,,,,,,"No saved recipe snapshot matches logged protein, or matching snapshots imply different powder amounts. Historical recipe version is missing."
+2026-11-05,1548,Soy milk bowl,466,60,60,rounded text export,unresolved recipe composition,,,,,,,"No saved recipe snapshot matches logged protein, or matching snapshots imply different powder amounts. Historical recipe version is missing."

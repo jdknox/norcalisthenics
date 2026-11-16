@@ -9,6 +9,7 @@ data/workout-library.tsv.*
 /data/wii/wiiboard_weights.csv.*.bak
 /data/wii/.retare-request
 /data/*.bak
+/data/pose
 *.blend1
 __pycache__/
 *:Zone.Identifier

@@ -1,0 +1,51 @@
+code,product_name,brands,package_quantity_source,serving_size_source,serving_mass_g,protein_per_serving_g,protein_ratio_g_per_g,protein_percent_by_mass,calculation_basis,reported_protein_per_100g_g,package_mass_g,calculated_servings_per_package,protein_per_package_g,protein_per_package_from_reported_100g_g,notes
+0700053396685,Unflavored Whey Protein,Tim's Just Clean Protein,,1 portion (35 g),35,32,0.91428571,91.4286,reported protein per serving / serving mass,,,,,,Package mass missing.
+16587616,Unflavored whey protein powder,,,,,,0.85714286,85.7143,reported protein per 100 g / 100,85.714286,,,,,Serving mass missing; density calculated from per-100-g data only. Package mass missing.
+0815667021561,Grass-fed Whey Protein Powder Unflavored,Puori,,1 scoop (30 g),30,24,0.8,80,reported protein per serving / serving mass,,,,,,Package mass missing.
+0023249093732,Whey Protein Isolate Unflavored,Sports Research,,1 Scoop (34 g),34,25,0.73529412,73.5294,reported protein per serving / serving mass,,,,,,Package mass missing.
+5059883593074,My protein Impact Whey Protein Unflavored,My protein,,1 scoop (30 g),30,22,0.73333333,73.3333,reported protein per serving / serving mass,,,,,,Package mass missing.
+5059883569611,Impact Whey Protein unflavored,MYPROTEIN,,30 g,30,22.5,0.75,75,reported protein per 100 g / 100,75,,,,,Protein per serving calculated from per-100-g data. Package mass missing.
+7792981063077,TrueMade Whey Protein Unflavored,ENA,,31 g,31,25,0.80645161,80.6452,reported protein per serving / serving mass,,,,,,Package mass missing.
+7290014386389,Unflavored Whey Protein,Sommer Laboratories,,33 g,33,25,0.75757576,75.7576,reported protein per serving / serving mass,,,,,,Package mass missing.
+0742488241932,Unflavored Whey Protein,Promix,,2 scoops (31 g),31,25,0.80645161,80.6452,reported protein per serving / serving mass,,,,,,Package mass missing.
+0019962009358,Whey+ Unflavored,Legion,792 g,1 scoop (30 g),30,24,0.8,80,reported protein per serving / serving mass,,792,26.4,633.6,,
+5060751999188,Whey Protein,Optimum Nutrition Unflavored,,,,,0.8,80,reported protein per 100 g / 100,80,,,,,Serving mass missing; density calculated from per-100-g data only. Package mass missing.
+0048107252410,Whey Protein Unflavored,GNC,,1 scoop (30.03 g),30.03,25,0.83250083,83.2501,reported protein per serving / serving mass,,,,,,Package mass missing.
+5059883593135,Unflavored Whey Protein,MYPROTEIN,,1 portion (30 g),30,22,0.73333333,73.3333,reported protein per serving / serving mass,,,,,,Package mass missing.
+0099482532413,Unflavored Whey Isolate,365,32 oz,30g,30,25,0.83333333,83.3333,reported protein per serving / serving mass,,907.18474,30.239491,755.987283,,
+5055534302910,Impact Whey Protein Unflavored,MYPROTEIN,2.5 kg,30 g,30,23,0.76666667,76.6667,reported protein per serving / serving mass,75,2500,83.333333,1916.666667,1875,Serving and per-100-g protein values differ; main ratio and package total use serving data. Alternative package total uses per-100-g data. Difference may reflect label rounding or inconsistent source data.
+0860011906766,Whey Protein Unflavored,Rustic Nutrition,24 oz,0.333 cup (25 g),25,19,0.76,76,reported protein per serving / serving mass,,680.388555,27.215542,517.095302,,
+0850059419779,Organic Whey Protein - Unflavored,Truvani,,1 packet (26 g),26,20,0.76923077,76.9231,reported protein per serving / serving mass,,,,,,Package mass missing.
+9339966004649,Whey Protein Isolate Unflavored and Unsweetened,natural-road,,1 serving (30 g),30,26.8,0.89333333,89.3333,reported protein per serving / serving mass,,,,,,Package mass missing.
+0810180026031,Whey Protein Isolate Unflavored,amazing-nutrition,,1 portion (30 g),30,27,0.9,90,reported protein per serving / serving mass,,,,,,Package mass missing.
+0732388403202,Hydrolyzed whey Protein - Unflavored,nutrabolics,,1 mesure (32 g),32,28,0.875,87.5,reported protein per serving / serving mass,,,,,,Package mass missing.
+0753215594283,Unflavored & Unsweetened Whey Protein Isolate,canada-protein,,1 scoop (30 g),30,28,0.93333333,93.3333,reported protein per serving / serving mass,,,,,,Package mass missing.
+0753215595907,Whey Protein Concentrate Unflavored & Unsweetened,canadian-protein,,1 scoop (30 g),30,24,0.8,80,reported protein per serving / serving mass,,,,,,Package mass missing.
+0621375132174,Whey Protein unflavored,,,,,,0.77419355,77.4194,reported protein per 100 g / 100,77.419355,,,,,Serving mass missing; density calculated from per-100-g data only. Package mass missing.
+00191502,Hydrolysed Whey Protein Isolate Unflavored,bulk,,1 serving (30 g),30,26,0.86666667,86.6667,reported protein per serving / serving mass,,,,,,Package mass missing.
+0733739021724,Whey Protein Isolate Unflavored,now,,1 scoop (28 g),28,25,0.89285714,89.2857,reported protein per serving / serving mass,,,,,,Package mass missing.
+00267807,Bulk pure whey protein unflavored,,,,,,0.77,77,reported protein per 100 g / 100,77,,,,,Serving mass missing; density calculated from per-100-g data only. Package mass missing.
+8595717722519,100% Whey Protein grass-fed Unflavored,vilgain,,,,,0.78,78,reported protein per 100 g / 100,78,,,,,Serving mass missing; density calculated from per-100-g data only. Package mass missing.
+7290119913411,Whey protein unflavored,life-allin,,100 g,100,,,,,,,,,,Protein nutrition missing; cannot calculate protein ratio or package protein. Package mass missing.
+0810028190344,"Whey Protein Isolate Cold-Pressed, Unflavored",true-nutrition,2 lbs,1 scoop (34 g),34,,,,,,907.18474,26.681904,,,Protein nutrition missing; cannot calculate protein ratio or package protein.
+0850046940095,Protein powder Whey Unflavored,gainful,,1 scoop (25 g),25,,,,,,,,,,Protein nutrition missing; cannot calculate protein ratio or package protein. Package mass missing.
+5059883468440,"Impact Whey Protein, Unflavored",MYPROTEIN,,1 scoop (30 g),30,,,,,,,,,,Protein nutrition missing; cannot calculate protein ratio or package protein. Package mass missing.
+8851788800922,PLANT protein Unflavored,the-merry,1050 g,52.5 g,52.5,,,,,,1050,20,,,Protein nutrition missing; cannot calculate protein ratio or package protein. Product name identifies plant protein; included because it appears in the source export.
+9421901323066,Whey Protein Unflavored,zealea,,2 scoops (30 g),30,,,,,,,,,,Protein nutrition missing; cannot calculate protein ratio or package protein. Package mass missing.
+7340028813118,Whey Protein Powder - Unflavored,smartsupps,,,,,,,,,,,,,Protein nutrition missing; cannot calculate protein ratio or package protein. Package mass missing.
+0814722021775,Whey Protein Concentrate Unflavored,muscle-feast,,1 scoop (30 g),30,,,,,,,,,,Protein nutrition missing; cannot calculate protein ratio or package protein. Package mass missing.
+0848054006377,Unflavored Whey Protein,happy-day,,2 scoops (33 g),33,,,,,,,,,,Protein nutrition missing; cannot calculate protein ratio or package protein. Package mass missing.
+8595717722533,Whey Protein Unflavored,vilgain,,30 g,30,,,,,,,,,,Protein nutrition missing; cannot calculate protein ratio or package protein. Package mass missing.
+5059883468433,Impact Whey Protein Unflavored,MYPROTEIN,,1 scoop (30 g),30,,,,,,,,,,Protein nutrition missing; cannot calculate protein ratio or package protein. Package mass missing.
+0742488241864,Whey Protein Puffs (Unflavored),promix,,13.6 g,13.6,,,,,,,,,,Protein nutrition missing; cannot calculate protein ratio or package protein. Package mass missing.
+7290019310990,Whey Protein Unflavored,allin,759 g,33 g,33,,,,,,759,23,,,Protein nutrition missing; cannot calculate protein ratio or package protein.
+8906133020002,Whey Protein Isolate Unflavored,nakpro,,1 Heaping Scoop (34 g),34,,,,,,,,,,Protein nutrition missing; cannot calculate protein ratio or package protein. Package mass missing.
+0860010318515,Clear Whey Isolate Protein Powder Unflavored,wicked-protein,,1 portion (28 g),28,,,,,,,,,,Protein nutrition missing; cannot calculate protein ratio or package protein. Package mass missing.
+0814722020082,100% Whey Protein Powder - Unflavored,muscle-feast,5 lbs,25 g,25,,,,,,2267.96185,90.718474,,,Protein nutrition missing; cannot calculate protein ratio or package protein.
+3858891292724,Whey Unflavored Protein,active-life,,32 g,32,,,,,,,,,,Protein nutrition missing; cannot calculate protein ratio or package protein. Package mass missing.
+0815044020170,Organic Whey Unflavored Protein,natural-force,,,,,,,,,,,,,Protein nutrition missing; cannot calculate protein ratio or package protein. Package mass missing.
+0729863020061,Whey Protein Blend (unflavored),ascent,,1.0 portion (30.0 g),30,,,,,,,,,,Protein nutrition missing; cannot calculate protein ratio or package protein. Package mass missing.
+0856215000065,Unflavored whey protein,,,30.0g,30,,,,,,,,,,Protein nutrition missing; cannot calculate protein ratio or package protein. Package mass missing.
+0811782030099,Unflavored Whey Protein Isolate,,,,,,,,,,,,,,Protein nutrition missing; cannot calculate protein ratio or package protein. Package mass missing.
+0099482500016,Grass-Fed Whey Protein Isolate (Unflavored),whole-foods,,,,,,,,,,,,,Protein nutrition missing; cannot calculate protein ratio or package protein. Package mass missing.
+0790011210399,"Jarrow formulas, 100% natural whey protein powder, unflavored, unflavored",,,1 PACKET (23 g),23,,,,,,,,,,Protein nutrition missing; cannot calculate protein ratio or package protein. Package mass missing.
