@@ -9,7 +9,10 @@ import time
 import wii_runtime
 
 board_address = '00:1f:c5:ab:39:a6'
-csv_path = '/home/knox/prj/dev/norcalisthenics/data/wii/wiiboard_weights.csv'
+csv_dir = '/home/knox/prj/dev/norcalisthenics/data/wii'
+# None picks csv_dir/wiiboard_weights_<today>.csv, recomputed each time a
+# recording starts. Tests set this to a fixed path directly.
+csv_path = None
 retare_path = '/home/knox/prj/dev/norcalisthenics/data/wii/.retare-request'
 # calibration_factor = 1.028744517
 calibration_factor = 1.0
@@ -64,15 +67,18 @@ def parseReport(data, calibration):
 
 
 def openCsv():
-    csv_file = open(csv_path, 'a+', newline='')
+    path = csv_path
+    if path == None:
+        path = f'{csv_dir}/wiiboard_weights_{time.strftime("%Y-%m-%d")}.csv'
+    csv_file = open(path, 'a+', newline='')
     csv_file.seek(0)
     existing_header = next(csv.reader(csv_file), None)
     if existing_header != None and existing_header != csv_header:
         csv_file.close()
-        archive_path = f'{csv_path}.{time.time_ns()}.bak'
-        os.rename(csv_path, archive_path)
+        archive_path = f'{path}.{time.time_ns()}.bak'
+        os.rename(path, archive_path)
         print(f'previous CSV preserved at {archive_path}', flush=True)
-        csv_file = open(csv_path, 'a', newline='')
+        csv_file = open(path, 'a', newline='')
     csv_file.seek(0, os.SEEK_END)
     csv_writer = csv.writer(csv_file)
     if csv_file.tell() == 0:

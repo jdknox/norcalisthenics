@@ -95,6 +95,10 @@ def drawFrame(job):
         panel += ['yellow = L side, cyan = R side', 'hollow / dashed = visibility < 0.5']
     else:
         panel += ['NO POSE DETECTED']
+    # force_kg/arm_assist_kg only exist after merge_force.py has joined in a Wii
+    # board log; plain pose_to_csv.py output doesn't have them.
+    if row.get('force_kg'):
+        panel.append(f'force {float(row["force_kg"]):.1f} kg, arm assist {float(row["arm_assist_kg"]):.1f} kg')
     draw.rectangle([20, 20, 640, 20 + 40*len(panel) + 10], fill=(0, 0, 0))
     for i in range(len(panel)):
         draw.text((32, 28 + 40*i), panel[i], fill=(255, 255, 255), font=font)

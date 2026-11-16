@@ -92,7 +92,8 @@ noise. Factory gains remain unchanged (`calibration_factor = 1.0`).
 Only fresh reports enter the approximately 100 ms averages; idle polling and
 unrelated HID packets do not create samples. While Record is active, it writes
 approximately **10 Hz** samples, including zero and sub-1 kg readings, to
-`data/wii/wiiboard_weights.csv` on the Pi:
+`data/wii/wiiboard_weights_<YYYY-MM-DD>.csv` on the Pi, named for the date
+recording started:
 
 ```text
 timestamp,total_kg,corner_1_tared_kg,corner_2_tared_kg,corner_3_tared_kg,corner_4_tared_kg
@@ -109,8 +110,9 @@ recorded. The CSV is local data, ignored by Git.
 When Record first opens a CSV with a different header (including the old
 two-column format and the previous untared corner columns), it preserves that
 file with a nanosecond timestamp, such as
-`wiiboard_weights.csv.1793647585873288350.bak`, and starts a new CSV with
-the current header. Later recording intervals append to the same file.
+`wiiboard_weights_2026-11-06.csv.1793647585873288350.bak`, and starts a new
+CSV with the current header. Later recording intervals on the same day append
+to that day's file.
 
 The optional bodyweight reference draws a comparison line on the chart; it
 does not change calibration or CSV data. A force deficit during movement is
