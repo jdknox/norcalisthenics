@@ -136,7 +136,7 @@ let g_foods = [
 
 let g_target = 130;
 let g_target_raw = String(g_target);
-let g_target_kcal_ratio = 2550/g_target;
+let g_target_kcal_day = 2550;
 let g_target_kcal_raw = '2550';
 let g_cut_kcal = 0;
 let g_cut_kcal_raw = '';
@@ -1989,7 +1989,7 @@ function customKcalEstimate(protein_g)
 
 function targetKcalDay()
 {
-  return g_target*g_target_kcal_ratio;
+  return g_target_kcal_day;
 }
 
 function dailyKcalBudget()
@@ -3605,7 +3605,6 @@ function buildBackupTSV()
 
   pushBackupTsvSection(lines, 'meta', ['key', 'value'], state);
   pushBackupTsvRow(lines, ['target', g_target], state);
-  pushBackupTsvRow(lines, ['target_kcal_ratio', g_target_kcal_ratio], state);
   pushBackupTsvRow(lines, ['target_kcal_day', targetKcalDay()], state);
   pushBackupTsvRow(lines, ['cut_kcal', g_cut_kcal], state);
   pushBackupTsvRow(lines, ['bodyweight_kg', g_bodyweight_kg], state);
@@ -4873,8 +4872,8 @@ function applyReplaceImport()
     g_target = parsed.target;
     g_target_raw = String(g_target);
   }
-  if (parsed.target_kcal_ratio != null) g_target_kcal_ratio = parsed.target_kcal_ratio;
-  else if (parsed.target_kcal_day != null && g_target > 0) g_target_kcal_ratio = parsed.target_kcal_day/g_target;
+  if (parsed.target_kcal_day != null) g_target_kcal_day = parsed.target_kcal_day;
+  else if (parsed.target_kcal_ratio != null) g_target_kcal_day = g_target*parsed.target_kcal_ratio;
   refreshTargetKcalRaw();
   g_cut_kcal = parsed.cut_kcal != null ? Math.max(0, parsed.cut_kcal) : 0;
   g_cut_kcal_raw = g_cut_kcal ? String(g_cut_kcal) : '';
@@ -5145,7 +5144,6 @@ function makeSavePayload()
 {
   return {
     target:g_target,
-    target_kcal_ratio:g_target_kcal_ratio,
     target_kcal_day:targetKcalDay(),
     cut_kcal:g_cut_kcal,
     bodyweight_kg:g_bodyweight_kg,
@@ -5882,8 +5880,8 @@ function load()
       g_target = payload.target;
       g_target_raw = String(g_target);
     }
-    if (payload.target_kcal_ratio != null) g_target_kcal_ratio = payload.target_kcal_ratio;
-    else if (payload.target_kcal_day != null && g_target > 0) g_target_kcal_ratio = payload.target_kcal_day/g_target;
+    if (payload.target_kcal_day != null) g_target_kcal_day = payload.target_kcal_day;
+    else if (payload.target_kcal_ratio != null) g_target_kcal_day = g_target*payload.target_kcal_ratio;
     refreshTargetKcalRaw();
     g_cut_kcal = payload.cut_kcal != null ? Math.max(0, payload.cut_kcal) : 0;
     g_cut_kcal_raw = g_cut_kcal ? String(g_cut_kcal) : '';
@@ -7815,7 +7813,6 @@ document.addEventListener('input', function(ev)
     g_target_raw = target.value;
     num = parseFloat(target.value);
     g_target = isNaN(num) ? 0 : num;
-    refreshTargetKcalRaw();
     renderPreservingFocus();
     save();
     return;
@@ -7825,7 +7822,7 @@ document.addEventListener('input', function(ev)
   {
     g_target_kcal_raw = target.value;
     num = parseFloat(target.value);
-    g_target_kcal_ratio = !isNaN(num) && g_target > 0 ? num/g_target : 0;
+    g_target_kcal_day = isNaN(num) ? 0 : num;
     renderPreservingFocus();
     save();
     return;
@@ -8157,7 +8154,7 @@ document.addEventListener('click', function(ev)
       }
       g_target = 128;
       g_target_raw = '128';
-      g_target_kcal_ratio = 2500/g_target;
+      g_target_kcal_day = 2500;
       g_target_kcal_raw = '2500';
       g_cut_kcal = 0;
       g_cut_kcal_raw = '';
