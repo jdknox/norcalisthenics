@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>Logged food notes regression</title>
+<output id="result">Running</output>
+<iframe id="app-frame" title="Isolated protein app" style="width:100%;height:800px;border:0"></iframe>
+<script>
+'use strict';
+
+let app_frame = document.getElementById('app-frame');
+let app_window;
+let app_document;
+let note;
+let remove_button;
+window.addEventListener('error', reportTestError);
+let request = new XMLHttpRequest();
+request.open('GET', '../protein-loadout.html');
+request.onload = loadApp;
+request.send();
+
+function reportTestError(event)
+{
+  document.getElementById('result').textContent = 'FAIL: ' + event.message;
+}
+
+function check(condition, message)
+{
+  if (condition) return;
+  document.getElementById('result').textContent = 'FAIL: ' + message;
+  throw new Error(message);
+}
+
+function evaluate(code)
+{
+  return app_window.eval(code);
+}
+
+function editNote(value, composing = false)
+{
+  note.value = value;
+  note.setSelectionRange(value.length, value.length);
+  note.dispatchEvent(new app_window.InputEvent('input',
+  {
+    bubbles:true,
+    inputType:'insertText',
+    isComposing:composing
+  }));
+  check(note.isConnected && app_document.activeElement == note, 'typing keeps the same focused input');
+  check(evaluate('g_log[g_view_date][0].note') == value, 'each edit updates the note in memory');
+}
+
+function loadApp()
+{
+  check(request.status == 200, 'load app source');
+  let html = request.responseText;
+  html = html.replace('<head>', '<head><base href="/">');
+  html = html.replace(/<script src="protein-shared-storage.js[^\"]*"><\/script>/, '');
+  html = html.replace('\nload();\n</' + 'script>', '\n</' + 'script>');
+  html = html.replace("if ('serviceWorker' in navigator)", 'if (false)');
+  app_frame.onload = runTests;
+  app_frame.srcdoc = html;
+}
+
+function runTests()
+{
+  app_window = app_frame.contentWindow;
+  app_document = app_frame.contentDocument;
+  evaluate(`window.test_save_count = 0;
+    window.test_sync_count = 0;
+    window.test_payload = null;
+    window.test_save_local = saveLocalJson;
+    g_storage_key = 'protein-notes-regression';
+    g_unsynced_key = g_storage_key + ':unsynced';
+    saveLocalJson = function recordSave(json_text)
+    {
+      ++test_save_count;
+      test_payload = JSON.parse(json_text);
+      test_save_local(json_text);
+    };
+    syncPendingChanges = function recordSync() { ++test_sync_count; };
+    g_view_date = todayISO();
+    g_log = {};
+    g_log[g_view_date] =
+    [
+      {id:'test-food', item_key:'egg', grams:50, protein_g:6, kcal:70},
+      {id:'test-custom', item_key:'custom', grams:100, protein_g:10, kcal:200}
+    ];
+    render();`);
+  note = app_document.querySelector('[data-lognote="test-food"]');
+  remove_button = app_document.querySelector('[data-entry="test-food"]');
+  note.focus();
+  editNote('s');
+  editNote('soft');
+  editNote('soft boiled');
+  check(note.size == 12 && note.classList.contains('has-note'), 'note width and styling update in place');
+  check(evaluate('test_save_count == 0 && test_sync_count == 0'), 'rapid typing does not write or sync');
+  check(evaluate('g_unsynced_changes && g_local_revision == 3'), 'pending edits invalidate older sync acknowledgements');
+  setTimeout(extendBurst, 250);
+}
+
+function extendBurst()
+{
+  editNote('soft boiled egg');
+  setTimeout(checkResetTimer, 250);
+}
+
+function checkResetTimer()
+{
+  check(evaluate('test_save_count == 0 && test_sync_count == 0'), 'later keystrokes restart the save delay');
+  setTimeout(checkIdleSave, 250);
+}
+
+function checkIdleSave()
+{
+  check(evaluate('test_save_count == 1 && test_sync_count == 1'), 'a typing pause writes and syncs once');
+  check(evaluate('test_payload.log[g_view_date][0].note') == 'soft boiled egg', 'idle save includes the final text');
+  check(app_document.activeElement == note && note.isConnected, 'idle save keeps the editor focused');
+  note.setSelectionRange(5, 11);
+  note.setRangeText('scrambled', 5, 11, 'end');
+  let caret = note.selectionStart;
+  note.dispatchEvent(new app_window.InputEvent('input', {bubbles:true, inputType:'insertReplacementText'}));
+  check(note.selectionStart == caret && note.selectionEnd == caret, 'replacement editing preserves the caret');
+  editNote('');
+  evaluate("mergeLogEntries({[g_view_date]:[{id:'test-food', note:'old server note'}]});");
+  check(evaluate('g_log[g_view_date][0].note') == '', 'merging an older server value cannot restore a cleared note');
+  remove_button.focus();
+  check(remove_button.isConnected && app_document.activeElement == remove_button, 'finishing a note preserves nearby controls');
+  check(evaluate('test_save_count == 2 && test_payload.log[g_view_date][0].note == ""'), 'leaving the field saves the cleared note immediately');
+  note = app_document.querySelector('[data-lognote="test-food"]');
+  check(note.closest('.logged-food-titleline').classList.contains('empty-note'), 'clearing restores the empty-note layout after blur');
+  note.focus();
+  note.dispatchEvent(new app_window.CompositionEvent('compositionstart', {bubbles:true}));
+  editNote('た', true);
+  editNote('たまご', true);
+  setTimeout(finishComposition, 500);
+}
+
+function finishComposition()
+{
+  check(note.isConnected && app_document.activeElement == note, 'an idle save during composition keeps the original input');
+  note.dispatchEvent(new app_window.CompositionEvent('compositionend', {bubbles:true, data:'卵'}));
+  editNote('卵');
+  let custom_note = app_document.querySelector('[data-lognote="test-custom"]');
+  custom_note.focus();
+  check(evaluate('test_payload.log[g_view_date][0].note') == '卵', 'focus change saves the final composed text');
+  custom_note.value = 'Soup & "bread"';
+  custom_note.dispatchEvent(new app_window.InputEvent('input', {bubbles:true}));
+  check(custom_note.isConnected && app_document.activeElement == custom_note, 'custom names keep the same editor while typing');
+  remove_button.focus();
+  custom_note = app_document.querySelector('[data-lognote="test-custom"]');
+  check(custom_note.value == 'Soup & "bread"' && custom_note.classList.contains('logged-food-custom-name'), 'custom note becomes an escaped item label after blur');
+  note = app_document.querySelector('[data-lognote="test-food"]');
+  check(note.classList.contains('logged-food-note-line'), 'nonempty regular notes use a separate line after blur');
+  note.focus();
+  editNote('saved with another edit');
+  evaluate('save(); window.test_count_after_save = test_save_count;');
+  setTimeout(checkNoDuplicateSave, 500);
+}
+
+function checkNoDuplicateSave()
+{
+  check(evaluate('test_save_count == test_count_after_save'), 'another save cancels the pending debounce');
+  editNote('leaving the page');
+  app_window.dispatchEvent(new app_window.Event('pagehide'));
+  check(evaluate('test_payload.log[g_view_date][0].note') == 'leaving the page', 'pagehide saves the final edit');
+  editNote('switching apps');
+  Object.defineProperty(app_document, 'visibilityState', {value:'hidden', configurable:true});
+  app_document.dispatchEvent(new app_window.Event('visibilitychange'));
+  check(evaluate('test_payload.log[g_view_date][0].note') == 'switching apps', 'backgrounding saves the final edit');
+  delete app_document.visibilityState;
+  editNote('reloading');
+  app_window.dispatchEvent(new app_window.Event('beforeunload', {cancelable:true}));
+  check(evaluate('test_payload.log[g_view_date][0].note') == 'reloading', 'reload saves the final edit');
+  evaluate('load();');
+  check(evaluate('g_log[g_view_date][0].note') == 'reloading', 'saved notes survive reloading from local storage');
+  check(evaluate('g_log[g_view_date][1].note') == 'Soup & "bread"', 'custom labels survive reloading');
+  evaluate('clearTimeout(g_sync_retry_timer); localStorage.removeItem(g_storage_key); localStorage.removeItem(g_unsynced_key);');
+  document.getElementById('result').textContent = 'PASS: input identity, focus, caret, composition, debounce, cleared notes, custom names, blur, other saves, pagehide, backgrounding, and reload';
+}
+</script>
+</html>

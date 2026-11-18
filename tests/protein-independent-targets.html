@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>Independent protein and calorie targets</title>
+<output id="result">Running</output>
+<iframe id="app-frame" title="Isolated protein app" style="width:100%;height:800px;border:0"></iframe>
+<script>
+'use strict';
+
+let app_frame = document.getElementById('app-frame');
+let request = new XMLHttpRequest();
+request.open('GET', '../protein-loadout.html');
+request.onload = loadApp;
+request.send();
+
+function check(condition, message)
+{
+  if (condition) return;
+  document.getElementById('result').textContent = 'FAIL: ' + message;
+  throw new Error(message);
+}
+
+function evaluate(code)
+{
+  return app_frame.contentWindow.eval(code);
+}
+
+function input(id, value)
+{
+  let field = app_frame.contentDocument.getElementById(id);
+  field.focus();
+  field.value = value;
+  field.dispatchEvent(new app_frame.contentWindow.Event('input', {bubbles:true}));
+}
+
+function loadApp()
+{
+  check(request.status == 200, 'load the app source');
+  let html = request.responseText;
+  html = html.replace('<head>', '<head><base href="/">');
+  html = html.replace(/<script src="protein-shared-storage.js[^\"]*"><\/script>/, '');
+  html = html.replace('\nload();\n</' + 'script>', '\n</' + 'script>');
+  app_frame.onload = runTests;
+  app_frame.srcdoc = html;
+}
+
+function runTests()
+{
+  let expected_width = new URLSearchParams(location.search).get('width');
+  if (expected_width) check(innerWidth == Number(expected_width), 'requested browser viewport width');
+  evaluate(`save = function() { saveLocalJson(JSON.stringify(makeSavePayload())); };
+    g_view_date = todayISO();
+    g_log[g_view_date] = [{id:'test-meal', item_key:'custom', grams:500, protein_g:80, kcal:1400}];
+    render();`);
+  input('target-input', '130');
+  input('target-kcal-input', '2600');
+  let before = evaluate('renderPantryNutritionSummary(dayTotals(g_view_date))');
+  input('target-input', '140');
+  check(evaluate('targetKcalDay()') == 2600, 'protein edits leave maintenance calories unchanged');
+  check(app_frame.contentDocument.getElementById('target-kcal-input').value == '2600', 'the calorie input keeps its value');
+  let after = evaluate('renderPantryNutritionSummary(dayTotals(g_view_date))');
+  check(String(before.match(/[+-]?\d+\.\d+ kg\/(?:wk|m)/g)) == String(after.match(/[+-]?\d+\.\d+ kg\/(?:wk|m)/g)), 'protein edits do not change mass predictions');
+
+  input('target-input', '');
+  check(evaluate('g_target') == 0 && evaluate('targetKcalDay()') == 2600, 'clearing protein does not clear calories');
+  input('target-kcal-input', '2400');
+  check(evaluate('targetKcalDay()') == 2400, 'calories can be edited while protein is blank');
+  input('target-input', '160');
+  check(evaluate('targetKcalDay()') == 2400, 'restoring protein leaves the calorie target unchanged');
+  input('target-kcal-input', '');
+  check(evaluate('g_target') == 160 && evaluate('targetKcalDay()') == 0, 'clearing calories leaves protein unchanged');
+  input('target-kcal-input', '2400');
+  input('target-cut-input', '400');
+  check(evaluate('dailyKcalBudget()') == 2000 && evaluate('targetKcalDay()') == 2400, 'the cut still applies only to the daily budget');
+
+  let payload = evaluate('makeSavePayload()');
+  check(payload.target == 160 && payload.target_kcal_day == 2400, 'save independent numeric targets');
+  check(!('target_kcal_ratio' in payload), 'new saves no longer store the controlling ratio');
+  evaluate('load();');
+  check(evaluate('g_target') == 160 && evaluate('targetKcalDay()') == 2400, 'local reload preserves both targets');
+  let backup = evaluate('buildBackupTSV()');
+  check(backup.ok, 'build backup');
+  let restored = app_frame.contentWindow.parseBackupTSV(backup.text);
+  check(restored.ok && restored.payload.target_kcal_day == 2400, 'TSV round trip preserves calories');
+  check(!('target_kcal_ratio' in restored.payload), 'new TSV backups do not store the old ratio');
+
+  payload.target = 120;
+  payload.target_kcal_day = 2500;
+  payload.target_kcal_ratio = 999;
+  evaluate('g_import_pending = ' + JSON.stringify(payload) + '; applyReplaceImport();');
+  check(evaluate('targetKcalDay()') == 2500, 'saved calorie totals win over old ratio fields');
+  input('target-input', '150');
+  check(evaluate('targetKcalDay()') == 2500, 'replacement imports keep calories independent');
+
+  delete payload.target_kcal_day;
+  payload.target = 100;
+  payload.target_kcal_ratio = 20;
+  evaluate('localStorage.setItem(g_storage_key, ' + JSON.stringify(JSON.stringify(payload)) + '); load();');
+  check(evaluate('targetKcalDay()') == 2000, 'ratio-only saved settings convert to a fixed calorie total');
+  input('target-input', '150');
+  check(evaluate('targetKcalDay()') == 2000, 'legacy settings do not restore ongoing coupling');
+  check(evaluate('dayTotals(g_view_date).kcal') == 1400, 'target edits do not change logged food');
+  document.getElementById('result').textContent = 'PASS: independent edits, clearing fields, predictions, cut, save/reload, TSV, and existing settings';
+}
+</script>
+</html>
