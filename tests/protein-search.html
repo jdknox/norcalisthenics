@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>Pantry search regression</title>
+<output id="result">Running</output>
+<iframe id="app-frame" title="Isolated protein app" style="width:100%;height:800px;border:0"></iframe>
+<script>
+'use strict';
+
+let app_frame = document.getElementById('app-frame');
+let app_window;
+let app_document;
+let search;
+let results;
+let unrelated;
+let original_query = 'Egg soft boiled';
+window.addEventListener('error', reportTestError);
+let request = new XMLHttpRequest();
+request.open('GET', '../protein-loadout.html');
+request.onload = loadApp;
+request.send();
+
+function reportTestError(event)
+{
+  document.getElementById('result').textContent = 'FAIL: ' + event.message;
+}
+
+function check(condition, message)
+{
+  if (condition) return;
+  document.getElementById('result').textContent = 'FAIL: ' + message;
+  throw new Error(message);
+}
+
+function evaluate(code)
+{
+  return app_window.eval(code);
+}
+
+function loadApp()
+{
+  check(request.status == 200, 'load app source');
+  let html = request.responseText;
+  html = html.replace('<head>', '<head><base href="/">');
+  html = html.replace(/<script src="protein-shared-storage.js[^\"]*"><\/script>/, '');
+  html = html.replace('\nload();\n</' + 'script>', '\n</' + 'script>');
+  html = html.replace("if ('serviceWorker' in navigator)", 'if (false)');
+  app_frame.onload = runTests;
+  app_frame.srcdoc = html;
+}
+
+function updateSearch(value, input_type = 'insertText', composing = false)
+{
+  search.value = value;
+  search.setSelectionRange(value.length, value.length);
+  search.dispatchEvent(new app_window.InputEvent('input',
+  {
+    bubbles:true,
+    inputType:input_type,
+    isComposing:composing
+  }));
+  check(search.isConnected && app_document.getElementById('scoop-search') == search, 'search keeps the same DOM node');
+  check(app_document.activeElement == search, 'search keeps focus');
+  check(evaluate('g_scoop_search_raw') == value, 'query follows the edited text');
+  check(app_document.getElementById('pantry-items') == results, 'only result rows are replaced');
+  check(app_document.querySelector('[data-custom="grams"]') == unrelated, 'search leaves other inputs intact');
+}
+
+function runTests()
+{
+  app_window = app_frame.contentWindow;
+  app_document = app_frame.contentDocument;
+  evaluate(`save = function unexpectedSave() { throw new Error('search must not save'); };
+    g_view_date = todayISO(); g_log = {}; mergeKnownItems();
+    g_scoop_items =
+    [
+      {key:'apple', name:'Apple', tags:['Fruit'], scoop_g:100, protein_g:1, kcal:50},
+      {key:'egg', name:'Egg', brand:'Farm', barcode:'123456', tags:['Breakfast'], scoop_g:50, protein_g:6, kcal:70},
+      {key:'yogurt', name:'Yogurt', tags:['Breakfast'], scoop_g:100, protein_g:10, kcal:60},
+      {key:'old', name:'Old egg', tags:[], archived:true, scoop_g:50, protein_g:6, kcal:70}
+    ];
+    render();`);
+  search = app_document.getElementById('scoop-search');
+  results = app_document.getElementById('pantry-items');
+  unrelated = app_document.querySelector('[data-custom="grams"]');
+  search.focus();
+  updateSearch(original_query);
+  setTimeout(deleteCharacter, 10);
+}
+
+function deleteCharacter()
+{
+  search.dispatchEvent(new app_window.KeyboardEvent('keydown', {key:'Backspace', repeat:true, bubbles:true}));
+  updateSearch(search.value.slice(0, -1), 'deleteContentBackward');
+  if (search.value.length)
+  {
+    setTimeout(deleteCharacter, 10);
+    return;
+  }
+  check(results.querySelector('.searchmatch') == null, 'deleting to empty clears match highlights');
+  updateSearch('egg');
+  check(results.querySelector('.scooprow.searchmatch[data-pantry-key="egg"]') != null, 'matches remain highlighted');
+  updateSearch('Farm');
+  check(results.querySelector('.scooprow.searchmatch') != null, 'brand searches still match');
+  updateSearch('123456', 'insertFromPaste');
+  check(results.querySelector('.scooprow.searchmatch') != null, 'pasted barcode searches still match');
+  updateSearch('Breakfast');
+  check(results.querySelector('.groupheader.searchmatch') != null, 'group searches still match');
+  evaluate('g_flatten_view = true;');
+  updateSearch('egg');
+  check(results.querySelector('.scooprow').classList.contains('searchmatch'), 'flat view ranks matching rows first');
+  search.dispatchEvent(new app_window.CompositionEvent('compositionstart', {bubbles:true}));
+  updateSearch('たまご', 'insertCompositionText', true);
+  search.dispatchEvent(new app_window.CompositionEvent('compositionend', {bubbles:true, data:'卵'}));
+  updateSearch('卵');
+  updateSearch('', 'deleteContentBackward');
+  updateSearch('abcdef');
+  search.setSelectionRange(2, 4);
+  search.setRangeText('', 2, 4, 'start');
+  search.dispatchEvent(new app_window.InputEvent('input', {bubbles:true, inputType:'deleteContentBackward'}));
+  check(search.isConnected && search.value == 'abef' && search.selectionStart == 2 && search.selectionEnd == 2, 'deleting a selection preserves the editor and caret');
+  document.getElementById('result').textContent = 'PASS: repeated deletion to empty, input identity, focus, caret, composition, matching, ranking, paste, and unrelated controls';
+}
+</script>
+</html>

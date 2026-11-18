@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>Protein input regression</title>
+<output id="result">Running</output>
+<iframe id="app-frame" title="Isolated protein app" style="width:100%;height:800px;border:0"></iframe>
+<script>
+'use strict';
+
+let app_frame = document.getElementById('app-frame');
+let app_window;
+let app_document;
+let audited_input_count = 0;
+window.addEventListener('error', reportTestError);
+let request = new XMLHttpRequest();
+request.open('GET', '../protein-loadout.html');
+request.onload = loadApp;
+request.send();
+
+function reportTestError(event)
+{
+  document.getElementById('result').textContent = 'FAIL: ' + event.message;
+}
+
+function check(condition, message)
+{
+  if (condition) return;
+  document.getElementById('result').textContent = 'FAIL: ' + message;
+  throw new Error(message);
+}
+
+function evaluate(code)
+{
+  return app_window.eval(code);
+}
+
+function loadApp()
+{
+  check(request.status == 200, 'load app source');
+  let html = request.responseText;
+  html = html.replace('<head>', '<head><base href="/">');
+  html = html.replace(/<script src="protein-shared-storage.js[^\"]*"><\/script>/, '');
+  html = html.replace('\nload();\n</' + 'script>', '\n</' + 'script>');
+  html = html.replace("if ('serviceWorker' in navigator)", 'if (false)');
+  app_frame.onload = runTests;
+  app_frame.srcdoc = html;
+}
+
+function resetFixture(fixture)
+{
+  evaluate(`document.activeElement.blur(); clearTimeout(g_input_save_timer); g_input_save_timer = null;
+    g_foods = JSON.parse(test_initial_foods); g_temporary_meals = []; g_temporary_meal_edit = null;
+    g_active_tab = 'pantry'; g_view_date = todayISO(); g_scoop_add_draft = null;
+    g_edit_item_key = null; g_edit_draft = null; g_scale_item_key = null; g_scale_draft = null;
+    g_add_item_edit_versions = {};
+    g_recipe_draft = null; g_group_rename_key = null; g_mass_entry_draft = null;
+    g_mass_edit_id = null; g_mass_edit_draft = null; g_scoop_search_raw = '';
+    g_import_open = true; g_mass_events = {}; g_daily_activity = {};
+    g_custom_protein_raw = ''; g_custom_kcal_raw = ''; g_custom_grams_raw = '';
+    g_log = {[g_view_date]:[{id:'audit-note',item_key:'egg',grams:50,protein_g:6,kcal:70}]};
+    g_collapsed_groups = {}; g_flatten_view = false;
+    g_scoop_items = [
+      {key:'egg',name:'Egg',brand:'Farm',tags:['Breakfast'],scoop_g:50,protein_g:6,kcal:70},
+      {key:'yogurt',name:'Yogurt',tags:['Breakfast'],scoop_g:100,protein_g:10,kcal:60}];
+    ${fixture}
+    render();`);
+}
+
+function selectorFor(field)
+{
+  if (field.id) return '#' + field.id;
+  let selector = field.tagName.toLowerCase();
+  for (let attr of field.attributes)
+  {
+    if (attr.name.startsWith('data-')) selector += '[' + attr.name + '="' + attr.value + '"]';
+  }
+  return selector;
+}
+
+function auditFixture(name, fixture)
+{
+  resetFixture(fixture);
+  let selectors = [];
+  for (let field of app_document.querySelectorAll('input,textarea,select'))
+  {
+    if (field.readOnly || field.disabled || field.type == 'file') continue;
+    selectors.push(selectorFor(field));
+  }
+  for (let selector of selectors)
+  {
+    resetFixture(fixture);
+    let field = app_document.querySelector(selector);
+    field.focus();
+    evaluate('window.audit_saves = 0; window.audit_renders = 0;');
+    if (field.type == 'checkbox') field.checked = !field.checked;
+    else if (field.type == 'time') field.value = '12:34';
+    else if (field.type == 'range') field.value = '2';
+    else field.value = '12';
+    for (let i = 0; i < 3; ++i)
+    {
+      if (field.type == 'text' || field.type == 'search' || field.tagName == 'TEXTAREA')
+      {
+        field.value = ['123', '12.', '12'][i];
+        field.setSelectionRange(1, 1);
+      }
+      let value = field.value;
+      let caret = field.selectionStart;
+      field.dispatchEvent(new app_window.InputEvent('input',
+      {
+        bubbles:true,
+        inputType:'deleteContentBackward',
+        isComposing:i == 1
+      }));
+      check(field.isConnected && app_document.activeElement == field, name + ': editor identity and focus: ' + selector);
+      check(field.value == value && field.selectionStart == caret, name + ': raw text and selection: ' + selector);
+    }
+    check(evaluate('audit_renders == 0 && audit_saves == 0'), name + ': no page render or immediate write: ' + selector);
+    ++audited_input_count;
+  }
+}
+
+function runTests()
+{
+  app_window = app_frame.contentWindow;
+  app_document = app_frame.contentDocument;
+  evaluate(`window.test_initial_foods = JSON.stringify(g_foods); window.audit_payload = null;
+    window.audit_saves = 0; window.audit_renders = 0;
+    window.audit_original_render = render;
+    render = function auditRender(preserve) { ++audit_renders; audit_original_render(preserve); };
+    saveLocalJson = function auditSave(text) { ++audit_saves; audit_payload = JSON.parse(text); };
+    saveUnsyncedFlag = function ignoreFlag() {};
+    syncPendingChanges = function ignoreSync() {};`);
+  auditFixture('pantry', '');
+  auditFixture('loadout', "g_active_tab = 'loadout';");
+  auditFixture('add item', "g_scoop_add_draft = {barcode:'',barcode_keyboard:true,name:'',brand:'',tags:'',scoop_g:'50',macro_mode:'100g',macro_protein:'6',macro_kcal:'70'};");
+  auditFixture('edit item', "openScoopEdit('egg', 'Breakfast'); g_edit_context = 'breakfast';");
+  auditFixture('scale', "openScaleEdit('egg','breakfast');");
+  auditFixture('group rename', "g_group_rename_key = 'breakfast'; g_group_rename_draft = 'Breakfast';");
+  auditFixture('recipe', "openRecipeDraft(null); g_recipe_draft.ingredients = [{item_key:'egg',grams:'50'}];");
+  auditFixture('mass', "g_active_tab = 'mass';");
+  for (let type of ['checkpoint_weight','post_restroom_weight','food_mass'])
+  {
+    auditFixture('mass draft ' + type, "g_active_tab = 'mass'; g_mass_entry_draft = {event_type:'" + type + "',timestamp:'12:00',body_mass_raw:'80',mass_in_raw:'50'};");
+  }
+  for (let type of ['checkpoint_weight','post_restroom_weight','water','food_mass'])
+  {
+    auditFixture('mass edit ' + type, "g_active_tab = 'mass'; g_mass_events[g_view_date] = [{id:'mass-audit',event_type:'" + type + "',timestamp:g_view_date+'T12:00:00',body_mass_kg:80,water_volume_ml:500,mass_in_kg:0.5}]; g_mass_edit_id = 'mass-audit'; g_mass_edit_draft = {timestamp:'12:00',body_mass_raw:'80',water_volume_raw:'500',mass_in_raw:'500'};");
+  }
+  auditFixture('meal selection', "g_temporary_meals = [{date:g_view_date,number:1,entry_ids:[]}]; g_temporary_meal_edit = g_temporary_meals[0];");
+  resetFixture("openScaleEdit('egg','breakfast');");
+  let slider = app_document.querySelector('[data-scaledraft="scale"]');
+  slider.focus();
+  slider.value = '2';
+  slider.dispatchEvent(new app_window.Event('input',
+  {
+    bubbles:true
+  }));
+  let slider_kept_during_input = slider.isConnected;
+  slider.dispatchEvent(new app_window.Event('change',
+  {
+    bubbles:true
+  }));
+  let slider_kept_after_change = slider.isConnected;
+  resetFixture("g_scoop_add_draft = {barcode:'123',name:'',brand:'',tags:'',scoop_g:'50',macro_mode:'100g',macro_protein:'6',macro_kcal:'70'};");
+  evaluate(`fetchOFFProduct = function auditFetch(barcode, callback) { window.audit_off_callback = callback; }; lookupOFFForAddItem();`);
+  let name_input = app_document.querySelector('[data-adddraft="name"]');
+  name_input.focus();
+  name_input.value = 'Typing while lookup runs';
+  name_input.dispatchEvent(new app_window.Event('input',
+  {
+    bubbles:true
+  }));
+  evaluate("audit_off_callback({found:false,reason:'audit lookup response'});");
+  check(slider_kept_during_input && slider_kept_after_change, 'slider stays attached on input and change');
+  check(name_input.isConnected && app_document.activeElement == name_input, 'lookup failure keeps the active editor');
+  evaluate('document.activeElement.blur(); clearTimeout(g_input_save_timer); g_input_save_timer = null;');
+  checkLiveDisplays();
+  checkAsyncEdits();
+  startDebounceTests();
+}
+
+function inputField(selector, value)
+{
+  let field = app_document.querySelector(selector);
+  field.focus();
+  field.value = value;
+  field.dispatchEvent(new app_window.Event('input',
+  {
+    bubbles:true
+  }));
+  return field;
+}
+
+function checkAsyncEdits()
+{
+  let fixture = "g_scoop_add_draft = {barcode:'123',name:'',brand:'',tags:'',scoop_g:'50',macro_mode:'100g',macro_protein:'6',macro_kcal:'70'};";
+  resetFixture(fixture);
+  evaluate('lookupOFFForAddItem();');
+  let name = inputField('[data-adddraft="name"]', 'My meal');
+  inputField('[data-adddraft="macro_protein"]', '17');
+  name.focus();
+  evaluate("audit_off_callback({found:true,name:'Remote meal',brand:'Remote brand',protein_100g:11,kcal_100g:99});");
+  check(name.isConnected && app_document.activeElement == name, 'successful lookup keeps the active editor');
+  check(evaluate("g_scoop_add_draft.name == 'My meal' && g_scoop_add_draft.macro_protein == '17'"), 'lookup keeps fields edited after request start');
+  check(evaluate("g_scoop_add_draft.brand == 'Remote brand'"), 'lookup fills an untouched field');
+  evaluate('lookupOFFForAddItem();');
+  inputField('[data-adddraft="barcode"]', '456');
+  evaluate("audit_off_callback({found:true,name:'Wrong product',protein_100g:90,kcal_100g:900});");
+  check(evaluate("g_scoop_add_draft.macro_protein == '17'"), 'old barcode response is ignored');
+
+  resetFixture(fixture);
+  evaluate('lookupOFFForAddItem();');
+  let search = inputField('#scoop-search', 'Egg');
+  evaluate("audit_off_callback({found:true,name:'Found meal',brand:'Found brand',protein_100g:11,kcal_100g:99});");
+  check(search.isConnected && app_document.activeElement == search && search.value == 'Egg', 'autofill preserves an unrelated active editor');
+  check(app_document.querySelector('[data-adddraft="macro_protein"]').value == '11', 'autofill updates untouched nutrition in place');
+
+  resetFixture("openScoopEdit('egg','breakfast'); g_fetch_context.egg = 'breakfast'; g_fetch_barcode.egg = '123';");
+  evaluate("doFetchOFF('egg');");
+  let protein = inputField('[data-editdraft="macro_protein"]', '23');
+  evaluate("audit_off_callback({found:true,name:'Egg',protein_100g:20,kcal_100g:150});");
+  check(protein.isConnected && app_document.activeElement == protein && protein.value == '23', 'pantry lookup keeps an edited macro field');
+  check(evaluate("g_edit_draft.macro_protein == '23' && findScoopItem('egg').protein_100g == 20"), 'lookup protects the draft while updating saved item nutrition');
+
+  resetFixture("openScoopEdit('egg','breakfast'); g_fetch_context.egg = 'breakfast'; g_fetch_barcode.egg = '123';");
+  evaluate("doFetchOFF('egg');");
+  let edited_name = inputField('[data-editdraft="name"]', 'My egg');
+  evaluate("audit_off_callback({found:true,name:'Egg',protein_100g:20,kcal_100g:150});");
+  check(edited_name.isConnected && edited_name.value == 'My egg', 'pantry lookup preserves an edited name');
+  check(app_document.querySelector('[data-editdraft="macro_protein"]').value == '20', 'pantry lookup fills untouched nutrition alongside a name edit');
+}
+
+function checkLiveDisplays()
+{
+  resetFixture("g_active_tab = 'loadout';");
+  inputField('[data-key="egg"][data-field="daily"]', '3.');
+  check(app_document.querySelector('[data-loadout-key="egg"] [data-loadout-protein]').textContent == '18.0 g', 'daily amount updates row protein');
+  inputField('[data-key="egg"][data-field="units"]', '24');
+  check(app_document.querySelector('[data-loadout-key="egg"] [data-loadout-weekly]').textContent == '0.88 pkg/wk', 'package size updates weekly packages');
+  let cost = app_document.getElementById('loadout-summary').textContent;
+  inputField('[data-key="egg"][data-field="price"]', '2.4');
+  check(app_document.getElementById('loadout-summary').textContent != cost, 'price updates total cost');
+
+  resetFixture('');
+  inputField('#bodyweight-input', '60.');
+  check(app_document.querySelector('.protein-kg-scale strong').textContent == '0.10 g/kg', 'bodyweight updates the ratio without normalizing the input');
+  let summary = app_document.getElementById('pantry-nutrition-summary').textContent;
+  inputField('#target-input', '140');
+  check(app_document.getElementById('pantry-nutrition-summary').textContent != summary, 'protein target updates the nutrition summary');
+  let averages = app_document.querySelector('.protein-kg-note').textContent;
+  inputField('#target-kcal-input', '2400');
+  check(app_document.querySelector('.protein-kg-note').textContent != averages, 'calorie target updates mass predictions');
+  inputField('[data-custom="kcal"]', '77');
+  inputField('[data-custom="protein"]', '6');
+  check(app_document.querySelector('[data-custom="kcal"]').value == '77', 'Custom protein preserves an explicit calorie override');
+  inputField('[data-custom="kcal"]', '');
+  inputField('[data-custom="protein"]', '12');
+  check(Number(app_document.querySelector('[data-custom="kcal"]').value) > 0, 'Custom protein updates estimated calories when blank');
+
+  resetFixture("openScaleEdit('egg','breakfast');");
+  inputField('[data-scaledraft="grams"]', '100.');
+  check(app_document.querySelector('[data-scaledraft="protein_g"]').value == '12' && app_document.querySelector('[data-scaledraft="kcal"]').value == '140', 'portion grams update dependent nutrition');
+  resetFixture("openScoopEdit('egg','breakfast');");
+  inputField('[data-editdraft="barcode"]', '12');
+  check(app_document.querySelector('[data-a="scoop-fetch"]').hidden, 'short barcode hides lookup');
+  inputField('[data-editdraft="barcode"]', '123');
+  check(!app_document.querySelector('[data-a="scoop-fetch"]').hidden, 'long barcode reveals lookup without replacing the editor');
+}
+
+function startDebounceTests()
+{
+  resetFixture('');
+  inputField('#target-input', '140');
+  inputField('#target-input', '141');
+  check(evaluate('g_input_save_timer != null'), 'persistent input queues a save');
+  evaluate('window.audit_saves = 0; window.audit_renders = 0;');
+  setTimeout(extendTyping, 250);
+}
+
+function extendTyping()
+{
+  check(evaluate('audit_saves == 0'), 'typing has not saved before the pause');
+  inputField('#target-input', '142');
+  setTimeout(checkDebounceReset, 250);
+}
+
+function checkDebounceReset()
+{
+  check(evaluate('audit_saves == 0'), 'another edit restarts the delay');
+  setTimeout(checkIdleSave, 250);
+}
+
+function checkIdleSave()
+{
+  check(evaluate('audit_saves == 1 && audit_payload.target == 142'), 'one delayed write contains the final edit');
+  let target = app_document.getElementById('target-input');
+  check(app_document.activeElement == target, 'idle save preserves focus');
+  inputField('#target-kcal-input', '2400');
+  target.focus();
+  check(evaluate('audit_saves == 2 && audit_payload.target_kcal_day == 2400'), 'blur flushes the final edit');
+  inputField('#target-cut-input', '350');
+  app_window.dispatchEvent(new app_window.Event('pagehide'));
+  check(evaluate('audit_saves == 3 && audit_payload.cut_kcal == 350'), 'pagehide flushes the final edit');
+  inputField('#target-cut-input', '400');
+  Object.defineProperty(app_document, 'visibilityState', {value:'hidden', configurable:true});
+  app_document.dispatchEvent(new app_window.Event('visibilitychange'));
+  delete app_document.visibilityState;
+  check(evaluate('audit_saves == 4 && audit_payload.cut_kcal == 400'), 'backgrounding flushes the final edit');
+  inputField('#target-cut-input', '450');
+  app_window.dispatchEvent(new app_window.Event('beforeunload',
+  {
+    cancelable:true
+  }));
+  check(evaluate('audit_saves == 5 && audit_payload.cut_kcal == 450'), 'beforeunload flushes the final edit');
+  inputField('#target-cut-input', '500');
+  evaluate('save();');
+  check(evaluate('audit_saves == 6 && g_input_save_timer == null'), 'an explicit save flushes and cancels the timer');
+  setTimeout(finishTests, 500);
+}
+
+function finishTests()
+{
+  check(evaluate('audit_saves == 6'), 'no duplicate delayed write after an explicit save');
+  document.getElementById('result').textContent = 'PASS: ' + audited_input_count + ' input instances, repeat/composition events, focus, selection, raw text, no page renders or immediate writes, lookup races, slider change, debounce, and lifecycle flushes';
+}
+</script></html>

@@ -145,6 +145,9 @@ let g_bodyweight_kg = 82;
 let g_bodyweight_by_date = {};
 let g_bodyweight_raw_by_date = {};
 let g_bodyweight_dirty_dates = {};
+let g_bodyweight_edit_versions =
+{
+};
 let g_bodyweight_refresh_status = '';
 let g_daily_activity_dirty_dates = {};
 
@@ -744,6 +747,14 @@ let g_custom_protein_raw = '';  /* transient, not persisted — scratch input fo
 let g_custom_kcal_raw = '';
 let g_custom_grams_raw = '';
 let g_custom_status = '';
+let g_add_item_edit_versions =
+{
+};
+let g_add_item_lookup_id = 0;
+let g_edit_lookup_version = 0;
+let g_fetch_request_ids =
+{
+};
 let g_collapsed_groups = {};    /* lowercase group name -> true if collapsed */
 let g_active_tags = {};         /* lowercase tag key -> true if active as a float-to-top filter (not persisted) */
 let g_flatten_view = false;     /* true = ignore grouping entirely, show every item as a flat list (not persisted) */
@@ -776,7 +787,7 @@ let g_sync_in_flight = false;
 let g_local_revision = 0;
 let g_sync_retry_timer = null;
 let g_authoritative_replace_sync = false;
-let g_lognote_save_timer = null;
+let g_input_save_timer = null;
 let g_lognote_dirty_ids = {};
 let custom_kcal_ratio_fallback = 23;
 let custom_kcal_ratio_rho = 0.85;
@@ -1424,7 +1435,7 @@ function setDailyActivityField(date, field, value_text)
 
   g_daily_activity_dirty_dates[date] = true;
   refreshDailyActivitySummary();
-  save();
+  scheduleInputSave();
 }
 
 function refreshDailyActivitySummary()
@@ -2336,6 +2347,47 @@ function addItemMacroPreviewText(d)
     + ' / ' + (fields.kcal != null ? fields.kcal + ' kcal' : '— kcal');
 }
 
+function refreshAddItemStatus()
+{
+  let status = document.getElementById('addex-lookup-status');
+  if (!status) return;
+  status.textContent = g_add_item_status;
+  status.hidden = !g_add_item_status;
+}
+
+function renderLookupDebug()
+{
+  if (!g_last_lookup_debug) return '';
+  return `<div class="debugbox">
+    <div class="hint" style="margin:0 0 6px">raw response from the last O.F.F./web-search lookup that didn't parse cleanly:</div>
+    <pre class="debugpre">${esc(g_last_lookup_debug)}</pre>
+    <button class="smallbtn" data-a="lookup-debug-clear">clear debug</button>
+  </div>`;
+}
+
+function refreshLookupDebug()
+{
+  let debug = document.getElementById('lookup-debug');
+  if (debug) debug.innerHTML = renderLookupDebug();
+}
+
+function refreshDraftMacroFields(kind, draft)
+{
+  let mode = draftMacroMode(draft);
+  for (let button of document.querySelectorAll('[data-a="' + kind + '-macro-mode"]'))
+  {
+    button.classList.toggle('on', button.dataset.mode == mode);
+  }
+  for (let field of ['macro_protein', 'macro_kcal'])
+  {
+    let input = document.querySelector('[data-' + kind + 'draft="' + field + '"]');
+    if (input != document.activeElement) input.value = draft[field];
+    let unit = input.parentElement.querySelector('.unitghost');
+    if (unit) unit.textContent = mode == '100g' ? '/100g' : field == 'macro_protein' ? 'g' : 'kcal';
+  }
+  if (kind == 'add') document.getElementById('addex-macro-preview').textContent = addItemMacroPreviewText(draft);
+}
+
 function lookupOFFForAddItem()
 {
   let d = g_scoop_add_draft;
@@ -2347,30 +2399,55 @@ function lookupOFFForAddItem()
   if (!barcode)
   {
     g_add_item_status = 'enter a barcode first';
-    render();
+    refreshAddItemStatus();
     return;
   }
 
   g_add_item_status = 'looking up… (may take longer if O.F.F. is unreachable and it falls back to a web search)';
-  render();
-
-  fetchOFFProduct(barcode, function(result)
+  refreshAddItemStatus();
+  let lookup_id = ++g_add_item_lookup_id;
+  let edit_versions =
   {
-    if (!g_scoop_add_draft) return; // form was closed while the fetch was in flight
+    ...g_add_item_edit_versions
+  };
+
+  fetchOFFProduct(barcode, function receiveAddItemLookup(result)
+  {
+    if (g_scoop_add_draft != d || lookup_id != g_add_item_lookup_id) return; // form was closed or changed while the fetch was in flight
+    refreshLookupDebug();
 
     if (!result.found)
     {
       g_add_item_status = result.reason;
-      render();
+      refreshAddItemStatus();
       return;
     }
 
-    if (!g_scoop_add_draft.name.trim() && result.name) g_scoop_add_draft.name = result.name;
-    if (!g_scoop_add_draft.brand.trim() && result.brand) g_scoop_add_draft.brand = result.brand;
-    setDraftMacrosFromDensity(g_scoop_add_draft, result.protein_100g, result.kcal_100g);
+    for (let field of ['name', 'brand'])
+    {
+      let input = document.querySelector('[data-adddraft="' + field + '"]');
+      if (!d[field].trim() && result[field] && g_add_item_edit_versions[field] == edit_versions[field] && input != document.activeElement)
+      {
+        d[field] = result[field];
+        input.value = d[field];
+        fitDraftTextarea(input);
+      }
+    }
+    let macros_unchanged = true;
+    for (let field of ['macro_protein', 'macro_kcal', 'macro_mode'])
+    {
+      if (g_add_item_edit_versions[field] != edit_versions[field]) macros_unchanged = false;
+    }
+    let active = document.activeElement;
+    if (active.dataset.adddraft == 'macro_protein' || active.dataset.adddraft == 'macro_kcal') macros_unchanged = false;
+    if (macros_unchanged)
+    {
+      setDraftMacrosFromDensity(d, result.protein_100g, result.kcal_100g);
+      refreshDraftMacroFields('add', d);
+    }
 
     g_add_item_status = formatOFFMatchStatus(result);
-    render();
+    refreshAddItemStatus();
   });
 }
 
@@ -2927,12 +3004,9 @@ function renderScoopEditRow(item)
         <div class="tagsuggest"></div>
       </span>`;
 
-  let possible_barcode = d.barcode.trim();
-  if (possible_barcode.length > 2)
-  {
-    let disabled = g_fetch_pending[item.key] ? ' disabled' : '';
-    h += `<button class="smallbtn" data-a="scoop-fetch" data-key="${item.key}" data-context="${esc(g_edit_context || 'standalone')}"${disabled}>fetch O.F.F.</button>`;
-  }
+  let fetch_disabled = g_fetch_pending[item.key] ? ' disabled' : '';
+  let fetch_hidden = d.barcode.trim().length > 2 ? '' : ' hidden';
+  h += `<button class="smallbtn" data-a="scoop-fetch" data-key="${item.key}" data-context="${esc(g_edit_context || 'standalone')}"${fetch_disabled}${fetch_hidden}>fetch O.F.F.</button>`;
 
   h += `<button class="smallbtn" data-a="scoop-edit-save">save</button>
       <button class="smallbtn" data-a="scoop-edit-cancel">cancel</button>
@@ -3095,6 +3169,18 @@ function recomputeScaleDraft(source)
     d.kcal = Math.round(item.kcal/base_scoop*new_grams);
     d.kcal_raw = String(d.kcal);
   }
+}
+
+function refreshScaleDraft(source)
+{
+  let item = findScoopItem(g_scale_item_key);
+  let draft = g_scale_draft;
+  document.getElementById('scale-label').textContent = draft.scale.toFixed(2) + '× → ' + draft.grams_raw + ' g';
+  document.getElementById('scale-volume-preview').textContent = item.volume_ml != null ? round1(item.volume_ml*draft.scale) + ' mL' : formatVolume(item);
+  if (source != 'scale') document.querySelector('[data-scaledraft="scale"]').value = draft.scale;
+  if (source != 'grams') document.querySelector('[data-scaledraft="grams"]').value = draft.grams_raw;
+  document.querySelector('[data-scaledraft="protein_g"]').value = draft.protein_g_raw;
+  document.querySelector('[data-scaledraft="kcal"]').value = draft.kcal_raw;
 }
 
 function logScaledEntry()
@@ -3466,6 +3552,41 @@ function formatOFFMatchStatus(result)
   return name_part + ' — values are editable, O.F.F. data is label-rounded (~±10%)';
 }
 
+function refreshScoopFetchStatus(key)
+{
+  for (let row of document.querySelectorAll('[data-fetchstatus-key="' + key + '"]'))
+  {
+    row.hidden = !(g_fetch_pending[key] || g_fetch_status[key]) || row.dataset.fetchstatusContext != (g_fetch_context[key] || 'standalone');
+    row.querySelector('[data-fetchstatus-text]').textContent = g_fetch_status[key] || '';
+    for (let button of row.querySelectorAll('button')) button.hidden = !g_fetch_pending[key];
+  }
+  for (let button of document.querySelectorAll('[data-a="scoop-fetch"][data-key="' + key + '"]')) button.disabled = !!g_fetch_pending[key];
+}
+
+function refreshPantryItemNutrition(item)
+{
+  for (let row of document.querySelectorAll('[data-pantry-key="' + item.key + '"]'))
+  {
+    row.querySelector('.protein').textContent = item.protein_g != null ? fmt0(item.protein_g) : '—';
+    row.querySelector('.kcal > span').textContent = item.kcal != null ? fmt_1(item.kcal) : '—';
+    let ratio = itemKcalProteinRatio(item);
+    row.querySelector('.pantry-macro-ratio').textContent = ratio != null ? fmtKcalProteinRatio(ratio) + '/g' : '';
+  }
+  let group_rows = document.querySelectorAll('[data-pantry-group]');
+  for (let node of groupedNodes())
+  {
+    if (node.type != 'group') continue;
+    let totals = pantryGroupTotals(node.group);
+    for (let row of group_rows)
+    {
+      if (row.dataset.pantryGroup != node.group.key) continue;
+      row.querySelector('.protein').textContent = fmt0(totals.protein);
+      row.querySelector('.kcal').textContent = fmt_1(totals.kcal);
+    }
+  }
+  renderPrintList();
+}
+
 function doFetchOFF(key)
 {
   let item = findScoopItem(key);
@@ -3478,29 +3599,40 @@ function doFetchOFF(key)
 
   g_fetch_pending[key] = false;
   g_fetch_status[key] = 'looking up… (may take longer if O.F.F. is unreachable and it falls back to a web search)';
-  render();
+  refreshScoopFetchStatus(key);
+  let edit_draft = g_edit_draft;
+  let edit_version = g_edit_lookup_version;
+  let request_id = (g_fetch_request_ids[key] || 0) + 1;
+  g_fetch_request_ids[key] = request_id;
 
-  fetchOFFProduct(lookup_barcode, function(result)
+  fetchOFFProduct(lookup_barcode, function receiveScoopLookup(result)
   {
+    if (g_fetch_request_ids[key] != request_id || findScoopItem(key) != item) return;
+    refreshLookupDebug();
     if (!result.found)
     {
       g_fetch_status[key] = result.reason;
-      render();
+      refreshScoopFetchStatus(key);
       return;
     }
 
     if (result.protein_100g != null) item.protein_100g = result.protein_100g;
     if (result.kcal_100g != null) item.kcal_100g = result.kcal_100g;
     recomputeItemMacrosFromDensity(item);
-    if (g_edit_item_key == key && g_edit_draft)
+    let active_field = document.activeElement.dataset.editdraft;
+    let editing_macros = active_field == 'macro_protein' || active_field == 'macro_kcal';
+    if (g_edit_item_key == key && g_edit_draft && g_edit_draft == edit_draft && g_edit_lookup_version == edit_version && !editing_macros)
     {
       setDraftMacrosFromDensity(g_edit_draft, result.protein_100g, result.kcal_100g);
       recomputeEditDraftMacros();
+      refreshDraftMacroFields('edit', g_edit_draft);
     }
 
     g_fetch_barcode[key] = null;
     g_fetch_status[key] = formatOFFMatchStatus(result);
-    render();
+    refreshScoopFetchStatus(key);
+    refreshPantryItemNutrition(item);
+    if (g_recipe_draft) refreshRecipeDisplays();
     save();
   });
 }
@@ -5246,33 +5378,32 @@ function setBodyweightForDate(date, kg, raw)
   g_bodyweight_by_date[date] = kg;
   g_bodyweight_raw_by_date[date] = raw;
   g_bodyweight_dirty_dates[date] = true;
+  g_bodyweight_edit_versions[date] = (g_bodyweight_edit_versions[date] || 0) + 1;
   g_bodyweight_refresh_status = '';
 }
 
 function refreshBodyweightFromShared()
 {
   let date = g_view_date;
+  let edit_version = g_bodyweight_edit_versions[date];
 
-  g_bodyweight_refresh_status = 'pulling...';
-  render();
+  showBodyweightStatus(date, 'pulling...');
 
   if (!window.storage || !window.storage.get)
   {
-    g_bodyweight_refresh_status = 'shared unavailable';
+    showBodyweightStatus(date, 'shared unavailable');
     setSyncFailed('local only / shared storage unavailable');
-    render();
     return;
   }
 
-  window.storage.get(g_storage_key).then(function(result)
+  window.storage.get(g_storage_key).then(function receiveBodyweight(result)
   {
     let payload;
     let bodyweight_kg;
 
     if (!result || !result.value)
     {
-      g_bodyweight_refresh_status = 'no shared data';
-      render();
+      showBodyweightStatus(date, 'no shared data');
       return;
     }
 
@@ -5291,8 +5422,14 @@ function refreshBodyweightFromShared()
 
     if (bodyweight_kg == null)
     {
-      g_bodyweight_refresh_status = 'not in shared';
-      render();
+      showBodyweightStatus(date, 'not in shared');
+      return;
+    }
+
+    let input = document.getElementById('bodyweight-input');
+    if (g_bodyweight_edit_versions[date] != edit_version || (date == g_view_date && input == document.activeElement))
+    {
+      showBodyweightStatus(date, 'pull skipped; keeping local edit');
       return;
     }
 
@@ -5302,14 +5439,20 @@ function refreshBodyweightFromShared()
     if (date == todayISO()) g_bodyweight_kg = bodyweight_kg;
 
     saveLocalJson(JSON.stringify(makeSavePayload()));
-    g_bodyweight_refresh_status = 'pulled ' + fmt2(bodyweight_kg) + ' kg';
-    render();
-  }).catch(function()
+    if (input && date == g_view_date) input.value = bodyweightRawForDate(date);
+    showBodyweightStatus(date, 'pulled ' + fmt2(bodyweight_kg) + ' kg');
+  }).catch(function failBodyweightPull()
   {
-    g_bodyweight_refresh_status = 'pull failed';
+    showBodyweightStatus(date, 'pull failed');
     setSyncFailed('local only / sync failed');
-    render();
   });
+}
+
+function showBodyweightStatus(date, status)
+{
+  if (date != g_view_date) return;
+  g_bodyweight_refresh_status = status;
+  refreshProteinKgScale();
 }
 
 function pushBodyweightToShared()
@@ -5317,19 +5460,18 @@ function pushBodyweightToShared()
   if (!viewDateIsEditable()) return;
   let date = g_view_date;
   let bodyweight_kg = bodyweightForDate(date);
+  let edit_version = g_bodyweight_edit_versions[date];
 
-  g_bodyweight_refresh_status = 'pushing...';
-  render();
+  showBodyweightStatus(date, 'pushing...');
 
   if (!window.storage || !window.storage.get || !window.storage.set)
   {
-    g_bodyweight_refresh_status = 'shared unavailable';
+    showBodyweightStatus(date, 'shared unavailable');
     setSyncFailed('local only / shared storage unavailable');
-    render();
     return;
   }
 
-  window.storage.get(g_storage_key).then(function(result)
+  window.storage.get(g_storage_key).then(function sendBodyweight(result)
   {
     let payload = result && result.value ? storagePayloadFromValue(result.value) : makeSavePayload();
     let json_text;
@@ -5340,25 +5482,24 @@ function pushBodyweightToShared()
     payload.bodyweight_by_date[date] = bodyweight_kg;
     if (date == todayISO()) payload.bodyweight_kg = bodyweight_kg;
 
-    g_bodyweight_by_date[date] = bodyweight_kg;
-    delete g_bodyweight_raw_by_date[date];
-    delete g_bodyweight_dirty_dates[date];
-    if (date == todayISO()) g_bodyweight_kg = bodyweight_kg;
-
     json_text = JSON.stringify(payload);
 
     if (result && result.revision) return window.storage.set(g_storage_key, json_text, result.revision);
     return window.storage.set(g_storage_key, json_text);
-  }).then(function()
+  }).then(function finishBodyweightPush()
   {
+    if (g_bodyweight_edit_versions[date] != edit_version)
+    {
+      showBodyweightStatus(date, 'pushed ' + fmt2(bodyweight_kg) + ' kg; keeping newer local edit');
+      return;
+    }
+    delete g_bodyweight_dirty_dates[date];
     saveLocalJson(JSON.stringify(makeSavePayload()));
-    g_bodyweight_refresh_status = 'pushed ' + fmt2(bodyweight_kg) + ' kg';
-    render();
-  }).catch(function()
+    showBodyweightStatus(date, 'pushed ' + fmt2(bodyweight_kg) + ' kg');
+  }).catch(function failBodyweightPush()
   {
-    g_bodyweight_refresh_status = 'push failed';
+    showBodyweightStatus(date, 'push failed');
     setSyncFailed('local only / sync failed');
-    render();
   });
 }
 
@@ -5809,7 +5950,7 @@ function scheduleSyncRetry()
 
 function syncPendingChanges()
 {
-  if (g_sync_in_flight || !g_unsynced_changes || g_lognote_save_timer != null) return;
+  if (g_sync_in_flight || !g_unsynced_changes || g_input_save_timer != null) return;
 
   if (!window.storage || !window.storage.get || !window.storage.set)
   {
@@ -5825,7 +5966,7 @@ function syncPendingChanges()
     let merged_json_text;
     let write_revision;
 
-    if (g_lognote_save_timer != null)
+    if (g_input_save_timer != null)
     {
       g_sync_in_flight = false;
       return;
@@ -5874,8 +6015,8 @@ function syncPendingChanges()
 
 function save()
 {
-  clearTimeout(g_lognote_save_timer);
-  g_lognote_save_timer = null;
+  clearTimeout(g_input_save_timer);
+  g_input_save_timer = null;
   let json_text = JSON.stringify(makeSavePayload());
 
   saveLocalJson(json_text);
@@ -5885,16 +6026,16 @@ function save()
   syncPendingChanges();
 }
 
-function flushLogNoteSave()
+function flushPendingInputSave()
 {
-  if (g_lognote_save_timer == null) return;
+  if (g_input_save_timer == null) return;
   save();
 }
 
-function scheduleLogNoteSave()
+function scheduleInputSave()
 {
-  clearTimeout(g_lognote_save_timer);
-  g_lognote_save_timer = setTimeout(flushLogNoteSave, 400);
+  clearTimeout(g_input_save_timer);
+  g_input_save_timer = setTimeout(flushPendingInputSave, 400);
   g_unsynced_changes = true;
   // An older sync response must not acknowledge an edit still waiting to save.
   ++g_local_revision;
@@ -6141,7 +6282,7 @@ function renderProteinKgScale(logged_protein)
   {
     marker_transform = `; transform: translateX(${(marker_pct - 50).toFixed()}%)`;
   }
-  let refresh_status = g_bodyweight_refresh_status ? `<span class="bodyweight-refresh-status">${esc(g_bodyweight_refresh_status)}</span>` : '';
+  let refresh_status = `<span class="bodyweight-refresh-status">${esc(g_bodyweight_refresh_status)}</span>`;
 
   let implied_mass = (mean_kcal - targetKcalDay())/g_kcal_per_kg_bodyfat;
   let diff_sign = implied_mass >= 0 ? '+' : '';
@@ -6184,7 +6325,31 @@ function renderProteinKgScale(logged_protein)
   return h;
 }
 
-function renderLoadoutSection()
+function refreshProteinKgScale()
+{
+  let scale = document.querySelector('.protein-kg-scale');
+  if (!scale) return;
+
+  let template = document.createElement('template');
+  template.innerHTML = renderProteinKgScale(dayTotals(g_view_date).protein);
+  let updated = template.content.querySelector('.protein-kg-scale');
+  scale.className = updated.className;
+  scale.querySelector('strong').textContent = updated.querySelector('strong').textContent;
+  let marker = scale.querySelector('.protein-kg-marker');
+  let updated_marker = updated.querySelector('.protein-kg-marker');
+  marker.className = updated_marker.className;
+  marker.style.cssText = updated_marker.style.cssText;
+  scale.querySelector('.protein-kg-note').innerHTML = updated.querySelector('.protein-kg-note').innerHTML;
+  scale.querySelector('.bodyweight-refresh-status').textContent = g_bodyweight_refresh_status;
+}
+
+function refreshNutritionSummary()
+{
+  let summary = document.getElementById('pantry-nutrition-summary');
+  if (summary) summary.outerHTML = renderPantryNutritionSummary(dayTotals(g_view_date));
+}
+
+function renderLoadoutSummary()
 {
   let total = totalDailyProtein();
   let diff = total - g_target;
@@ -6195,11 +6360,41 @@ function renderLoadoutSection()
   let cost_text = cost > 0 ? '$' + fmt2(cost) : '—';
   let h = '';
 
-  h += `<div class="summary">
+  h += `<div id="loadout-summary" class="summary">
     <div class="cell"><div class="lab">total protein</div><div class="val">${fmt1(total)} g</div></div>
     <div class="cell"><div class="lab">${diff_label}</div><div class="val ${diff_class}">${diff_sign}${fmt1(diff)} g</div></div>
     <div class="cell"><div class="lab">est. monthly cost</div><div class="val">${cost_text}</div></div>
   </div>`;
+
+  return h;
+}
+
+function loadoutWeeklyText(food)
+{
+  let weekly = weeklyAmount(food);
+  let packs = packagesPerWeek(food);
+  if (food.no_package) return fmt1(weekly) + ' g/wk';
+  if (packs != null) return fmt2(packs) + ' pkg/wk';
+  return fmt1(weekly) + ' ' + (food.kind == 'unit' ? 'eggs/wk' : 'g/wk');
+}
+
+function refreshLoadoutSummary()
+{
+  let summary = document.getElementById('loadout-summary');
+  if (summary) summary.outerHTML = renderLoadoutSummary();
+}
+
+function refreshLoadoutFood(food)
+{
+  let row = document.querySelector('[data-loadout-key="' + food.key + '"]');
+  row.querySelector('[data-loadout-protein]').textContent = fmt1(dailyProtein(food)) + ' g';
+  row.querySelector('[data-loadout-weekly]').textContent = loadoutWeeklyText(food);
+  refreshLoadoutSummary();
+}
+
+function renderLoadoutSection()
+{
+  let h = renderLoadoutSummary();
 
   h += `<table><thead><tr>
     <th>food</th><th class="num">daily</th><th class="num">protein/day</th><th class="num">per week</th><th class="num">units/pkg</th><th class="num">price/pkg</th>
@@ -6210,26 +6405,11 @@ function renderLoadoutSection()
     let food = g_foods[i];
     let per_gram = proteinPerGram(food);
     let daily_protein = dailyProtein(food);
-    let weekly = weeklyAmount(food);
-    let packs = packagesPerWeek(food);
     let unit_label = food.kind == 'unit' ? fmt1(per_gram*food.unit_grams) + ' g protein/egg' : fmt1(per_gram*100) + ' g protein/100g';
     let daily_unit = food.kind == 'unit' ? 'eggs' : 'g';
-    let weekly_text;
+    let weekly_text = loadoutWeeklyText(food);
     let package_units_cell;
     let price_cell;
-
-    if (food.no_package)
-    {
-      weekly_text = fmt1(weekly) + ' g/wk';
-    }
-    else if (packs != null)
-    {
-      weekly_text = fmt2(packs) + ' pkg/wk';
-    }
-    else
-    {
-      weekly_text = fmt1(weekly) + ' ' + (food.kind == 'unit' ? 'eggs/wk' : 'g/wk');
-    }
 
     if (food.package_units != null)
     {
@@ -6249,11 +6429,11 @@ function renderLoadoutSection()
       price_cell = '<span class="pack-out">—</span>';
     }
 
-    h += `<tr class="food">
+    h += `<tr class="food" data-loadout-key="${food.key}">
       <td><span class="foodname">${food.name}<span class="unit">${unit_label}</span></span></td>
       <td class="num"><input type="text" inputmode="decimal" data-key="${food.key}" data-field="daily" value="${food.daily_raw}"> ${daily_unit}</td>
-      <td class="num protein-out">${fmt1(daily_protein)} g</td>
-      <td class="num pack-out">${weekly_text}</td>
+      <td class="num protein-out" data-loadout-protein>${fmt1(daily_protein)} g</td>
+      <td class="num pack-out" data-loadout-weekly>${weekly_text}</td>
       <td class="num">${package_units_cell}</td>
       <td class="num pack">${price_cell}</td>
     </tr>`;
@@ -6780,21 +6960,13 @@ function renderItemRow(item, is_today, indent, context)
     </td>
   </tr>`;
 
-  if ((g_fetch_pending[item.key] || g_fetch_status[item.key]) && (g_fetch_context[item.key] || 'standalone') == context)
-  {
-    if (g_fetch_pending[item.key])
-    {
-      h += `<tr class="scoopstatusrow"><td colspan="6" class="fetchstatus">
-        ${esc(g_fetch_status[item.key] || '')}
-        <button class="smallbtn" data-a="scoop-fetch-confirm" data-key="${item.key}">confirm overwrite</button>
-        <button class="smallbtn" data-a="scoop-fetch-cancel" data-key="${item.key}">cancel</button>
-      </td></tr>`;
-    }
-    else
-    {
-      h += `<tr class="scoopstatusrow"><td colspan="6" class="fetchstatus">${esc(g_fetch_status[item.key])}</td></tr>`;
-    }
-  }
+  let show_status = (g_fetch_pending[item.key] || g_fetch_status[item.key]) && (g_fetch_context[item.key] || 'standalone') == context;
+  let confirm_hidden = g_fetch_pending[item.key] ? '' : ' hidden';
+  h += `<tr class="scoopstatusrow" data-fetchstatus-key="${item.key}" data-fetchstatus-context="${esc(context)}"${show_status ? '' : ' hidden'}><td colspan="6" class="fetchstatus">
+    <span data-fetchstatus-text>${esc(g_fetch_status[item.key] || '')}</span>
+    <button class="smallbtn" data-a="scoop-fetch-confirm" data-key="${item.key}"${confirm_hidden}>confirm overwrite</button>
+    <button class="smallbtn" data-a="scoop-fetch-cancel" data-key="${item.key}"${confirm_hidden}>cancel</button>
+  </td></tr>`;
 
   if (g_edit_item_key == item.key && g_edit_context == context) h += renderScoopEditRow(item);
   if (g_scale_item_key == item.key && g_scale_context == context) h += renderScalePanel(item);
@@ -6831,7 +7003,7 @@ function renderGroupHeader(g)
 
   let icon = (collapsed ? '▸' : '▾');
   let searchmatch = (is_match ? ' searchmatch' : '');
-  h += `<tr class="groupheader${searchmatch}"${g_recipe_draft ? ' data-recipe-group="' + esc(g.key) + '"' : ''}>
+  h += `<tr class="groupheader${searchmatch}" data-pantry-group="${esc(g.key)}"${g_recipe_draft ? ' data-recipe-group="' + esc(g.key) + '"' : ''}>
   <td colspan="3">
     <button class="grouptoggle" data-a="group-toggle" data-group="${esc(g.key)}">
       ${icon} ${esc(g.name)}<span class="unit">(${fmt0(totals.count)}/${g.members.length})</span>
@@ -7061,10 +7233,7 @@ function renderCustomRow()
     </td>
   </tr>`;
 
-  if (g_custom_status)
-  {
-    h += `<tr class="scoopstatusrow"><td colspan="6" class="fetchstatus">${esc(g_custom_status)}</td></tr>`;
-  }
+  h += `<tr id="custom-status-row" class="scoopstatusrow"${g_custom_status ? '' : ' hidden'}><td id="custom-status" colspan="6" class="fetchstatus">${esc(g_custom_status)}</td></tr>`;
 
   return h;
 }
@@ -7579,10 +7748,7 @@ function renderScoopSection()
       <button class="smallbtn" data-a="scoop-add-item-save">save</button>
       <button class="smallbtn" data-a="scoop-add-item-cancel">cancel</button>`;
 
-    if (g_add_item_status)
-    {
-      h += `<div class="fetchstatus" style="width:100%">${esc(g_add_item_status)}</div>`;
-    }
+    h += `<div id="addex-lookup-status" class="fetchstatus" style="width:100%"${g_add_item_status ? '' : ' hidden'}>${esc(g_add_item_status)}</div>`;
 
     h += `<div class="hint" style="width:100%;margin-top:2px">Use 100g when copying label or O.F.F. values per 100g; use serving when the label values are for the scoop/serving mass you entered.</div>
     </div>`;
@@ -7593,14 +7759,7 @@ function renderScoopSection()
 
   h += renderTagFilterBar();
 
-  if (g_last_lookup_debug)
-  {
-    h += `<div class="debugbox">
-      <div class="hint" style="margin:0 0 6px">raw response from the last O.F.F./web-search lookup that didn't parse cleanly:</div>
-      <pre class="debugpre">${esc(g_last_lookup_debug)}</pre>
-      <button class="smallbtn" data-a="lookup-debug-clear">clear debug</button>
-    </div>`;
-  }
+  h += `<div id="lookup-debug">${renderLookupDebug()}</div>`;
 
   h += `<table class="pantrytable">
     <colgroup><col class="pantrycol-item"><col class="pantrycol-volume"><col class="pantrycol-protein"><col class="pantrycol-kcal"><col class="pantrycol-today"><col class="pantrycol-actions"></colgroup>
@@ -7722,58 +7881,6 @@ function renderPrintList()
   el.innerHTML = h;
 }
 
-function renderPreservingFocus()
-{
-  let active = document.activeElement;
-  let key = active && active.dataset ? active.dataset.key : null;
-  let field = active && active.dataset ? active.dataset.field : null;
-  let scoop_key = active && active.dataset ? active.dataset.scoop : null;
-  let scaledraft_field = active && active.dataset ? active.dataset.scaledraft : null;
-  let custom_field = active && active.dataset ? active.dataset.custom : null;
-  let grouprename_field = active && active.dataset ? active.dataset.grouprename : null;
-  let adddraft_field = active && active.dataset ? active.dataset.adddraft : null;
-  let editdraft_field = active && active.dataset ? active.dataset.editdraft : null;
-  let lognote_id = active && active.dataset ? active.dataset.lognote : null;
-  let massdraft_field = active && active.dataset ? active.dataset.massdraft : null;
-  let massedit_field = active && active.dataset ? active.dataset.massedit : null;
-  let dailyactivity_field = active && active.dataset ? active.dataset.dailyactivity : null;
-  let recipe_index = active && active.dataset ? active.dataset.recipeindex : null;
-  let id = active ? active.id : null;
-  let sel_start = active && active.selectionStart != null ? active.selectionStart : null;
-  let sel_end = active && active.selectionEnd != null ? active.selectionEnd : null;
-  let scroll_left = active && active.scrollLeft != null ? active.scrollLeft : 0;
-  let restored;
-
-  render();
-
-  if (id) restored = document.getElementById(id);
-  else if (key && field) restored = document.querySelector('[data-key="'+key+'"][data-field="'+field+'"]');
-  else if (scoop_key && field) restored = document.querySelector('[data-scoop="'+scoop_key+'"][data-field="'+field+'"]');
-  else if (scaledraft_field) restored = document.querySelector('[data-scaledraft="'+scaledraft_field+'"]');
-  else if (custom_field) restored = document.querySelector('[data-custom="'+custom_field+'"]');
-  else if (grouprename_field) restored = document.querySelector('[data-grouprename]');
-  else if (adddraft_field) restored = document.querySelector('[data-adddraft="'+adddraft_field+'"]');
-  else if (editdraft_field) restored = document.querySelector('[data-editdraft="'+editdraft_field+'"]');
-  else if (lognote_id) restored = document.querySelector('[data-lognote="'+lognote_id+'"]');
-  else if (massdraft_field) restored = document.querySelector('[data-massdraft="'+massdraft_field+'"]');
-  else if (massedit_field) restored = document.querySelector('[data-massedit="'+massedit_field+'"]');
-  else if (dailyactivity_field) restored = document.querySelector('[data-dailyactivity="'+dailyactivity_field+'"]');
-  else if (recipe_index != null) restored = document.querySelector('[data-recipeindex="'+recipe_index+'"][data-recipefield="grams"]');
-  else restored = null;
-
-  if (!restored) return;
-
-  restored.focus();
-  if (sel_start != null && !massdraft_field && !massedit_field) restored.setSelectionRange(sel_start, sel_end);
-  if (restored.scrollLeft != null) restored.scrollLeft = scroll_left;
-
-  setTimeout(function()
-  {
-    if (restored.scrollLeft == null) return;
-    restored.scrollLeft = scroll_left;
-  }, 0);
-}
-
 function fitDraftTextarea(target)
 {
   if (!target || target.tagName != 'TEXTAREA') return;
@@ -7822,6 +7929,7 @@ document.addEventListener('input', function(ev)
       }
       g_recipe_draft[field] = target.value;
       if (field == 'tags') updateTagSuggestions(target);
+      if (field == 'name' || field == 'tags') return;
     }
     else
     {
@@ -7851,7 +7959,7 @@ document.addEventListener('input', function(ev)
     let title_line = target.closest('.logged-food-main').querySelector('.logged-food-titleline');
     title_line.classList.toggle('empty-note', target.value == '');
     title_line.classList.toggle('editing-note', target.parentElement == title_line && !target.classList.contains('logged-food-custom-name') && target.value != '');
-    scheduleLogNoteSave();
+    scheduleInputSave();
     return;
   }
 
@@ -7870,8 +7978,9 @@ document.addEventListener('input', function(ev)
     g_target_raw = target.value;
     num = parseFloat(target.value);
     g_target = isNaN(num) ? 0 : num;
-    renderPreservingFocus();
-    save();
+    refreshNutritionSummary();
+    refreshLoadoutSummary();
+    scheduleInputSave();
     return;
   }
 
@@ -7880,8 +7989,9 @@ document.addEventListener('input', function(ev)
     g_target_kcal_raw = target.value;
     num = parseFloat(target.value);
     g_target_kcal_day = isNaN(num) ? 0 : num;
-    renderPreservingFocus();
-    save();
+    refreshNutritionSummary();
+    refreshProteinKgScale();
+    scheduleInputSave();
     return;
   }
 
@@ -7890,9 +8000,8 @@ document.addEventListener('input', function(ev)
     g_cut_kcal_raw = target.value;
     num = Number(target.value);
     g_cut_kcal = Number.isFinite(num) ? Math.max(0, num) : 0;
-    let summary = document.getElementById('pantry-nutrition-summary');
-    if (summary) summary.outerHTML = renderPantryNutritionSummary(dayTotals(g_view_date));
-    save();
+    refreshNutritionSummary();
+    scheduleInputSave();
     return;
   }
 
@@ -7901,8 +8010,8 @@ document.addEventListener('input', function(ev)
     if (!viewDateIsEditable()) return;
     num = parseFloat(target.value);
     setBodyweightForDate(g_view_date, isNaN(num) ? 0 : num, target.value);
-    renderPreservingFocus();
-    save();
+    refreshProteinKgScale();
+    scheduleInputSave();
     return;
   }
 
@@ -7981,7 +8090,7 @@ document.addEventListener('input', function(ev)
     {
       g_scale_draft.grams_raw = target.value;
       recomputeScaleDraft('grams');
-      renderPreservingFocus();
+      refreshScaleDraft('grams');
       return;
     }
     if (scoop_key == 'protein_g')
@@ -8013,7 +8122,8 @@ document.addEventListener('input', function(ev)
       g_custom_kcal_raw = !isNaN(new_num) && new_num > 0 ? String(customKcalEstimate(new_num)) : '';
     }
     g_custom_status = '';
-    renderPreservingFocus();
+    document.querySelector('[data-custom="kcal"]').value = g_custom_kcal_raw;
+    document.getElementById('custom-status-row').hidden = true;
     return;
   }
 
@@ -8021,6 +8131,7 @@ document.addEventListener('input', function(ev)
   {
     g_custom_kcal_raw = target.value;
     g_custom_status = '';
+    document.getElementById('custom-status-row').hidden = true;
     return;
   }
 
@@ -8028,13 +8139,13 @@ document.addEventListener('input', function(ev)
   {
     g_custom_grams_raw = target.value;
     g_custom_status = '';
+    document.getElementById('custom-status-row').hidden = true;
     return;
   }
 
   if (target.dataset.grouprename)
   {
     g_group_rename_draft = target.value;
-    renderPreservingFocus();
     return;
   }
 
@@ -8042,11 +8153,18 @@ document.addEventListener('input', function(ev)
   if (adddraft_field)
   {
     g_scoop_add_draft[adddraft_field] = target.value;
+    g_add_item_edit_versions[adddraft_field] = (g_add_item_edit_versions[adddraft_field] || 0) + 1;
+    if (adddraft_field == 'barcode')
+    {
+      ++g_add_item_lookup_id;
+      g_add_item_status = '';
+      refreshAddItemStatus();
+    }
     fitDraftTextarea(target);
     if (adddraft_field == 'tags') updateTagSuggestions(target);
     if (adddraft_field == 'scoop_g' || adddraft_field == 'macro_protein' || adddraft_field == 'macro_kcal')
     {
-      renderPreservingFocus();
+      document.getElementById('addex-macro-preview').textContent = addItemMacroPreviewText(g_scoop_add_draft);
     }
     return;
   }
@@ -8061,12 +8179,13 @@ document.addEventListener('input', function(ev)
   let editdraft_field = target.dataset.editdraft;
   if (editdraft_field)
   {
+    if (editdraft_field == 'barcode' || editdraft_field == 'macro_protein' || editdraft_field == 'macro_kcal') ++g_edit_lookup_version;
     g_edit_draft[editdraft_field] = target.value;
     fitDraftTextarea(target);
     if (editdraft_field == 'name' || editdraft_field == 'brand') return;
     if (editdraft_field == 'volume') return;
     if (editdraft_field == 'scoop_g' || editdraft_field == 'macro_protein' || editdraft_field == 'macro_kcal') recomputeEditDraftMacros();
-    renderPreservingFocus();
+    if (editdraft_field == 'barcode') target.closest('.addform').querySelector('[data-a="scoop-fetch"]').hidden = target.value.trim().length <= 2;
     return;
   }
 
@@ -8095,10 +8214,11 @@ document.addEventListener('input', function(ev)
       food.package_units_raw = target.value;
       food.package_units = isNaN(num) ? 0 : num;
     }
+    refreshLoadoutFood(food);
+    break;
   }
 
-  renderPreservingFocus();
-  save();
+  scheduleInputSave();
 });
 
 document.addEventListener('focusin', function(ev)
@@ -8108,9 +8228,9 @@ document.addEventListener('focusin', function(ev)
 
 document.addEventListener('focusout', function(ev)
 {
+  flushPendingInputSave();
   if (ev.target.dataset && ev.target.dataset.lognote)
   {
-    flushLogNoteSave();
     let main = ev.target.closest('.logged-food-main');
     let entry = findLogEntryById(ev.target.dataset.lognote);
     // Normalize the label layout after editing without replacing nearby controls.
@@ -8184,7 +8304,7 @@ document.addEventListener('change', function(ev)
   {
     g_scale_draft.scale = parseFloat(target.value);
     recomputeScaleDraft('scale');
-    render();
+    refreshScaleDraft('scale');
   }
 });
 
@@ -8374,6 +8494,9 @@ document.addEventListener('click', function(ev)
 
     case 'scoop-add-item-open':
       g_scoop_add_draft = { barcode:'', barcode_keyboard:false, name:'', brand:'', tags:'', scoop_g:'', macro_mode:'100g', macro_protein:'', macro_kcal:'' };
+      g_add_item_edit_versions =
+      {
+      };
       g_add_item_status = '';
       render();
       return;
@@ -8400,11 +8523,13 @@ document.addEventListener('click', function(ev)
       return;
 
     case 'add-macro-mode':
+      g_add_item_edit_versions.macro_mode = (g_add_item_edit_versions.macro_mode || 0) + 1;
       switchDraftMacroMode(g_scoop_add_draft, target.dataset.mode);
       render();
       return;
 
     case 'edit-macro-mode':
+      ++g_edit_lookup_version;
       switchDraftMacroMode(g_edit_draft, target.dataset.mode);
       render();
       return;
@@ -8714,20 +8839,20 @@ window.addEventListener('unhandledrejection', function(event)
 
 window.addEventListener('beforeunload', function(event)
 {
-  flushLogNoteSave();
+  flushPendingInputSave();
   if (!g_sync_failed && !g_unsynced_changes) return;
 
   event.preventDefault();
   event.returnValue = '';
 });
 
-function saveLogNoteWhenHidden()
+function saveInputWhenHidden()
 {
-  if (document.visibilityState == 'hidden') flushLogNoteSave();
+  if (document.visibilityState == 'hidden') flushPendingInputSave();
 }
 
-document.addEventListener('visibilitychange', saveLogNoteWhenHidden);
-window.addEventListener('pagehide', flushLogNoteSave);
+document.addEventListener('visibilitychange', saveInputWhenHidden);
+window.addEventListener('pagehide', flushPendingInputSave);
 
 function shouldGuardBrowserBack()
 {
