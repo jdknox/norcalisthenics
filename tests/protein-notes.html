@@ -93,6 +93,8 @@ function runTests()
   editNote('soft');
   editNote('soft boiled');
   check(note.size == 12 && note.classList.contains('has-note'), 'note width and styling update in place');
+  let label = note.closest('.logged-food-titleline').querySelector('.logged-food-name');
+  check(note.getBoundingClientRect().top >= label.getBoundingClientRect().bottom, 'a new note stays visible below the food name while typing');
   check(evaluate('test_save_count == 0 && test_sync_count == 0'), 'rapid typing does not write or sync');
   check(evaluate('g_unsynced_changes && g_local_revision == 3'), 'pending edits invalidate older sync acknowledgements');
   setTimeout(extendBurst, 250);

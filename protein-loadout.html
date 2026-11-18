@@ -7831,7 +7831,9 @@ document.addEventListener('input', function(ev)
     // Keep the native editor attached throughout mobile keyboard composition.
     target.size = Math.max(5, target.value.length + 1);
     target.classList.toggle('has-note', target.value != '');
-    target.closest('.logged-food-main').querySelector('.logged-food-titleline').classList.toggle('empty-note', target.value == '');
+    let title_line = target.closest('.logged-food-main').querySelector('.logged-food-titleline');
+    title_line.classList.toggle('empty-note', target.value == '');
+    title_line.classList.toggle('editing-note', target.parentElement == title_line && !target.classList.contains('logged-food-custom-name') && target.value != '');
     scheduleLogNoteSave();
     return;
   }
