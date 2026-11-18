@@ -329,6 +329,9 @@ body.admin-mode #tab-top{scroll-margin-top:calc(58px + env(safe-area-inset-top,0
 .measurestack span{display:block}
 .editbtn{font-size:11px;color:var(--faint);background:none;border:none;cursor:pointer;padding:0 2px;vertical-align:middle}
 .editbtn:hover{color:var(--text)}
+.favoritebtn{font-size:19px;line-height:1;min-width:36px;min-height:36px;margin-right:3px;padding:4px;color:var(--faint);background:none;border:1px solid transparent;border-radius:4px;cursor:pointer;vertical-align:middle}
+.favoritebtn[aria-pressed="true"]{color:var(--orange)}
+.favoritebtn:focus-visible{outline:2px solid var(--orange);outline-offset:1px}
 .editrow{background:var(--panel2)}
 .editrow td{border-top:none}
 .scalepanel{padding:4px 2px}

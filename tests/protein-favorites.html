@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>Pantry favorites regression</title>
+<output id="result">Running</output>
+<iframe id="app-frame" title="Isolated protein app" style="width:100%;height:800px;border:0"></iframe>
+<script>
+'use strict';
+
+let app_frame = document.getElementById('app-frame');
+let app_window;
+let app_document;
+let checks = 0;
+window.addEventListener('error', reportTestError);
+let request = new XMLHttpRequest();
+request.open('GET', '../protein-loadout.html');
+request.onload = loadApp;
+request.send();
+
+function reportTestError(event)
+{
+  document.getElementById('result').textContent = 'FAIL: ' + event.message;
+}
+
+function check(condition, message)
+{
+  if (!condition) throw new Error(message);
+  ++checks;
+}
+
+function evaluate(code)
+{
+  return app_window.eval(code);
+}
+
+function loadApp()
+{
+  check(request.status == 200, 'load app source');
+  let html = request.responseText;
+  html = html.replace('<head>', '<head><base href="/">');
+  html = html.replace(/<script src="protein-shared-storage.js[^\"]*"><\/script>/, '');
+  html = html.replace('\nload();\n</' + 'script>', '\n</' + 'script>');
+  html = html.replace("if ('serviceWorker' in navigator)", 'if (false)');
+  app_frame.onload = runTests;
+  app_frame.srcdoc = html;
+}
+
+function star(key)
+{
+  let button = app_document.querySelector('[data-a="favorite-toggle"][data-key="' + key + '"]');
+  check(button != null, 'existing item has a star: ' + key);
+  button.click();
+}
+
+function firstItem(context)
+{
+  return app_document.querySelector('.scooprow[data-pantry-context="' + context + '"]').dataset.pantryKey;
+}
+
+function checkInput(field, value, caret)
+{
+  check(field.isConnected && app_document.activeElement == field, 'editor stays attached and focused');
+  check(field.value == value && field.selectionStart == caret, 'editor keeps raw text and caret');
+}
+
+function checkBundles()
+{
+  let rows = app_document.querySelectorAll('#pantry-items .scooprow');
+  for (let row of rows)
+  {
+    let status = row.nextElementSibling;
+    check(status.dataset.fetchstatusKey == row.dataset.pantryKey &&
+          status.dataset.fetchstatusContext == row.dataset.pantryContext, 'status stays with its item and context');
+  }
+  let expected = app_document.createElement('tbody');
+  expected.innerHTML = evaluate('renderGroupedItems(viewDateIsEditable()) + renderArchivedItems()');
+  let actual_rows = app_document.querySelectorAll('#pantry-items > tr');
+  check(actual_rows.length == expected.children.length, 'reorder preserves the row count');
+  for (let i = 0; i < actual_rows.length; ++i)
+  {
+    check(actual_rows[i].className == expected.children[i].className &&
+          JSON.stringify(actual_rows[i].dataset) == JSON.stringify(expected.children[i].dataset), 'moved rows match the freshly rendered order');
+  }
+}
+
+function runTests()
+{
+  app_window = app_frame.contentWindow;
+  app_document = app_frame.contentDocument;
+  evaluate(`
+    window.favorite_writes = 0;
+    saveLocalJson = function captureSave(text)
+    {
+      window.favorite_saved = text;
+      ++window.favorite_writes;
+    };
+    saveUnsyncedFlag = function ignoreFlag() {};
+    syncPendingChanges = function ignoreSync() {};
+    g_view_date = todayISO();
+    g_log = {};
+    g_scoop_items =
+    [
+      {
+        key:'apple', name:'Apple', tags:['Fruit'], scoop_g:100, protein_g:1, kcal:50
+      },
+      {
+        key:'pear', name:'Pear', tags:['Fruit'], scoop_g:100, protein_g:1, kcal:60
+      },
+      {
+        key:'bean', name:'Bean', tags:['Dinner'], scoop_g:100, protein_g:8, kcal:100
+      },
+      {
+        key:'egg', name:'Egg', tags:['Breakfast'], scoop_g:50, protein_g:6, kcal:70
+      },
+      {
+        key:'recipe', name:'Z recipe', tags:['Breakfast', 'Dinner'], scoop_g:100,
+        protein_g:8, kcal:100, yield_g:100, ingredients:
+        [
+          {
+            item_key:'bean', grams:100
+          }
+        ]
+      },
+      {
+        key:'solo', name:'Solo', tags:['Single'], scoop_g:20, protein_g:2, kcal:10
+      },
+      {
+        key:'old', name:'Old egg', tags:[], archived:true, scoop_g:50, protein_g:6, kcal:70
+      }
+    ];
+    render();
+    window.favorite_original_items = JSON.stringify(g_scoop_items);
+    window.favorite_original_render = render;
+    render = function rejectFullRender() { throw new Error('favorite must not render the page'); };
+  `);
+  let search = app_document.getElementById('scoop-search');
+  let tbody = app_document.getElementById('pantry-items');
+  search.focus();
+  search.value = 'draft query';
+  search.setSelectionRange(3, 3);
+  star('pear');
+  checkInput(search, 'draft query', 3);
+  check(tbody.firstElementChild.dataset.pantryGroup == 'fruit', 'favorite group moves first');
+  check(firstItem('fruit') == 'pear', 'favorite moves first inside its existing group');
+  check(evaluate('favorite_writes') == 1, 'completed star action saves once');
+  check(evaluate('JSON.parse(favorite_saved).favorites.pear.favorite'), 'favorite is saved');
+  star('recipe');
+  check(tbody.firstElementChild.dataset.pantryGroup == 'breakfast', 'favorite groups retain alphabetical tie breaker');
+  check(firstItem('breakfast') == 'recipe' && firstItem('dinner') == 'recipe', 'saved recipe sorts in both existing groups');
+  let recipe_stars = app_document.querySelectorAll('[data-a="favorite-toggle"][data-key="recipe"]');
+  for (let button of recipe_stars) check(button.getAttribute('aria-pressed') == 'true', 'all appearances share the star');
+  check(evaluate('JSON.stringify(g_scoop_items) == favorite_original_items'), 'favorites do not change or duplicate items');
+  checkBundles();
+
+  evaluate('render = favorite_original_render; openScoopEdit("apple", "fruit");');
+  let field = app_document.querySelector('[data-editdraft="name"]');
+  field.focus();
+  field.value = 'Apple draft';
+  field.setSelectionRange(4, 4);
+  star('apple');
+  checkInput(field, 'Apple draft', 4);
+  check(field.closest('tr').previousElementSibling.dataset.fetchstatusKey == 'apple', 'open editor follows its item after reorder');
+  evaluate(`mergeLoadedPayload(
+  {
+    favorites:
+    {
+      recipe:{favorite:false, updated_at:g_favorites.recipe.updated_at + 1},
+      pear:{favorite:false, updated_at:g_favorites.pear.updated_at + 1}
+    }
+  });`);
+  checkInput(field, 'Apple draft', 4);
+  check(app_document.getElementById('pantry-items').firstElementChild.dataset.pantryGroup == 'fruit', 'sync reorders groups without replacing editor');
+  checkBundles();
+  evaluate('g_edit_item_key = null; g_edit_context = null; g_edit_draft = null; g_scoop_search_raw = "Egg"; render();');
+  check(app_document.getElementById('pantry-items').firstElementChild.dataset.pantryGroup == 'breakfast', 'search match group precedes unrelated favorite group');
+  evaluate('toggleFavorite("recipe");');
+  check(firstItem('breakfast') == 'egg', 'matching member precedes nonmatching favorite');
+
+  evaluate('g_flatten_view = true; g_scoop_search_raw = ""; g_active_tags = {single:true}; g_flatten_sort = "ratio_asc"; render();');
+  let flat_rows = app_document.querySelectorAll('.scooprow[data-pantry-context="standalone"]');
+  check(flat_rows[0].dataset.pantryKey == 'recipe' && flat_rows[1].dataset.pantryKey == 'apple' &&
+        flat_rows[2].dataset.pantryKey == 'solo', 'flat favorites precede active tags and retain ratio tie breaker');
+  evaluate('g_scoop_search_raw = "Solo"; render();');
+  check(firstItem('standalone') == 'solo', 'flat search retains priority over favorites');
+  evaluate('openScaleEdit("solo", "standalone");');
+  field = app_document.querySelector('[data-scaledraft="grams"]');
+  field.focus();
+  field.value = '12.';
+  field.setSelectionRange(3, 3);
+  star('solo');
+  checkInput(field, '12.', 3);
+  checkBundles();
+
+  evaluate('g_scale_item_key = null; g_scale_context = null; g_flatten_view = false; g_scoop_search_raw = ""; g_collapsed_groups.fruit = true; render();');
+  star('recipe');
+  check(evaluate('g_collapsed_groups.fruit') && !app_document.querySelector('[data-pantry-context="fruit"]'), 'favorite sorting preserves collapsed groups');
+  star('old');
+  check(firstItem('archived') == 'old' && app_document.querySelector('[data-pantry-context="archived"] [data-a="scoop-add"]').disabled, 'archived favorite stays archived and cannot log');
+  evaluate('openGroupRename("fruit", "Fruit");');
+  field = app_document.querySelector('[data-grouprename]');
+  field.focus();
+  field.value = 'Fruit draft';
+  field.setSelectionRange(5, 5);
+  star('recipe');
+  checkInput(field, 'Fruit draft', 5);
+  checkBundles();
+  evaluate('g_group_rename_key = null; toggleFavorite("recipe");');
+
+  evaluate(`window.favorite_newer = g_favorites.recipe.updated_at;
+    mergeLoadedPayload({favorites:{recipe:{favorite:true, updated_at:favorite_newer - 1}}});`);
+  check(!evaluate('g_favorites.recipe.favorite'), 'stale favorite cannot resurrect a newer removal');
+  evaluate('mergeLoadedPayload({favorites:{recipe:{favorite:true, updated_at:favorite_newer}}});');
+  check(!evaluate('g_favorites.recipe.favorite'), 'equal timestamp removal wins over true');
+  evaluate('g_favorites.recipe.favorite = true; mergeLoadedPayload({favorites:{recipe:{favorite:false, updated_at:favorite_newer}}});');
+  check(!evaluate('g_favorites.recipe.favorite'), 'equal timestamp removal wins in reverse merge order');
+  evaluate('mergeLoadedPayload({favorites:{recipe:{favorite:true, updated_at:favorite_newer + 1}}});');
+  check(evaluate('g_favorites.recipe.favorite'), 'newer star can favorite again');
+
+  evaluate('window.favorite_backup = buildBackupTSV(); window.favorite_parsed = parseBackupTSV(favorite_backup.text);');
+  check(evaluate('favorite_backup.ok && favorite_parsed.ok'), 'full TSV backup parses');
+  check(evaluate('JSON.stringify(favorite_parsed.payload.favorites) == JSON.stringify(g_favorites)'), 'TSV round trips favorites and explicit removals');
+  evaluate('window.favorite_expected = JSON.stringify(g_favorites); g_import_pending = favorite_parsed.payload; g_favorites = {}; applyReplaceImport();');
+  check(evaluate('JSON.stringify(g_favorites) == favorite_expected'), 'replace import restores favorites');
+  evaluate('g_import_pending = favorite_parsed.payload; g_favorites = {}; applyMergeImport();');
+  check(evaluate('JSON.stringify(g_favorites) == favorite_expected'), 'merge import restores favorites');
+  evaluate('g_favorites = {}; window.favorite_payload = JSON.parse(favorite_saved); mergeFavorites(favorite_payload.favorites);');
+  check(evaluate('JSON.stringify(g_favorites) == favorite_expected'), 'saved JSON restores favorites');
+  evaluate('g_import_pending = JSON.parse(JSON.stringify(favorite_parsed.payload)); delete g_import_pending.favorites; applyReplaceImport();');
+  check(evaluate('Object.keys(g_favorites).length') == 0, 'older replace backup clears favorite state');
+  check(evaluate('parseBackupTSV(favorite_backup.text.replace(/\\[favorites\\][\\s\\S]*?(?=\\n\\[)/, "")).ok'), 'older TSV without favorites still parses');
+
+  // Existing logging and portion buttons keep using the original item keys.
+  evaluate('g_collapsed_groups = {}; render();');
+  app_document.querySelector('[data-a="scoop-add"][data-key="apple"]').click();
+  check(evaluate('logCount(g_view_date, "apple")') == 1, 'normal + logs the original food');
+  app_document.querySelector('[data-a="scoop-scale-open"][data-key="apple"]').click();
+  check(evaluate('g_scale_item_key') == 'apple' && app_document.querySelector('[data-scaledraft="grams"]'), 'portion control opens the original item');
+  let favorite_button = app_document.querySelector('[data-a="favorite-toggle"][data-key="apple"]');
+  favorite_button.focus();
+  favorite_button.click();
+  check(favorite_button.isConnected && app_document.activeElement == favorite_button, 'keyboard star toggle retains button focus');
+  checkBundles();
+  document.getElementById('result').textContent = 'PASS: ' + checks + ' favorites checks (sorting, recipes, inputs, sync merges, persistence, backup/import, logging)';
+}
+</script></html>

@@ -188,6 +188,7 @@ let g_legacy_key_brand_fixups = { granola_pe:'purely elizabeth' };
 let g_legacy_key_name_fixups = { skyr_siggis:'Skyr; plain 0%' };
 
 let g_scoop_items = [];
+let g_favorites = {};
 
 let g_other = '~OTHER';
 
@@ -547,6 +548,60 @@ function groupMatchesSearch(group)
   return false;
 }
 
+function itemIsFavorite(item)
+{
+  return !!(g_favorites[item.key] && g_favorites[item.key].favorite);
+}
+
+function groupHasFavorite(group)
+{
+  for (let item of group.members)
+  {
+    if (itemIsFavorite(item)) return true;
+  }
+  return false;
+}
+
+function mergeFavorites(favorites)
+{
+  let changed = false;
+
+  if (!favorites) return false;
+  for (let key in favorites)
+  {
+    let incoming = favorites[key];
+    let current = g_favorites[key];
+
+    // Equal timestamps resolve to removal on both devices.
+    if (!current || incoming.updated_at > current.updated_at ||
+        (incoming.updated_at == current.updated_at && !incoming.favorite && current.favorite))
+    {
+      g_favorites[key] =
+      {
+        favorite:!!incoming.favorite,
+        updated_at:incoming.updated_at
+      };
+      changed = true;
+    }
+  }
+  return changed;
+}
+
+function toggleFavorite(key)
+{
+  let item = findScoopItem(key);
+  if (!item) return;
+
+  let current = g_favorites[key];
+  g_favorites[key] =
+  {
+    favorite:!itemIsFavorite(item),
+    updated_at:Math.max(Date.now(), current ? current.updated_at + 1 : 0)
+  };
+  refreshFavoriteRows();
+  save();
+}
+
 function sortedGroupMembersForDisplay(group)
 {
   let members = group.members.slice();
@@ -561,6 +616,7 @@ function sortedGroupMembersForDisplay(group)
 
     if (a_matches && !b_matches) return -1;
     if (!a_matches && b_matches) return 1;
+    if (itemIsFavorite(a) != itemIsFavorite(b)) return itemIsFavorite(a) ? -1 : 1;
     return a_name < b_name ? -1 : a_name > b_name ? 1 : 0;
   });
 
@@ -626,6 +682,8 @@ function groupedNodes()
     let b_is_group = b.type == 'group';
     let a_matches = a_is_group ? groupMatchesSearch(a.group) : itemMatchesSearch(a.item);
     let b_matches = b_is_group ? groupMatchesSearch(b.group) : itemMatchesSearch(b.item);
+    let a_favorite = a_is_group ? groupHasFavorite(a.group) : itemIsFavorite(a.item);
+    let b_favorite = b_is_group ? groupHasFavorite(b.group) : itemIsFavorite(b.item);
     let a_active = a_is_group ? !!g_active_tags[a.group.key] : tagsMatchActive(displayItemTags(a.item));
     let b_active = b_is_group ? !!g_active_tags[b.group.key] : tagsMatchActive(displayItemTags(b.item));
     let a_name = a_is_group ? a.group.name.toLowerCase() : a.item.name.toLowerCase();
@@ -633,6 +691,7 @@ function groupedNodes()
 
     if (a_matches && !b_matches) return -1;
     if (!a_matches && b_matches) return 1;
+    if (a_favorite != b_favorite) return a_favorite ? -1 : 1;
     if (a_active && !b_active) return -1;
     if (!a_active && b_active) return 1;
     if (a_is_group && !b_is_group) return -1;
@@ -3777,6 +3836,13 @@ function buildBackupTSV()
     pushBackupTsvRow(lines, [date, activity.steps || '', activity.ebike_minutes || '', activity.ebike_km || ''], state);
   }
 
+  pushBackupTsvSection(lines, 'favorites', ['item_key', 'favorite', 'updated_at'], state);
+  for (let key in g_favorites)
+  {
+    let entry = g_favorites[key];
+    pushBackupTsvRow(lines, [key, backupTsvBool(entry.favorite), entry.updated_at], state);
+  }
+
   pushBackupTsvSection(lines, 'foods', ['key', 'name', 'kind', 'unit_grams', 'unit_protein', 'package_grams', 'package_protein', 'daily', 'price', 'package_units'], state);
   for (let i = 0; i < g_foods.length; ++i)
   {
@@ -4355,7 +4421,8 @@ function parseBackupTSV(text)
     mass_events:{},
     daily_activity:{},
     bodyweight_by_date:{},
-    collapsed_groups:{}
+    collapsed_groups:{},
+    favorites:{}
   };
   let tag_rows = [];
   let item_by_key = {};
@@ -4397,6 +4464,25 @@ function parseBackupTSV(text)
       let row = tsvRowObject(collapsed.headers, collapsed.rows[i]);
       let value = parseTsvBool(row.collapsed);
       if (row.group_key && value != null) payload.collapsed_groups[row.group_key] = value;
+    }
+  }
+
+  let favorites = parsed.sections.favorites;
+  if (favorites)
+  {
+    for (let cells of favorites.rows)
+    {
+      let row = tsvRowObject(favorites.headers, cells);
+      let favorite = parseTsvBool(row.favorite);
+      let updated_at = parseTsvNumber(row.updated_at);
+      if (row.item_key && favorite != null && updated_at != null)
+      {
+        payload.favorites[row.item_key] =
+        {
+          favorite:favorite,
+          updated_at:updated_at
+        };
+      }
     }
   }
 
@@ -5061,6 +5147,8 @@ function applyReplaceImport()
   g_daily_activity = {};
   replaceDailyActivityDates(parsed.daily_activity, true);
   if (parsed.collapsed_groups && typeof parsed.collapsed_groups == 'object') g_collapsed_groups = parsed.collapsed_groups;
+  g_favorites = {};
+  mergeFavorites(parsed.favorites);
 
   mergeKnownItems(); /* pick up any known items added to this tool since the backup was made */
   migrateLogFormat();
@@ -5119,6 +5207,7 @@ function applyMergeImport()
     }
   }
 
+  mergeFavorites(parsed.favorites);
   mergeLogEntries(parsed.log);
   applyLegacyDeletedLogEntries(parsed.deleted_log_entry_ids, parsed.deleted_log_entries);
   mergeMassEvents(parsed.mass_events);
@@ -5301,7 +5390,8 @@ function makeSavePayload()
     log:g_log,
     mass_events:g_mass_events,
     daily_activity:g_daily_activity,
-    collapsed_groups:g_collapsed_groups
+    collapsed_groups:g_collapsed_groups,
+    favorites:g_favorites
   };
 }
 
@@ -5897,6 +5987,7 @@ function mergeLoadedPayload(payload)
   mergeBodyweightByDate(payload.bodyweight_by_date);
 
   mergeScoopItems(payload.scoop_items);
+  if (mergeFavorites(payload.favorites)) refreshFavoriteRows();
   mergeLogEntries(payload.log);
   applyLegacyDeletedLogEntries(payload.deleted_log_entry_ids, payload.deleted_log_entries);
   mergeMassEvents(payload.mass_events);
@@ -6124,6 +6215,8 @@ function load()
       replaceDailyActivityDates(payload.daily_activity, false);
     }
     if (payload.collapsed_groups) g_collapsed_groups = payload.collapsed_groups;
+    g_favorites = {};
+    mergeFavorites(payload.favorites);
   }
 
   function readLocal()
@@ -6944,7 +7037,7 @@ function renderItemRow(item, is_today, indent, context)
   /* barcode could be shown beside the brand with: item.barcode ? ' · ' + esc(item.barcode) : '' */
   h += `<tr class="scooprow${row_class}" data-pantry-key="${esc(item.key)}" data-pantry-context="${esc(context)}">
     <td>
-      <span class="foodname">${esc(item.name)}&nbsp;<button class="editbtn" data-a="scoop-edit-open" data-key="${item.key}" data-context="${esc(context)}" title="edit name/brand/barcode/volume/scoop/protein/kcal/tags"${recipe_item ? ' disabled' : ''}>✎</button>
+      <span class="foodname"><button class="favoritebtn" data-a="favorite-toggle" data-key="${esc(item.key)}" aria-pressed="${itemIsFavorite(item)}" aria-label="${esc((itemIsFavorite(item) ? 'Unfavorite ' : 'Favorite ') + item.name)}" title="${itemIsFavorite(item) ? 'Unfavorite' : 'Favorite'}">${itemIsFavorite(item) ? '★' : '☆'}</button>${esc(item.name)}&nbsp;<button class="editbtn" data-a="scoop-edit-open" data-key="${item.key}" data-context="${esc(context)}" title="edit name/brand/barcode/volume/scoop/protein/kcal/tags"${recipe_item ? ' disabled' : ''}>✎</button>
         <span class="unit">${esc(item.brand || '')}${is_recipe ? '<span class="recipe-label" title="Recipe">recipe</span>' : ''}</span>
       </span>
     </td>
@@ -7031,43 +7124,154 @@ function renderGroupHeader(g)
   return h;
 }
 
+function pantryItemOrderKey(key, context)
+{
+  return JSON.stringify(['item', key, context]);
+}
+
+function refreshFavoriteRows()
+{
+  let tbody = document.getElementById('pantry-items');
+  if (!tbody) return;
+
+  let buttons = tbody.querySelectorAll('[data-a="favorite-toggle"]');
+  for (let button of buttons)
+  {
+    let item = findScoopItem(button.dataset.key);
+    let favorite = itemIsFavorite(item);
+    button.textContent = favorite ? '★' : '☆';
+    button.setAttribute('aria-pressed', String(favorite));
+    button.setAttribute('aria-label', (favorite ? 'Unfavorite ' : 'Favorite ') + item.name);
+    button.title = favorite ? 'Unfavorite' : 'Favorite';
+  }
+
+  // Keep each header/item together with its status and open editor rows.
+  let bundles = {};
+  let existing_order = [];
+  let bundle;
+  for (let row of tbody.children)
+  {
+    let key;
+    if (row.hasAttribute('data-pantry-key'))
+    {
+      key = pantryItemOrderKey(row.dataset.pantryKey, row.dataset.pantryContext);
+    }
+    else if (row.hasAttribute('data-pantry-group'))
+    {
+      key = JSON.stringify(['group', row.dataset.pantryGroup]);
+    }
+    else if (row.classList.contains('archivedheader'))
+    {
+      key = 'archived';
+    }
+    if (key != null)
+    {
+      bundle = [];
+      bundles[key] = bundle;
+      existing_order.push(key);
+    }
+    bundle.push(row);
+  }
+
+  let order = [];
+  if (g_flatten_view)
+  {
+    for (let entry of sortedFlatItemsForDisplay())
+    {
+      order.push(pantryItemOrderKey(entry.item.key, 'standalone'));
+    }
+  }
+  else
+  {
+    for (let node of groupedNodes())
+    {
+      if (node.type == 'item')
+      {
+        order.push(pantryItemOrderKey(node.item.key, 'standalone'));
+        continue;
+      }
+      order.push(JSON.stringify(['group', node.group.key]));
+      if (g_collapsed_groups[node.group.key]) continue;
+      for (let item of sortedGroupMembersForDisplay(node.group))
+      {
+        order.push(pantryItemOrderKey(item.key, node.group.key));
+      }
+    }
+  }
+
+  // Archived rows stay at the end; a sync may also introduce items not rendered yet.
+  let rows = [];
+  for (let key of order.concat(existing_order))
+  {
+    if (!bundles[key]) continue;
+    for (let row of bundles[key]) rows.push(row);
+    delete bundles[key];
+  }
+
+  // Moving a focused row would disconnect its input on older mobile browsers.
+  // Leave that row attached and move the surrounding rows into the new order.
+  let anchor = null;
+  for (let row of rows)
+  {
+    if (row.contains(document.activeElement)) anchor = row;
+  }
+  let anchor_index = rows.indexOf(anchor);
+  for (let i = 0; i < anchor_index; ++i)
+  {
+    if (rows[i].nextElementSibling != anchor) tbody.insertBefore(rows[i], anchor);
+  }
+  let next = null;
+  for (let i = rows.length - 1; i > anchor_index; --i)
+  {
+    if (rows[i].nextElementSibling != next) tbody.insertBefore(rows[i], next);
+    next = rows[i];
+  }
+}
+
+function sortedFlatItemsForDisplay()
+{
+  let flat = [];
+  let items = sortedActiveScoopItems();
+
+  for (let item of items)
+  {
+    flat.push(
+    {
+      item:item,
+      search_rank:itemMatchesSearch(item) ? 0 : 1,
+      favorite_rank:itemIsFavorite(item) ? 0 : 1,
+      tag_rank:tagsMatchActive(displayItemTags(item)) ? 0 : 1,
+      name:item.name.toLowerCase(),
+      ratio:itemKcalProteinRatio(item)
+    });
+  }
+
+  flat.sort(function compareFlatItems(a, b)
+  {
+    if (a.search_rank != b.search_rank) return a.search_rank - b.search_rank;
+    if (a.favorite_rank != b.favorite_rank) return a.favorite_rank - b.favorite_rank;
+    if (a.tag_rank != b.tag_rank) return a.tag_rank - b.tag_rank;
+
+    if (g_flatten_sort == 'ratio_asc')
+    {
+      if (b.ratio == null && a.ratio != null) return 1;
+      if (b.ratio != null && a.ratio == null) return -1;
+      if (b.ratio != null && a.ratio != null && a.ratio != b.ratio) return a.ratio - b.ratio;
+    }
+
+    return a.name < b.name ? -1 : a.name > b.name ? 1 : 0;
+  });
+
+  return flat;
+}
+
 function renderGroupedItems(is_today)
 {
   let h = '';
-  let flat;
 
   if (g_flatten_view)
   {
-    flat = [];
-    let items = sortedActiveScoopItems();
-    for (let i = 0; i < items.length; ++i)
-    {
-      let item = items[i];
-      let ratio = itemKcalProteinRatio(item);
-      flat.push({
-        item:item,
-        search_rank:itemMatchesSearch(item) ? 0 : 1,
-        tag_rank:tagsMatchActive(displayItemTags(item)) ? 0 : 1,
-        name:item.name.toLowerCase(),
-        ratio:ratio
-      });
-    }
-
-    flat.sort(function(a, b)
-    {
-      if (a.search_rank != b.search_rank) return a.search_rank - b.search_rank;
-      if (a.tag_rank != b.tag_rank) return a.tag_rank - b.tag_rank;
-
-      if (g_flatten_sort == 'ratio_asc')
-      {
-        if (b.ratio == null && a.ratio != null) return 1;
-        if (b.ratio != null && a.ratio == null) return -1;
-        if (b.ratio != null && a.ratio != null && a.ratio != b.ratio) return a.ratio - b.ratio;
-      }
-
-      return a.name < b.name ? -1 : a.name > b.name ? 1 : 0;
-    });
-
+    let flat = sortedFlatItemsForDisplay();
     for (let i = 0; i < flat.length; ++i) h += renderItemRow(flat[i].item, is_today, false, 'standalone');
     return h;
   }
@@ -8532,6 +8736,10 @@ document.addEventListener('click', function(ev)
       ++g_edit_lookup_version;
       switchDraftMacroMode(g_edit_draft, target.dataset.mode);
       render();
+      return;
+
+    case 'favorite-toggle':
+      toggleFavorite(target.dataset.key);
       return;
 
     case 'scoop-edit-open':

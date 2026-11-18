@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>Favorites shared-storage regression</title>
+<p>Run on an isolated shared-server checkout at 127.0.0.1:8766 with temporary data. Writes a unique test storage key.</p>
+<output id="result">Running</output>
+<iframe id="app-frame" title="Isolated protein app" style="width:100%;height:800px;border:0"></iframe>
+<script>
+'use strict';
+
+let app_frame = document.getElementById('app-frame');
+let app_window;
+let app_document;
+let field;
+let next_sync_check;
+let polls = 0;
+window.addEventListener('error', reportTestError);
+let request = new XMLHttpRequest();
+request.open('GET', '../protein-loadout.html');
+request.onload = loadApp;
+request.send();
+
+function reportTestError(event)
+{
+  document.getElementById('result').textContent = 'FAIL: ' + event.message;
+}
+
+function check(condition, message)
+{
+  if (!condition) throw new Error(message);
+}
+
+function evaluate(code)
+{
+  return app_window.eval(code);
+}
+
+function loadApp()
+{
+  check(request.status == 200, 'load app source');
+  let html = request.responseText;
+  html = html.replace('<head>', '<head><base href="/">');
+  html = html.replace('\nload();\n</' + 'script>', '\n</' + 'script>');
+  html = html.replace("if ('serviceWorker' in navigator)", 'if (false)');
+  app_frame.onload = runTests;
+  app_frame.srcdoc = html;
+}
+
+function waitForSync(next)
+{
+  next_sync_check = next;
+  polls = 0;
+  setTimeout(pollSync, 100);
+}
+
+function pollSync()
+{
+  check(++polls < 100, 'shared sync completes');
+  if (evaluate('!g_sync_in_flight && !g_unsynced_changes'))
+  {
+    next_sync_check();
+    return;
+  }
+  setTimeout(pollSync, 100);
+}
+
+function readShared(callback)
+{
+  let request = new XMLHttpRequest();
+  request.open('GET', '/api/storage?key=' + encodeURIComponent(evaluate('g_storage_key')));
+  request.onload = callback;
+  request.send();
+}
+
+function runTests()
+{
+  check(location.hostname == '127.0.0.1' && location.port == '8766', 'use temporary server on port 8766');
+  app_window = app_frame.contentWindow;
+  app_document = app_frame.contentDocument;
+  evaluate(`
+    g_storage_key = 'protein-favorites-test:' + uid();
+    g_unsynced_key = g_storage_key + ':unsynced';
+    g_view_date = todayISO();
+    g_log = {};
+    g_scoop_items =
+    [
+      {key:'a', name:'Apple', tags:['Fruit'], scoop_g:100, protein_g:1, kcal:50},
+      {key:'p', name:'Pear', tags:['Fruit'], scoop_g:100, protein_g:1, kcal:60},
+      {key:'s', name:'Solo', tags:['Single'], scoop_g:100, protein_g:1, kcal:60}
+    ];
+    render();
+    toggleFavorite('a');
+  `);
+  waitForSync(readInitial);
+}
+
+function readInitial()
+{
+  readShared(prepareOtherDevice);
+}
+
+function prepareOtherDevice(event)
+{
+  let request = event.target;
+  check(request.status == 200, 'read saved favorite');
+  let response = JSON.parse(request.responseText);
+  let payload = JSON.parse(response.value);
+  check(payload.favorites.a.favorite, 'favorite reaches shared storage');
+  payload.favorites.a.favorite = false;
+  payload.favorites.a.updated_at += 10;
+  payload.favorites.p =
+  {
+    favorite:true,
+    updated_at:payload.favorites.a.updated_at
+  };
+  let update = new XMLHttpRequest();
+  update.open('POST', '/api/storage?key=' + encodeURIComponent(evaluate('g_storage_key')));
+  update.setRequestHeader('Content-Type', 'application/json');
+  update.setRequestHeader('If-Match', response.revision);
+  update.onload = startConflict;
+  update.send(JSON.stringify(payload));
+}
+
+function startConflict(event)
+{
+  check(event.target.status == 200, 'other device unstars Apple and stars Pear');
+  evaluate(`
+    window.favorite_real_set = window.storage.set;
+    window.favorite_set_calls = 0;
+    window.storage.set = function conflictOnce(key, value, revision)
+    {
+      ++window.favorite_set_calls;
+      if (window.favorite_set_calls == 1) revision = 'stale-test-revision';
+      return favorite_real_set(key, value, revision);
+    };
+    openScoopEdit('a', 'fruit');
+  `);
+  field = app_document.querySelector('[data-editdraft="name"]');
+  field.focus();
+  field.value = 'Apple draft';
+  field.setSelectionRange(4, 4);
+  evaluate('toggleFavorite("s");');
+  waitForSync(checkConflict);
+}
+
+function checkConflict()
+{
+  check(evaluate('favorite_set_calls') == 2, '409 conflict retries the write');
+  check(field.isConnected && app_document.activeElement == field && field.value == 'Apple draft' && field.selectionStart == 4, 'sync and conflict preserve editor identity and caret');
+  check(app_document.querySelector('[data-pantry-context="fruit"]').dataset.pantryKey == 'p', 'remote favorite reorders existing rows');
+  readShared(checkShared);
+}
+
+function checkShared(event)
+{
+  check(event.target.status == 200, 'read merged shared favorites');
+  let payload = JSON.parse(JSON.parse(event.target.responseText).value);
+  check(!payload.favorites.a.favorite && payload.favorites.p.favorite && payload.favorites.s.favorite, 'newer remote removal and separate local star both survive');
+  evaluate('g_favorites = {}; g_unsynced_changes = false; load();');
+  waitForSync(checkReload);
+}
+
+function checkReload()
+{
+  check(evaluate('!g_favorites.a.favorite && g_favorites.p.favorite && g_favorites.s.favorite'), 'shared startup and local cache preserve favorite state');
+  evaluate(`
+    window.favorite_real_sync = syncPendingChanges;
+    syncPendingChanges = function simulateOffline() {};
+    toggleFavorite('p');
+    syncPendingChanges = favorite_real_sync;
+    g_favorites = {};
+    load();
+  `);
+  waitForSync(checkOfflineReload);
+}
+
+function checkOfflineReload()
+{
+  check(evaluate('!g_favorites.p.favorite && g_favorites.s.favorite'), 'unsynced local unstar survives startup merge');
+  readShared(finishTests);
+}
+
+function finishTests(event)
+{
+  let payload = JSON.parse(JSON.parse(event.target.responseText).value);
+  check(!payload.favorites.a.favorite && !payload.favorites.p.favorite && payload.favorites.s.favorite, 'offline removal reaches shared storage after reload');
+  document.getElementById('result').textContent = 'PASS: real shared GET/POST, remote removal, 409 retry, separate device edits, input preservation, local cache, and offline reload';
+}
+</script></html>
