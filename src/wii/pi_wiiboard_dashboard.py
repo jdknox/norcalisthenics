@@ -26,6 +26,8 @@ def getRequest(handler):
     path = handler.path.split('?', 1)[0]
     if path == '/api/status':
         return sendJson(handler, 200, wii_runtime.readState())
+    if path == '/api/settings':
+        return sendJson(handler, 200, wii_runtime.readSettings())
     assets = {
         '/': ('dashboard.html', 'text/html; charset=utf-8'),
         '/dashboard.css': ('dashboard.css', 'text/css; charset=utf-8'),
@@ -40,10 +42,26 @@ def getRequest(handler):
     return sendResponse(handler, 200, body, content_type)
 
 
+def postSettings(handler):
+    length = handler.headers.get('Content-Length')
+    if length == None or not length.isdecimal() or int(length) > 4096:
+        return sendJson(handler, 400, {'error': 'Settings body must be at most 4096 bytes.'})
+    try:
+        settings = json.loads(handler.rfile.read(int(length)))
+    except ValueError:
+        settings = None
+    if not wii_runtime.validSettings(settings):
+        return sendJson(handler, 400, {'error': 'Settings must map known names to short strings.'})
+    wii_runtime.writeSettings(settings)
+    return sendJson(handler, 200, settings)
+
+
 def postRequest(handler):
     # A custom header keeps cross-origin forms from changing recording state.
     if handler.headers.get('X-Wii-Control') != 'dashboard':
         return sendJson(handler, 403, {'error': 'Dashboard control header required.'})
+    if handler.path == '/api/settings':
+        return postSettings(handler)
     actions = {'/api/record/start': 'start', '/api/record/stop': 'stop'}
     if handler.path not in actions:
         return sendJson(handler, 404, {'error': 'Not found.'})

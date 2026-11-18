@@ -4,9 +4,13 @@ let eccentric_percent_input = document.getElementById('eccentric-percent');
 let concentric_percent_input = document.getElementById('concentric-percent');
 let axis_minimum_input = document.getElementById('axis-minimum');
 let axis_maximum_input = document.getElementById('axis-maximum');
-// Key kept from when it only held the target percents, so saved values survive.
-const CHART_SETTINGS_KEY = 'wii-reference-percents';
+// Chart settings saved in this browser before they moved to the Pi (read once to migrate).
+const LEGACY_SETTINGS_KEY = 'wii-reference-percents';
+const CHART_HEIGHT_KEY = 'wii-chart-height';
+let settings_save_timer = null;
 let canvas = document.getElementById('chart');
+let chart_panel = document.getElementById('chart-panel');
+let saved_chart_height = '';
 let corner_readout = document.getElementById('corner-readout');
 let copy_corners_button = document.getElementById('copy-corners');
 let history = [];
@@ -626,7 +630,7 @@ function referenceLines(baseline)
     return lines;
 }
 
-// Every chart input, by its saved name. All are kept in this browser across refreshes.
+// Every chart input, by its saved name. Saved on the Pi, so every browser shares them.
 function chartSettingInputs()
 {
     return {
@@ -638,7 +642,45 @@ function chartSettingInputs()
     };
 }
 
-function saveChartSettings()
+function readLocalJson(key)
+{
+    try
+    {
+        return JSON.parse(localStorage.getItem(key));
+    }
+    catch (error)
+    {
+        return null;
+    }
+}
+
+function writeLocalJson(key, value)
+{
+    try
+    {
+        localStorage.setItem(key, JSON.stringify(value));
+    }
+    catch (error)
+    {
+        // Storage can be blocked; the value still applies for this page load.
+    }
+}
+
+function applyChartSettings(settings)
+{
+    let inputs = chartSettingInputs();
+    for (let name in inputs)
+    {
+        // Missing names keep their default; never overwrite a box being typed in.
+        if (settings[name] != null && document.activeElement != inputs[name])
+        {
+            inputs[name].value = settings[name];
+        }
+    }
+    drawChart();
+}
+
+function sendChartSettings()
 {
     let settings = {};
     let inputs = chartSettingInputs();
@@ -646,41 +688,87 @@ function saveChartSettings()
     {
         settings[name] = inputs[name].value;
     }
-    try
+    let request = new XMLHttpRequest();
+    request.open('POST', '/api/settings');
+    request.setRequestHeader('X-Wii-Control', 'dashboard');
+    request.setRequestHeader('Content-Type', 'application/json');
+    request.timeout = 2000;
+    request.onload = function ()
     {
-        localStorage.setItem(CHART_SETTINGS_KEY, JSON.stringify(settings));
-    }
-    catch (error)
+        if (request.status != 200)
+        {
+            showError('Chart settings were not saved on the Pi: ' + JSON.parse(request.responseText).error);
+        }
+    };
+    request.onerror = function ()
     {
-        // Storage can be blocked; the inputs still work for this page load.
-    }
+        showError('Chart settings were not saved on the Pi; check the connection and edit a box to retry.');
+    };
+    request.ontimeout = request.onerror;
+    request.send(JSON.stringify(settings));
+}
+
+function saveChartSettings()
+{
     drawChart();
+    // Typing "81.2" fires four input events; send once the typing pauses.
+    window.clearTimeout(settings_save_timer);
+    settings_save_timer = window.setTimeout(sendChartSettings, 400);
 }
 
 function loadChartSettings()
 {
-    let settings = null;
-    try
+    // Before settings moved to the Pi they lived in this browser; carry them over once.
+    let legacy = readLocalJson(LEGACY_SETTINGS_KEY);
+    let height = readLocalJson(CHART_HEIGHT_KEY);
+    if (height == null && legacy != null)
     {
-        settings = JSON.parse(localStorage.getItem(CHART_SETTINGS_KEY));
+        height = legacy.chart_height;
     }
-    catch (error)
+    if (height)
     {
-        settings = null;
+        chart_panel.style.height = height;
+        saved_chart_height = height;
     }
-    if (settings == null)
+    let request = new XMLHttpRequest();
+    request.open('GET', '/api/settings');
+    request.timeout = 2000;
+    request.onload = function ()
     {
-        return;
-    }
-    let inputs = chartSettingInputs();
-    for (let name in inputs)
-    {
-        // Settings saved before an input existed leave its default in place.
-        if (settings[name] != null)
+        if (request.status != 200)
         {
-            inputs[name].value = settings[name];
+            return;
         }
+        let settings = JSON.parse(request.responseText);
+        if (Object.keys(settings).length)
+        {
+            applyChartSettings(settings);
+        }
+        else if (legacy != null)
+        {
+            applyChartSettings(legacy);
+            sendChartSettings();
+        }
+    };
+    request.send();
+}
+
+// Redraw whenever the canvas changes size, and keep the panel height after a drag.
+// The height stays per browser, since screens differ. Runs on the next animation
+// frame, outside the ResizeObserver callback.
+function chartResized()
+{
+    window.requestAnimationFrame(chartResizedFrame);
+}
+
+function chartResizedFrame()
+{
+    if (chart_panel.style.height != saved_chart_height)
+    {
+        saved_chart_height = chart_panel.style.height;
+        writeLocalJson(CHART_HEIGHT_KEY, saved_chart_height);
     }
+    drawChart();
 }
 
 function drawChart()
@@ -818,5 +906,9 @@ for (let input of Object.values(chartSettingInputs()))
 }
 loadChartSettings();
 window.addEventListener('resize', drawChart);
+if (window.ResizeObserver)
+{
+    new ResizeObserver(chartResized).observe(canvas);
+}
 window.setInterval(refreshSampleCoverage, 100);
 pollStatus();

@@ -6,30 +6,56 @@ runtime_dir = os.environ.get('WII_RUNTIME_DIR', f'/dev/shm/norcalisthenics-wii-{
 state_path = f'{runtime_dir}/state.json'
 command_path = f'{runtime_dir}/command.json'
 battery_capacity_path = '/sys/class/power_supply/wiimote_battery_00:1f:c5:ab:39:a6/capacity'
-# The last good reading outlives disconnects and reboots, so it can't live in /dev/shm.
-battery_last_path = os.path.expanduser('~/.local/state/norcalisthenics-wii/last-battery.json')
+# These outlive disconnects and reboots, so they can't live in /dev/shm.
+state_dir = os.path.expanduser('~/.local/state/norcalisthenics-wii')
+battery_last_path = f'{state_dir}/last-battery.json'
+# Dashboard inputs (bodyweight, targets, axis limits), shared by every browser.
+settings_path = f'{state_dir}/dashboard-settings.json'
+SETTING_NAMES = ['baseline', 'eccentric', 'concentric', 'axis_minimum', 'axis_maximum']
 battery_percent = None
 battery_checked_at = None
 
 
-def saveLastBattery(percent):
-    os.makedirs(os.path.dirname(battery_last_path), exist_ok=True)
-    handle = open(f'{battery_last_path}.tmp', 'w')
-    json.dump({'percent': percent, 'at': time.time()}, handle)
+def readJsonFile(path):
+    # Missing or corrupt reads as None; callers treat that as "nothing saved".
+    if not os.access(path, os.R_OK):
+        return None
+    handle = open(path)
+    try:
+        value = json.load(handle)
+    except ValueError:
+        value = None
     handle.close()
-    os.replace(f'{battery_last_path}.tmp', battery_last_path)
+    return value
+
+
+def saveLastBattery(percent):
+    writeJson(battery_last_path, {'percent': percent, 'at': time.time()})
 
 
 def readLastBattery():
-    if not os.access(battery_last_path, os.R_OK):
-        return None
-    handle = open(battery_last_path)
-    try:
-        last = json.load(handle)
-    except ValueError:
-        last = None
-    handle.close()
-    return last
+    return readJsonFile(battery_last_path)
+
+
+def readSettings():
+    settings = readJsonFile(settings_path)
+    if not isinstance(settings, dict):
+        return {}
+    return settings
+
+
+def validSettings(settings):
+    # Input box values exactly as typed: short strings, known names only.
+    if not isinstance(settings, dict):
+        return False
+    for name, value in settings.items():
+        if name not in SETTING_NAMES or not isinstance(value, str) or len(value) > 16:
+            return False
+    return True
+
+
+def writeSettings(settings):
+    writeJson(settings_path, settings)
 
 
 def readBatteryPercent(connected):
@@ -66,7 +92,7 @@ def addLastBattery(state):
 
 
 def writeJson(path, value):
-    os.makedirs(runtime_dir, mode=0o700, exist_ok=True)
+    os.makedirs(os.path.dirname(path), mode=0o700, exist_ok=True)
     handle = open(f'{path}.tmp', 'w')
     json.dump(value, handle)
     handle.close()

@@ -245,6 +245,7 @@ import os
 import pi_wiiboard_dashboard as dashboard
 dashboard.wii_runtime.battery_capacity_path = os.environ['WII_TEST_DIR'] + '/battery-capacity'
 dashboard.wii_runtime.battery_last_path = os.environ['WII_TEST_DIR'] + '/state/last-battery.json'
+dashboard.wii_runtime.settings_path = os.environ['WII_TEST_DIR'] + '/state/dashboard-settings.json'
 server = http.server.HTTPServer(('127.0.0.1', 0), dashboard.DashboardHandler)
 print(server.server_address[1], flush=True)
 server.serve_forever()
@@ -257,12 +258,12 @@ assert port_text.isdigit(), f'Dashboard did not start; inspect {task_dir}/logger
 port = int(port_text)
 
 
-def request(method, path, control=True):
+def request(method, path, control=True, body=None):
     connection = http.client.HTTPConnection('127.0.0.1', port, timeout=2)
     headers = {}
     if control:
         headers['X-Wii-Control'] = 'dashboard'
-    connection.request(method, path, headers=headers)
+    connection.request(method, path, body=body, headers=headers)
     response = connection.getresponse()
     body = response.read()
     code = response.status
@@ -312,6 +313,23 @@ for path in ['/', '/dashboard.js', '/dashboard.css']:
     assert code == 200 and body
 assert request('GET', '/missing')[0] == 404
 assert request('POST', '/api/record/start', control=False)[0] == 403
+
+# Chart settings live on the Pi so every browser shares them.
+assert request('GET', '/api/settings') == (200, {})
+settings = {'baseline': '81.2', 'eccentric': '110', 'concentric': '100', 'axis_minimum': '40', 'axis_maximum': ''}
+assert request('POST', '/api/settings', control=False, body=json.dumps(settings))[0] == 403
+assert request('POST', '/api/settings', body=json.dumps(settings)) == (200, settings)
+assert request('GET', '/api/settings') == (200, settings)
+for bad_body in ['not json', '[1, 2]', json.dumps({'baseline': 81.2}), json.dumps({'unknown': '1'}),
+                 json.dumps({'baseline': '1'*17}), 'x'*5000]:
+    assert request('POST', '/api/settings', body=bad_body)[0] == 400, bad_body
+assert request('GET', '/api/settings') == (200, settings), 'Rejected settings must not replace saved ones.'
+handle = open(f'{task_dir}/state/dashboard-settings.json', 'w')
+handle.write('{truncated')
+handle.close()
+assert request('GET', '/api/settings') == (200, {}), 'A corrupt settings file reads as nothing saved.'
+assert request('POST', '/api/settings', body=json.dumps(settings))[0] == 200
+
 state = waitState(lambda state: state.get('taring'))
 assert state['sample_age_ms'] == None and state['load_samples'] == 0
 assert state['battery_percent'] == 80
