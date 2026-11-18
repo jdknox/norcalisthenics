@@ -742,6 +742,7 @@ let g_scale_context = null;     /* 'standalone' or a group key — which rendere
 let g_scale_draft = null;       /* { scale, grams_raw, protein_g, protein_g_raw, kcal, kcal_raw } while scaling */
 let g_custom_protein_raw = '';  /* transient, not persisted — scratch input for the Custom row */
 let g_custom_kcal_raw = '';
+let g_custom_grams_raw = '';
 let g_custom_status = '';
 let g_collapsed_groups = {};    /* lowercase group name -> true if collapsed */
 let g_active_tags = {};         /* lowercase tag key -> true if active as a float-to-top filter (not persisted) */
@@ -1059,6 +1060,7 @@ function logCustomEntry()
 {
   let protein_num;
   let kcal_num;
+  let grams = null;
 
   if (!viewDateIsEditable()) return;
 
@@ -1070,13 +1072,25 @@ function logCustomEntry()
     return;
   }
 
+  if (g_custom_grams_raw.trim() != '')
+  {
+    grams = Number(g_custom_grams_raw);
+    if (!Number.isFinite(grams) || grams < 0)
+    {
+      g_custom_status = 'enter a mass of zero or more grams';
+      render();
+      return;
+    }
+  }
+
   kcal_num = parseFloat(g_custom_kcal_raw);
   protein_num = round1(protein_num);
   if (isNaN(kcal_num)) kcal_num = customKcalEstimate(protein_num);
 
-  pushLogEntry('custom', null, protein_num, Math.round(kcal_num), null);
+  pushLogEntry('custom', grams, protein_num, Math.round(kcal_num), null);
   g_custom_protein_raw = '';
   g_custom_kcal_raw = '';
+  g_custom_grams_raw = '';
   g_custom_status = '';
   render();
   save();
@@ -7033,8 +7047,11 @@ function renderCustomRow()
       <span class="foodname">Custom<span class="unit">history estimate<br />kcal ≈ ${fmt0(kcal_ratio)}x protein</span></span>
     </td>
     <td class="num" colspan="3">
-      <input type="text" inputmode="decimal" data-custom="protein" placeholder="protein" value="${esc(g_custom_protein_raw)}">
-      <input type="text" inputmode="decimal" data-custom="kcal" placeholder="kcal" value="${esc(kcal_raw)}">
+      <div class="custom-inputs">
+        <input type="text" inputmode="decimal" data-custom="protein" placeholder="protein" value="${esc(g_custom_protein_raw)}">
+        <input type="text" inputmode="decimal" data-custom="kcal" placeholder="kcal" value="${esc(kcal_raw)}">
+        <input type="text" inputmode="decimal" data-custom="grams" placeholder="mass (g)" aria-label="Custom mass in grams" value="${esc(g_custom_grams_raw)}">
+      </div>
     </td>
     <td class="num scoopcount">${count}</td>
     <td class="scoopactions">
@@ -8000,6 +8017,13 @@ document.addEventListener('input', function(ev)
   if (target.dataset.custom == 'kcal')
   {
     g_custom_kcal_raw = target.value;
+    g_custom_status = '';
+    return;
+  }
+
+  if (target.dataset.custom == 'grams')
+  {
+    g_custom_grams_raw = target.value;
     g_custom_status = '';
     return;
   }
