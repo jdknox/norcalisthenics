@@ -7611,7 +7611,7 @@ function renderScoopSection()
       <th class="num">kcal</th>
       <th class="num">${g_recipe_draft ? 'recipe g' : 'today'}</th>
       <th></th>
-    </tr></thead><tbody>`;
+    </tr></thead><tbody id="pantry-items">`;
 
   h += renderGroupedItems(is_editable);
   h += renderArchivedItems();
@@ -7858,7 +7858,10 @@ document.addEventListener('input', function(ev)
   if (target.id == 'scoop-search')
   {
     g_scoop_search_raw = target.value;
-    renderPreservingFocus();
+    // Keep the native editor attached so held backspace and composition continue.
+    let items = document.getElementById('pantry-items');
+    items.innerHTML = renderGroupedItems(viewDateIsEditable()) + renderArchivedItems();
+    fitDraftTextareas();
     return;
   }
 
