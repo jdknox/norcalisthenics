@@ -775,6 +775,8 @@ let g_sync_in_flight = false;
 let g_local_revision = 0;
 let g_sync_retry_timer = null;
 let g_authoritative_replace_sync = false;
+let g_lognote_save_timer = null;
+let g_lognote_dirty_ids = {};
 let custom_kcal_ratio_fallback = 23;
 let custom_kcal_ratio_rho = 0.85;
 let g_default_water_ml = 740;
@@ -5207,6 +5209,7 @@ function setSyncOk()
   g_sync_status = '';
   g_unsynced_changes = false;
   g_authoritative_replace_sync = false;
+  g_lognote_dirty_ids = {};
   saveUnsyncedFlag(false);
   updateSyncChrome();
 }
@@ -5472,6 +5475,8 @@ function mergeLogEntryState(local_entry, remote_entry)
 
   if (!local_entry || !remote_entry) return;
 
+  if (remote_entry.note && !local_entry.note && !g_lognote_dirty_ids[local_entry.id]) local_entry.note = remote_entry.note;
+
   if (!local_entry.recipe_snapshot && remote_entry.recipe_snapshot)
   {
     local_entry.recipe_snapshot = JSON.parse(JSON.stringify(remote_entry.recipe_snapshot));
@@ -5487,13 +5492,11 @@ function mergeLogEntryState(local_entry, remote_entry)
   if (remote_restore_millis > local_delete_millis)
   {
     setLogEntryRestored(local_entry, remote_entry.restored_at);
-    if (remote_entry.note && !local_entry.note) local_entry.note = remote_entry.note;
     return;
   }
 
   if (local_restore_millis > remote_delete_millis)
   {
-    if (remote_entry.note && !local_entry.note) local_entry.note = remote_entry.note;
     return;
   }
 
@@ -5503,7 +5506,6 @@ function mergeLogEntryState(local_entry, remote_entry)
   if (remote_count > local_count) local_entry.delete_count = remote_count;
   if (remote_entry.buried_at && logEntryDeleteCount(local_entry) < 2) local_entry.delete_count = 2;
   if (logEntryIsDeleted(local_entry)) delete local_entry.restored_at;
-  if (remote_entry.note && !local_entry.note) local_entry.note = remote_entry.note;
 }
 
 function mergeLogEntries(remote_log)
@@ -5793,7 +5795,7 @@ function scheduleSyncRetry()
 
 function syncPendingChanges()
 {
-  if (g_sync_in_flight || !g_unsynced_changes) return;
+  if (g_sync_in_flight || !g_unsynced_changes || g_lognote_save_timer != null) return;
 
   if (!window.storage || !window.storage.get || !window.storage.set)
   {
@@ -5808,6 +5810,12 @@ function syncPendingChanges()
   {
     let merged_json_text;
     let write_revision;
+
+    if (g_lognote_save_timer != null)
+    {
+      g_sync_in_flight = false;
+      return;
+    }
 
     if (!result || !result.revision) throw new Error('shared storage does not support safe revision checks');
     if (result.value && !g_authoritative_replace_sync) mergeLoadedPayload(storagePayloadFromValue(result.value));
@@ -5852,6 +5860,8 @@ function syncPendingChanges()
 
 function save()
 {
+  clearTimeout(g_lognote_save_timer);
+  g_lognote_save_timer = null;
   let json_text = JSON.stringify(makeSavePayload());
 
   saveLocalJson(json_text);
@@ -5859,6 +5869,21 @@ function save()
   saveUnsyncedFlag(true);
   ++g_local_revision;
   syncPendingChanges();
+}
+
+function flushLogNoteSave()
+{
+  if (g_lognote_save_timer == null) return;
+  save();
+}
+
+function scheduleLogNoteSave()
+{
+  clearTimeout(g_lognote_save_timer);
+  g_lognote_save_timer = setTimeout(flushLogNoteSave, 400);
+  g_unsynced_changes = true;
+  // An older sync response must not acknowledge an edit still waiting to save.
+  ++g_local_revision;
 }
 
 function saveAuthoritativeReplacement()
@@ -7124,6 +7149,55 @@ function renderTemporaryMeals()
   return h;
 }
 
+function renderLoggedFoodMain(entry, is_today)
+{
+  let is_custom = entry.item_key == 'custom';
+  let note = entry.note || '';
+  let note_size = Math.max(5, note.length + 1);
+  let custom_note_label = is_custom && note;
+  let empty_note_class = !note ? ' empty-note' : '';
+  let disabled = !is_today || logEntryIsDeleted(entry) ? ' disabled' : '';
+  let title_content = '';
+  let inline_note_input = '';
+  let note_line_input = '';
+  let detail_line = '';
+
+  if (custom_note_label)
+  {
+    title_content = `*<input class="logged-food-note-input logged-food-custom-name has-note" type="text" data-lognote="${entry.id}" size="${note_size}" placeholder="Custom" value="${esc(note)}"${disabled}>`;
+  }
+  else
+  {
+    title_content = `<span class="logged-food-name">${esc(loggedEntryLabel(entry))}</span>`;
+  }
+
+  if ((is_custom && !custom_note_label) || !note)
+  {
+    let note_class = note ? ' has-note' : '';
+    inline_note_input = `<input class="logged-food-note-input${note_class}"
+      type="text" data-lognote="${entry.id}" size="${note_size}"
+      placeholder="notes" value="${esc(note)}"${disabled}>`;
+  }
+
+  if (!is_custom && note)
+  {
+    note_line_input = `<input class="logged-food-note-input logged-food-note-line has-note"
+      type="text" data-lognote="${entry.id}" size="${note_size}" placeholder="notes"
+      value="${esc(note)}"${disabled}>`;
+  }
+
+  if (g_logged_food_details_open)
+  {
+    detail_line = `<span class="logged-food-detail">${loggedEntryDetail(entry)}</span>`;
+  }
+
+  return `<div class="logged-food-titleline${empty_note_class}">
+    ${title_content}${inline_note_input}
+  </div>
+  ${note_line_input}
+  ${detail_line}`;
+}
+
 function renderLoggedFoodList()
 {
   let day = g_log[g_view_date] || [];
@@ -7190,50 +7264,11 @@ function renderLoggedFoodList()
     {
       let entry = day[i];
       let is_deleted = logEntryIsDeleted(entry);
-      let is_custom = entry.item_key == 'custom';
-      let note = entry.note || '';
-      let note_size = Math.max(5, note.length + 1);
-      let custom_note_label = is_custom && note;
-      let empty_note_class = !note ? ' empty-note' : '';
       let deleted_class = is_deleted ? ' deleted' : '';
-      let disabled = !is_today || is_deleted ? ' disabled' : '';
-      let title_content = '';
-      let inline_note_input = '';
-      let note_line_input = '';
-      let detail_line = '';
       let remove_button = '';
       let restore_button = '';
 
       if (!g_admin_mode && logEntryIsBuried(entry)) continue;
-
-      if (custom_note_label)
-      {
-        title_content = `*<input class="logged-food-note-input logged-food-custom-name has-note" type="text" data-lognote="${entry.id}" size="${note_size}" placeholder="Custom" value="${esc(note)}"${disabled}>`;
-      }
-      else
-      {
-        title_content = `<span class="logged-food-name">${esc(loggedEntryLabel(entry))}</span>`;
-      }
-
-      if ((is_custom && !custom_note_label) || !note)
-      {
-        let note_class = note ? ' has-note' : '';
-        inline_note_input = `<input class="logged-food-note-input${note_class}"
-          type="text" data-lognote="${entry.id}" size="${note_size}"
-          placeholder="notes" value="${esc(note)}"${disabled}>`;
-      }
-
-      if (!is_custom && note)
-      {
-        note_line_input = `<input class="logged-food-note-input logged-food-note-line has-note"
-          type="text" data-lognote="${entry.id}" size="${note_size}" placeholder="notes"
-          value="${esc(note)}"${disabled}>`;
-      }
-
-      if (g_logged_food_details_open)
-      {
-        detail_line = `<span class="logged-food-detail">${loggedEntryDetail(entry)}</span>`;
-      }
 
       if (is_today)
       {
@@ -7250,11 +7285,7 @@ function renderLoggedFoodList()
       h += `<div class="logged-food-item${deleted_class}">
         ${selecting_meal ? `<label class="meal-pick" title="Include ${esc(loggedEntryLabel(entry))} in Meal ${g_temporary_meal_edit.number}"><input type="checkbox" data-mealentry="${esc(entry.id)}" aria-label="Include ${esc(loggedEntryLabel(entry))} in Meal ${g_temporary_meal_edit.number}"${g_temporary_meal_edit.entry_ids.includes(entry.id) ? ' checked' : ''}${is_deleted ? ' disabled' : ''}></label>` : ''}
         <div class="logged-food-main">
-          <div class="logged-food-titleline${empty_note_class}">
-            ${title_content}${inline_note_input}
-          </div>
-          ${note_line_input}
-          ${detail_line}
+          ${renderLoggedFoodMain(entry, is_today)}
         </div>
         ${remove_button}
         ${restore_button}
@@ -7793,11 +7824,15 @@ document.addEventListener('input', function(ev)
       if (day[i].id == target.dataset.lognote)
       {
         day[i].note = target.value;
+        g_lognote_dirty_ids[day[i].id] = true;
         break;
       }
     }
-    renderPreservingFocus();
-    save();
+    // Keep the native editor attached throughout mobile keyboard composition.
+    target.size = Math.max(5, target.value.length + 1);
+    target.classList.toggle('has-note', target.value != '');
+    target.closest('.logged-food-main').querySelector('.logged-food-titleline').classList.toggle('empty-note', target.value == '');
+    scheduleLogNoteSave();
     return;
   }
 
@@ -8044,6 +8079,16 @@ document.addEventListener('focusin', function(ev)
 
 document.addEventListener('focusout', function(ev)
 {
+  if (ev.target.dataset && ev.target.dataset.lognote)
+  {
+    flushLogNoteSave();
+    let main = ev.target.closest('.logged-food-main');
+    let entry = findLogEntryById(ev.target.dataset.lognote);
+    // Normalize the label layout after editing without replacing nearby controls.
+    if (main.isConnected) main.innerHTML = renderLoggedFoodMain(entry, viewDateIsEditable());
+    return;
+  }
+
   if (!ev.target || !ev.target.dataset || (ev.target.dataset.editdraft != 'tags' && ev.target.dataset.recipedraft != 'tags' && ev.target.dataset.adddraft != 'tags')) return;
 
   let list = ev.target.closest('.tagwrap').querySelector('.tagsuggest');
@@ -8640,11 +8685,20 @@ window.addEventListener('unhandledrejection', function(event)
 
 window.addEventListener('beforeunload', function(event)
 {
+  flushLogNoteSave();
   if (!g_sync_failed && !g_unsynced_changes) return;
 
   event.preventDefault();
   event.returnValue = '';
 });
+
+function saveLogNoteWhenHidden()
+{
+  if (document.visibilityState == 'hidden') flushLogNoteSave();
+}
+
+document.addEventListener('visibilitychange', saveLogNoteWhenHidden);
+window.addEventListener('pagehide', flushLogNoteSave);
 
 function shouldGuardBrowserBack()
 {
