@@ -6,8 +6,30 @@ runtime_dir = os.environ.get('WII_RUNTIME_DIR', f'/dev/shm/norcalisthenics-wii-{
 state_path = f'{runtime_dir}/state.json'
 command_path = f'{runtime_dir}/command.json'
 battery_capacity_path = '/sys/class/power_supply/wiimote_battery_00:1f:c5:ab:39:a6/capacity'
+# The last good reading outlives disconnects and reboots, so it can't live in /dev/shm.
+battery_last_path = os.path.expanduser('~/.local/state/norcalisthenics-wii/last-battery.json')
 battery_percent = None
 battery_checked_at = None
+
+
+def saveLastBattery(percent):
+    os.makedirs(os.path.dirname(battery_last_path), exist_ok=True)
+    handle = open(f'{battery_last_path}.tmp', 'w')
+    json.dump({'percent': percent, 'at': time.time()}, handle)
+    handle.close()
+    os.replace(f'{battery_last_path}.tmp', battery_last_path)
+
+
+def readLastBattery():
+    if not os.access(battery_last_path, os.R_OK):
+        return None
+    handle = open(battery_last_path)
+    try:
+        last = json.load(handle)
+    except ValueError:
+        last = None
+    handle.close()
+    return last
 
 
 def readBatteryPercent(connected):
@@ -29,7 +51,18 @@ def readBatteryPercent(connected):
                 value = int(text)
                 if 0 <= value <= 100:
                     battery_percent = value
+                    saveLastBattery(value)
     return battery_percent
+
+
+def addLastBattery(state):
+    last = readLastBattery()
+    state['battery_last_percent'] = None
+    state['battery_last_at'] = None
+    if last != None:
+        state['battery_last_percent'] = last['percent']
+        state['battery_last_at'] = last['at']
+    return state
 
 
 def writeJson(path, value):
@@ -48,13 +81,14 @@ def publishState(state):
 def readState():
     if not os.access(state_path, os.F_OK):
         readBatteryPercent(False)
-        return {'live': False, 'connected': False, 'recording': False, 'battery_percent': None}
+        return addLastBattery({'live': False, 'connected': False, 'recording': False, 'battery_percent': None})
     handle = open(state_path)
     state = json.load(handle)
     handle.close()
     now = time.time()
     state['live'] = now - state['updated_at'] < 1.5
     state['battery_percent'] = readBatteryPercent(state['live'] and state['connected'])
+    addLastBattery(state)
     state['sample_age_ms'] = None
     if state['sample_time'] != None:
         state['sample_age_ms'] = max(0.0, (now - state['sample_time'])*1000)

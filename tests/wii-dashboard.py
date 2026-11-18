@@ -99,7 +99,9 @@ assert stats['load_average_kg'] == 10
 task_dir = tempfile.mkdtemp(prefix='wii-dashboard-test-', dir='/tmp')
 battery_path = f'{task_dir}/battery-capacity'
 logger.wii_runtime.battery_capacity_path = battery_path
+logger.wii_runtime.battery_last_path = f'{task_dir}/state/last-battery.json'
 assert logger.wii_runtime.readBatteryPercent(True) == None
+assert logger.wii_runtime.readLastBattery() == None, 'No reading yet means no last-known battery.'
 for text, expected in [('80', 80), ('20', 20), ('0', 0), ('100', 100), ('101', None), ('-1', None), ('unknown', None)]:
     handle = open(battery_path, 'w')
     handle.write(text + '\n')
@@ -110,8 +112,16 @@ handle = open(battery_path, 'w')
 handle.write('80\n')
 handle.close()
 assert logger.wii_runtime.readBatteryPercent(True) == None, 'Battery reads must use the 30 s cache.'
+assert logger.wii_runtime.readLastBattery()['percent'] == 100, 'Invalid readings must not replace the last good one.'
 assert logger.wii_runtime.readBatteryPercent(False) == None
+assert logger.wii_runtime.readLastBattery()['percent'] == 100, 'Disconnect must keep the last-known battery.'
 assert logger.wii_runtime.readBatteryPercent(True) == 80, 'Reconnect must refresh battery immediately.'
+last_battery = logger.wii_runtime.readLastBattery()
+assert last_battery['percent'] == 80 and abs(last_battery['at'] - time.time()) < 5
+handle = open(logger.wii_runtime.battery_last_path, 'w')
+handle.write('{truncated')
+handle.close()
+assert logger.wii_runtime.readLastBattery() == None, 'A corrupt last-battery file reads as unknown.'
 runtime_dir = f'{task_dir}/runtime'
 csv_path = f'{task_dir}/weights.csv'
 processes = []
@@ -234,6 +244,7 @@ import http.server
 import os
 import pi_wiiboard_dashboard as dashboard
 dashboard.wii_runtime.battery_capacity_path = os.environ['WII_TEST_DIR'] + '/battery-capacity'
+dashboard.wii_runtime.battery_last_path = os.environ['WII_TEST_DIR'] + '/state/last-battery.json'
 server = http.server.HTTPServer(('127.0.0.1', 0), dashboard.DashboardHandler)
 print(server.server_address[1], flush=True)
 server.serve_forever()
@@ -411,6 +422,7 @@ os.unlink(f'{task_dir}/connected')
 state = waitState(lambda state: not state['connected'])
 assert not state['recording'] and state['corner_tare_kg'] == None
 assert state['battery_percent'] == None
+assert state['battery_last_percent'] == 80 and state['battery_last_at'] != None, 'Disconnected status must carry the last-known battery.'
 handle = open(battery_path, 'w')
 handle.write('20\n')
 handle.close()

@@ -1,5 +1,11 @@
 let record_button = document.getElementById('record');
 let baseline_input = document.getElementById('baseline');
+let eccentric_percent_input = document.getElementById('eccentric-percent');
+let concentric_percent_input = document.getElementById('concentric-percent');
+let axis_minimum_input = document.getElementById('axis-minimum');
+let axis_maximum_input = document.getElementById('axis-maximum');
+// Key kept from when it only held the target percents, so saved values survive.
+const CHART_SETTINGS_KEY = 'wii-reference-percents';
 let canvas = document.getElementById('chart');
 let corner_readout = document.getElementById('corner-readout');
 let copy_corners_button = document.getElementById('copy-corners');
@@ -345,13 +351,45 @@ function formatDuration(seconds)
     return minutes_text + ':' + seconds_text;
 }
 
+function formatAgo(seconds)
+{
+    if (seconds < 60)
+    {
+        return 'just now';
+    }
+    if (seconds < 3600)
+    {
+        return Math.floor(seconds/60) + ' min ago';
+    }
+    if (seconds < 86400)
+    {
+        return Math.floor(seconds/3600) + ' h ago';
+    }
+    return Math.floor(seconds/86400) + ' d ago';
+}
+
 function renderBattery(state)
 {
     let available = state.live && state.connected && state.battery_percent != null;
-    let percent = available ? state.battery_percent : 0;
-    let low = available && percent <= 20;
-    let label = available ? 'Battery ' + percent + '%' : 'Battery —';
-    let description = available ? 'Board battery: ' + percent + '%' : 'Board battery unavailable';
+    // While disconnected, show the Pi's last good reading, marked with its age.
+    let stale = !available && state.battery_last_percent != null && state.battery_last_at != null;
+    let percent = 0;
+    let label = 'Battery —';
+    let description = 'Board battery unavailable';
+    if (available)
+    {
+        percent = state.battery_percent;
+        label = 'Battery ' + percent + '%';
+        description = 'Board battery: ' + percent + '%';
+    }
+    else if (stale)
+    {
+        percent = state.battery_last_percent;
+        let ago = formatAgo(Math.max(0, Date.now()/1000 - state.battery_last_at));
+        label = 'Battery ' + percent + '% · last seen ' + ago;
+        description = 'Board not connected · last battery reading ' + percent + '%, ' + ago;
+    }
+    let low = (available || stale) && percent <= 20;
     if (low)
     {
         label += ' · low';
@@ -359,6 +397,7 @@ function renderBattery(state)
     }
     let indicator = document.getElementById('battery');
     indicator.classList.toggle('available', available);
+    indicator.classList.toggle('stale', stale);
     indicator.classList.toggle('low', low);
     indicator.setAttribute('aria-label', description);
     indicator.title = description;
@@ -561,6 +600,89 @@ function controlRecording()
     request.send();
 }
 
+// Reference lines in kg. The targets are percentages of the bodyweight reference, so
+// one bodyweight entry sets all of them. Empty when no bodyweight is entered.
+function referenceLines(baseline)
+{
+    let lines = [];
+    if (!(baseline > 0))
+    {
+        return lines;
+    }
+    lines.push({kg: baseline, color: '#b8b2db', label: 'BW'});
+    let targets =
+    [
+        {input: eccentric_percent_input, color: '#6cc8e6', label: 'ECC'},
+        {input: concentric_percent_input, color: '#f0b45a', label: 'CON'}
+    ];
+    for (let target of targets)
+    {
+        let percent = Number(target.input.value);
+        if (percent > 0)
+        {
+            lines.push({kg: baseline*percent/100, color: target.color, label: target.label});
+        }
+    }
+    return lines;
+}
+
+// Every chart input, by its saved name. All are kept in this browser across refreshes.
+function chartSettingInputs()
+{
+    return {
+        baseline: baseline_input,
+        eccentric: eccentric_percent_input,
+        concentric: concentric_percent_input,
+        axis_minimum: axis_minimum_input,
+        axis_maximum: axis_maximum_input
+    };
+}
+
+function saveChartSettings()
+{
+    let settings = {};
+    let inputs = chartSettingInputs();
+    for (let name in inputs)
+    {
+        settings[name] = inputs[name].value;
+    }
+    try
+    {
+        localStorage.setItem(CHART_SETTINGS_KEY, JSON.stringify(settings));
+    }
+    catch (error)
+    {
+        // Storage can be blocked; the inputs still work for this page load.
+    }
+    drawChart();
+}
+
+function loadChartSettings()
+{
+    let settings = null;
+    try
+    {
+        settings = JSON.parse(localStorage.getItem(CHART_SETTINGS_KEY));
+    }
+    catch (error)
+    {
+        settings = null;
+    }
+    if (settings == null)
+    {
+        return;
+    }
+    let inputs = chartSettingInputs();
+    for (let name in inputs)
+    {
+        // Settings saved before an input existed leave its default in place.
+        if (settings[name] != null)
+        {
+            inputs[name].value = settings[name];
+        }
+    }
+}
+
 function drawChart()
 {
     let pixel_ratio = window.devicePixelRatio || 1;
@@ -582,17 +704,38 @@ function drawChart()
         history.shift();
     }
     let baseline = Number(baseline_input.value);
-    let maximum = Math.max(20, baseline*1.15);
+    let references = referenceLines(baseline);
+    let maximum = 20;
+    for (let reference of references)
+    {
+        maximum = Math.max(maximum, reference.kg*1.15);
+    }
     for (let point of history)
     {
         maximum = Math.max(maximum, point.total_kg*1.15);
     }
-    maximum = Math.ceil(maximum/10)*10;
+    // The axis inputs clamp the range; anything outside is clipped at the plot edge.
+    // Empty min means 0; empty max means automatic, a range that is a multiple of 20
+    // so the four grid steps land on whole multiples of 5 kg.
+    let minimum = Math.max(0, Number(axis_minimum_input.value) || 0);
+    let fixed_maximum = Number(axis_maximum_input.value) || 0;
+    if (fixed_maximum > minimum)
+    {
+        maximum = fixed_maximum;
+    }
+    else
+    {
+        maximum = minimum + Math.ceil(Math.max(20, maximum - minimum)/20)*20;
+    }
+    axis_minimum_input.placeholder = String(minimum);
+    axis_maximum_input.placeholder = String(maximum);
     let left = 46;
     let top = 12;
     let plot_width = width - left - 4;
     let plot_height = height - top - 8;
+    let valueY = function (kg) { return top + plot_height*(1 - (kg - minimum)/(maximum - minimum)); };
     context.font = '10px system-ui';
+    context.textAlign = 'left';
     for (let i = 0; i <= 4; ++i)
     {
         let y = top + plot_height*i/4;
@@ -601,19 +744,40 @@ function drawChart()
         context.moveTo(left, y);
         context.lineTo(width, y);
         context.stroke();
+        // The top and bottom labels are the axis inputs themselves.
+        if (i == 0 || i == 4)
+        {
+            continue;
+        }
         context.fillStyle = '#91a394';
-        context.fillText((maximum*(1 - i/4)).toFixed(0), 0, y + 3);
+        context.fillText((maximum - (maximum - minimum)*i/4).toFixed(0), 0, y + 3);
     }
-    if (baseline > 0)
+    references = references.filter(function (reference) { return reference.kg >= minimum; });
+    context.save();
+    context.beginPath();
+    context.rect(left, top, width - left, plot_height);
+    context.clip();
+    for (let reference of references)
     {
-        let y = top + plot_height*(1 - baseline/maximum);
-        context.strokeStyle = '#b8b2db';
+        reference.y = valueY(reference.kg);
+        context.strokeStyle = reference.color;
         context.setLineDash([5, 5]);
         context.beginPath();
-        context.moveTo(left, y);
-        context.lineTo(width, y);
+        context.moveTo(left, reference.y);
+        context.lineTo(width, reference.y);
         context.stroke();
         context.setLineDash([]);
+    }
+    // Labels sit above their line at the left edge; push apart when lines are close
+    // (e.g. a 100% target lands exactly on the bodyweight line).
+    references.sort(function (a, b) { return b.y - a.y; });
+    let label_y = Infinity;
+    context.textAlign = 'left';
+    for (let reference of references)
+    {
+        label_y = Math.min(reference.y - 4, label_y - 12);
+        context.fillStyle = reference.color;
+        context.fillText(reference.label + ' ' + reference.kg.toFixed(1), left + 4, label_y);
     }
     context.strokeStyle = '#c9f785';
     context.lineWidth = 2;
@@ -623,9 +787,8 @@ function drawChart()
     for (let point of history)
     {
         let time_fraction = (point.time - (now - 60))/60;
-        let load_fraction = point.total_kg/maximum;
         let x = left + plot_width*time_fraction;
-        let y = top + plot_height*(1 - load_fraction);
+        let y = valueY(point.total_kg);
         if (previous_time == null || point.time - previous_time > 0.5)
         {
             context.moveTo(x, y);
@@ -637,6 +800,7 @@ function drawChart()
         previous_time = point.time;
     }
     context.stroke();
+    context.restore();
     if (!history.length)
     {
         context.fillStyle = '#91a394';
@@ -648,7 +812,11 @@ function drawChart()
 record_button.addEventListener('click', controlRecording);
 copy_corners_button.addEventListener('click', copyCornerReadout);
 corner_readout.addEventListener('focus', holdCornerReadout);
-baseline_input.addEventListener('input', drawChart);
+for (let input of Object.values(chartSettingInputs()))
+{
+    input.addEventListener('input', saveChartSettings);
+}
+loadChartSettings();
 window.addEventListener('resize', drawChart);
 window.setInterval(refreshSampleCoverage, 100);
 pollStatus();

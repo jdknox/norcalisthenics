@@ -168,4 +168,20 @@ for (let battery_state of [{live: false, connected: true, battery_percent: 80},
     assert.equal(battery_classes.has('available'), false);
     assert.equal(battery_classes.has('low'), false);
 }
+// Disconnected with a last-known reading: show it, marked stale with its age.
+let now_s = Date.now()/1000;
+for (let [percent, age_s, ago] of [[64, 30, 'just now'], [64, 7200, '2 h ago'], [15, 600, '10 min ago'], [50, 3*86400, '3 d ago']])
+{
+    context.state = {live: true, connected: false, battery_percent: null, battery_last_percent: percent, battery_last_at: now_s - age_s};
+    vm.runInContext('renderBattery(state);', context);
+    assert.equal(elements['battery-label'].textContent, 'Battery ' + percent + '% · last seen ' + ago + (percent <= 20 ? ' · low' : ''));
+    assert.equal(elements['battery-fill'].style.width, percent + '%');
+    assert.equal(battery_classes.has('stale'), true);
+    assert.equal(battery_classes.has('available'), false);
+    assert.equal(battery_classes.has('low'), percent <= 20);
+}
+context.state = {live: true, connected: true, battery_percent: 70, battery_last_percent: 64, battery_last_at: now_s};
+vm.runInContext('renderBattery(state);', context);
+assert.equal(elements['battery-label'].textContent, 'Battery 70%', 'A live reading wins over the last-known one.');
+assert.equal(battery_classes.has('stale'), false);
 console.log('PASS: sample coverage and freshness; rolling age average/min/max; stalls and resets; battery percentage, low threshold, empty battery, and unavailable/offline states.');
