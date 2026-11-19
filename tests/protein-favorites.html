@@ -150,6 +150,12 @@ function runTests()
   let recipe_stars = app_document.querySelectorAll('[data-a="favorite-toggle"][data-key="recipe"]');
   for (let button of recipe_stars) check(button.getAttribute('aria-pressed') == 'true', 'all appearances share the star');
   check(evaluate('JSON.stringify(g_scoop_items) == favorite_original_items'), 'favorites do not change or duplicate items');
+  evaluate('toggleFavorite("pear"); g_active_tags = {fruit:true}; refreshFavoriteRows();');
+  check(!evaluate('groupHasFavorite(groupedNodes()[0].group)'), 'selected test group has no favorites');
+  check(tbody.firstElementChild.dataset.pantryGroup == 'fruit', 'selected group precedes unselected groups with favorites');
+  evaluate('g_scoop_search_raw = "Egg"; refreshFavoriteRows();');
+  check(tbody.firstElementChild.dataset.pantryGroup == 'breakfast', 'search match precedes selected nonmatching group');
+  evaluate('g_scoop_search_raw = ""; g_active_tags = {}; toggleFavorite("pear");');
   checkBundles();
 
   evaluate('render = favorite_original_render; openScoopEdit("apple", "fruit");');
@@ -178,8 +184,8 @@ function runTests()
 
   evaluate('g_flatten_view = true; g_scoop_search_raw = ""; g_active_tags = {single:true}; g_flatten_sort = "ratio_asc"; render();');
   let flat_rows = app_document.querySelectorAll('.scooprow[data-pantry-context="standalone"]');
-  check(flat_rows[0].dataset.pantryKey == 'recipe' && flat_rows[1].dataset.pantryKey == 'apple' &&
-        flat_rows[2].dataset.pantryKey == 'solo', 'flat favorites precede active tags and retain ratio tie breaker');
+  check(flat_rows[0].dataset.pantryKey == 'solo' && flat_rows[1].dataset.pantryKey == 'recipe' &&
+        flat_rows[2].dataset.pantryKey == 'apple', 'flat selected tags precede favorites, which retain ratio tie breaker');
   evaluate('g_scoop_search_raw = "Solo"; render();');
   check(firstItem('standalone') == 'solo', 'flat search retains priority over favorites');
   evaluate('openScaleEdit("solo", "standalone");');

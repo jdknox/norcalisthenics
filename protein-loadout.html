@@ -691,9 +691,9 @@ function groupedNodes()
 
     if (a_matches && !b_matches) return -1;
     if (!a_matches && b_matches) return 1;
-    if (a_favorite != b_favorite) return a_favorite ? -1 : 1;
     if (a_active && !b_active) return -1;
     if (!a_active && b_active) return 1;
+    if (a_favorite != b_favorite) return a_favorite ? -1 : 1;
     if (a_is_group && !b_is_group) return -1;
     if (!a_is_group && b_is_group) return 1;
     return a_name < b_name ? -1 : a_name > b_name ? 1 : 0;
@@ -7279,8 +7279,8 @@ function sortedFlatItemsForDisplay()
   flat.sort(function compareFlatItems(a, b)
   {
     if (a.search_rank != b.search_rank) return a.search_rank - b.search_rank;
-    if (a.favorite_rank != b.favorite_rank) return a.favorite_rank - b.favorite_rank;
     if (a.tag_rank != b.tag_rank) return a.tag_rank - b.tag_rank;
+    if (a.favorite_rank != b.favorite_rank) return a.favorite_rank - b.favorite_rank;
 
     if (g_flatten_sort == 'ratio_asc')
     {
