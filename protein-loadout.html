@@ -841,6 +841,8 @@ let g_mass_edit_id = null;
 let g_mass_edit_draft = null;   /* { timestamp, event_type, body_mass_raw, water_volume_raw } while editing */
 let g_sync_failed = false;
 let g_sync_status = '';
+let g_sync_error_detail = '';
+let g_sync_error_time = '';
 let g_unsynced_changes = false;
 let g_sync_in_flight = false;
 let g_local_revision = 0;
@@ -5402,6 +5404,21 @@ function storagePayloadFromValue(value)
   return value;
 }
 
+function syncErrorDetails()
+{
+  let endpoint = new URL('/api/storage', document.baseURI).href;
+  return 'Time: ' + g_sync_error_time + '\n' +
+    'Version: ' + PROTEIN_VERSION + '\n' +
+    'Endpoint: ' + endpoint + '\n' +
+    'Browser online: ' + (navigator.onLine ? 'yes' : 'no') + '\n\n' +
+    (g_sync_error_detail || g_sync_status);
+}
+
+function renderSyncWarning()
+{
+  return `<details id="sync-status" class="sync-status"><summary><span data-sync-label>${esc(g_sync_status || 'local only / sync failed')}</span><span class="sync-error-hint">tap for error details</span></summary><pre data-sync-error>${esc(syncErrorDetails())}</pre></details>`;
+}
+
 function updateSyncChrome()
 {
   let node;
@@ -5423,17 +5440,28 @@ function updateSyncChrome()
     title = document.querySelector('#app h1');
     if (!title) return;
 
-    node = document.createElement('div');
-    node.id = 'sync-status';
-    node.className = 'sync-status';
-    title.after(node);
+    title.insertAdjacentHTML('afterend', renderSyncWarning());
+    node = document.getElementById('sync-status');
   }
 
-  node.textContent = g_sync_status || 'local only / sync failed';
+  node.querySelector('[data-sync-label]').textContent = g_sync_status || 'local only / sync failed';
+  node.querySelector('[data-sync-error]').textContent = syncErrorDetails();
 }
 
-function setSyncFailed(status)
+function setSyncFailed(status, error)
 {
+  if (error != null)
+  {
+    g_sync_error_detail = (error.name ? error.name + ': ' : '') + errorMessage(error);
+    if (error.status) g_sync_error_detail += '\nHTTP status: ' + error.status;
+    if (error.result && error.result.error) g_sync_error_detail += '\nServer: ' + error.result.error;
+    g_sync_error_time = new Date().toISOString();
+  }
+  else if (!g_sync_failed)
+  {
+    g_sync_error_detail = status;
+    g_sync_error_time = new Date().toISOString();
+  }
   g_sync_failed = true;
   g_sync_status = status || 'local only / sync failed';
   updateSyncChrome();
@@ -5443,6 +5471,8 @@ function setSyncOk()
 {
   g_sync_failed = false;
   g_sync_status = '';
+  g_sync_error_detail = '';
+  g_sync_error_time = '';
   g_unsynced_changes = false;
   g_authoritative_replace_sync = false;
   g_lognote_dirty_ids = {};
@@ -5531,10 +5561,10 @@ function refreshBodyweightFromShared()
     saveLocalJson(JSON.stringify(makeSavePayload()));
     if (input && date == g_view_date) input.value = bodyweightRawForDate(date);
     showBodyweightStatus(date, 'pulled ' + fmt2(bodyweight_kg) + ' kg');
-  }).catch(function failBodyweightPull()
+  }).catch(function failBodyweightPull(error)
   {
     showBodyweightStatus(date, 'pull failed');
-    setSyncFailed('local only / sync failed');
+    setSyncFailed('local only / sync failed', error);
   });
 }
 
@@ -5586,10 +5616,10 @@ function pushBodyweightToShared()
     delete g_bodyweight_dirty_dates[date];
     saveLocalJson(JSON.stringify(makeSavePayload()));
     showBodyweightStatus(date, 'pushed ' + fmt2(bodyweight_kg) + ' kg');
-  }).catch(function failBodyweightPush()
+  }).catch(function failBodyweightPush(error)
   {
     showBodyweightStatus(date, 'push failed');
-    setSyncFailed('local only / sync failed');
+    setSyncFailed('local only / sync failed', error);
   });
 }
 
@@ -6099,7 +6129,7 @@ function syncPendingChanges()
       return;
     }
 
-    setSyncFailed('local only / sync failed');
+    setSyncFailed('local only / sync failed', error);
     scheduleSyncRetry();
   });
 }
@@ -6273,9 +6303,9 @@ function load()
 
       finishLoad();
       save();
-    }, function()
+    }, function failInitialSync(error)
     {
-      setSyncFailed('local only / sync failed');
+      setSyncFailed('local only / sync failed', error);
       applyLoaded(readLocal());
       finishLoad();
     }).catch(function(error)
@@ -6997,7 +7027,7 @@ function render(preserve_pantry_position = false)
   <div class="site-version" title="${esc(PROTEIN_COMMIT_MESSAGE)}">version <time datetime="${PROTEIN_VERSION}">${PROTEIN_VERSION}</time></div>
   <h1>protein_loadout</h1>`;
 
-  if (g_sync_failed) h += `<div id="sync-status" class="sync-status">${esc(g_sync_status || 'local only / sync failed')}</div>`;
+  if (g_sync_failed) h += renderSyncWarning();
 
   if (g_active_tab != 'mass') h += renderTargetRow();
   h += renderTabBar();
