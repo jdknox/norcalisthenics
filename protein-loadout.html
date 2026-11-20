@@ -1214,6 +1214,14 @@ function entriesForItem(date, key)
   return out;
 }
 
+function knownIngredientGrams(snapshot)
+{
+  if (snapshot.grams != null) return Number(snapshot.grams);
+  let grams = 0;
+  for (let ingredient of snapshot.ingredients || []) grams += knownIngredientGrams(ingredient);
+  return grams;
+}
+
 function dayTotals(date)
 {
   let day = g_log[date];
@@ -1229,6 +1237,7 @@ function dayTotals(date)
     if (day[i].protein_g != null) protein += day[i].protein_g;
     if (day[i].kcal != null) kcal += day[i].kcal;
     if (day[i].grams != null) grams += Number(day[i].grams);
+    else if (day[i].recipe_snapshot) grams += knownIngredientGrams(day[i].recipe_snapshot);
   }
 
   return { protein:protein, kcal:kcal, grams:grams };
@@ -2584,6 +2593,38 @@ function openRecipeDraft(item, context = 'standalone')
   if (item) scrollBelowTabs(document.querySelector('.recipe-editor'));
 }
 
+function appendLoggedRecipeIngredients(snapshot, ingredients)
+{
+  for (let ingredient of snapshot.ingredients)
+  {
+    if (ingredient.grams == 0) continue;
+    // Unsaved meals have no pantry reference; use their direct ingredients instead.
+    if (Array.isArray(ingredient.ingredients) && !findScoopItem(ingredient.item_key))
+    {
+      appendLoggedRecipeIngredients(ingredient, ingredients);
+      continue;
+    }
+    let existing = null;
+    for (let candidate of ingredients)
+    {
+      if (candidate.item_key == ingredient.item_key) existing = candidate;
+    }
+    if (existing)
+    {
+      existing.grams = existing.grams != '' && ingredient.grams != null ?
+        String(Number(existing.grams) + Number(ingredient.grams)) : '';
+    }
+    else
+    {
+      ingredients.push(
+      {
+        item_key:ingredient.item_key,
+        grams:ingredient.grams != null ? String(ingredient.grams) : ''
+      });
+    }
+  }
+}
+
 function openRecipeFromLog(entry_id)
 {
   let entry = findLogEntryById(entry_id);
@@ -2591,15 +2632,7 @@ function openRecipeFromLog(entry_id)
 
   let snapshot = entry.recipe_snapshot;
   let ingredients = [];
-  for (let ingredient of snapshot.ingredients)
-  {
-    if (ingredient.grams == 0) continue;
-    ingredients.push(
-    {
-      item_key:ingredient.item_key,
-      grams:ingredient.grams != null ? String(ingredient.grams) : ''
-    });
-  }
+  appendLoggedRecipeIngredients(snapshot, ingredients);
   // Keep direct ingredient references, including sub-recipes, as in normal editing.
   openRecipeDraft(
   {
@@ -7610,6 +7643,12 @@ function renderAdjustedLogDetails()
 function addTemporaryMeal(entry_ids = [])
 {
   let number = 1;
+  for (let entry of g_log[g_view_date] || [])
+  {
+    let name = entry.recipe_snapshot ? entry.recipe_snapshot.name : '';
+    let numbered_meal = name.match(/^Meal (\d+)$/);
+    if (numbered_meal) number = Math.max(number, Number(numbered_meal[1]) + 1);
+  }
   for (let meal of g_temporary_meals)
   {
     if (meal.date == g_view_date) number = Math.max(number, meal.number + 1);
@@ -7634,6 +7673,68 @@ function temporaryMealTotals(meal)
     }
   }
   return totals;
+}
+
+function finishMealSelection()
+{
+  let meal = g_temporary_meal_edit;
+  if (!meal || meal.date != g_view_date || !viewDateIsEditable() || g_recipe_draft) return;
+
+  let totals = {grams:0, protein_g:0, kcal:0};
+  let selected = [];
+  let ingredients = [];
+  for (let entry of g_log[g_view_date] || [])
+  {
+    if (!meal.entry_ids.includes(entry.id) || logEntryIsDeleted(entry)) continue;
+    if (entry.grams == null) totals.grams = null;
+    else if (totals.grams != null) totals.grams += Number(entry.grams);
+    if (entry.protein_g != null) totals.protein_g += Number(entry.protein_g);
+    if (entry.kcal != null) totals.kcal += Number(entry.kcal);
+    let item = findScoopItem(entry.item_key);
+    let snapshot = entry.recipe_snapshot ? JSON.parse(JSON.stringify(entry.recipe_snapshot)) :
+    {
+      item_key:entry.item_key,
+      name:loggedEntryLabel(entry),
+      brand:item ? item.brand || '' : '',
+      barcode:item ? item.barcode || '' : ''
+    };
+    if (entry.note)
+    {
+      snapshot.name = entry.item_key == 'custom' ? entry.note : snapshot.name + ' (' + entry.note + ')';
+    }
+    snapshot.grams = entry.grams;
+    snapshot.protein_g = entry.protein_g;
+    snapshot.kcal = entry.kcal;
+    ingredients.push(snapshot);
+    selected.push(entry);
+  }
+
+  g_temporary_meals.splice(g_temporary_meals.indexOf(meal), 1);
+  g_temporary_meal_edit = null;
+  if (selected.length)
+  {
+    let name = 'Meal ' + meal.number;
+    pushLogEntry('custom', totals.grams, totals.protein_g, totals.kcal, null,
+    {
+      item_key:'',
+      name:name,
+      brand:'',
+      barcode:'',
+      grams:totals.grams,
+      protein_g:totals.protein_g,
+      kcal:totals.kcal,
+      ingredients:ingredients
+    });
+    g_log[g_view_date].at(-1).note = name;
+    for (let entry of selected)
+    {
+      // Keep sync tombstones for the entries now represented by the combined meal.
+      markLogEntryDeleted(entry);
+      markLogEntryDeleted(entry);
+    }
+    save();
+  }
+  render();
 }
 
 function renderTemporaryMeals()
@@ -7781,7 +7882,7 @@ function renderLoggedFoodList()
         (avg&nbsp;${fmtKcalProteinRatio(kcal_g).padStart(4)} kcal/g)
       </span></div>
       <div class="logged-foods-controls">${details_button}
-        <button class="logged-foods-headbtn" data-a="meal-new" title="New temporary meal; cleared on refresh"${selecting_meal || !selectable_count ? ' disabled' : ''}>+ meal</button>
+        <button class="logged-foods-headbtn" data-a="meal-new" title="Combine selected logged items into a meal"${selecting_meal || !selectable_count || g_recipe_draft || !is_today ? ' disabled' : ''}>+ meal</button>
       </div>
     </div>
     <div id="temporary-meals">${renderTemporaryMeals()}</div>`;
@@ -8762,14 +8863,14 @@ document.addEventListener('click', function(ev)
       return;
 
     case 'meal-new':
+      if (!viewDateIsEditable() || g_recipe_draft) return;
       g_temporary_meal_edit = addTemporaryMeal();
       g_logged_foods_open = true;
       render();
       return;
 
     case 'meal-done':
-      g_temporary_meal_edit = null;
-      render();
+      finishMealSelection();
       return;
 
     case 'meal-edit':
