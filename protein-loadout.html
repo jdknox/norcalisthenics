@@ -136,6 +136,7 @@ let g_foods = [
 
 let g_target = 130;
 let g_target_raw = String(g_target);
+let g_target_manual = false;
 let g_target_kcal_day = 2550;
 let g_target_kcal_raw = '2550';
 let g_cut_kcal = 0;
@@ -2091,6 +2092,51 @@ function refreshTargetKcalRaw()
   g_target_kcal_raw = kcal > 0 ? fmt0(kcal) : '';
 }
 
+function automaticProteinPerKg()
+{
+  let maintenance = targetKcalDay();
+  let cut_fraction = maintenance > 0 ? g_cut_kcal/maintenance : 0;
+  let cut_progress = Math.max(0, cut_fraction/0.4);
+  return 1.5 + 0.3*cut_progress;
+}
+
+function updateAutomaticProteinTarget()
+{
+  if (g_target_manual) return;
+  let weight = Math.max(0, bodyweightForDate(todayISO()));
+  g_target = Math.ceil(weight*automaticProteinPerKg());
+  g_target_raw = String(g_target);
+}
+
+function proteinTargetRatioText()
+{
+  let weight = bodyweightForDate(todayISO());
+  return (weight > 0 ? fmt2(g_target/weight) : '—') + ' g/kg';
+}
+
+function cutPercentText()
+{
+  let maintenance = targetKcalDay();
+  return (maintenance > 0 ? fmt1(g_cut_kcal/maintenance*100) : '—') + '%';
+}
+
+function refreshProteinTarget()
+{
+  updateAutomaticProteinTarget();
+  let input = document.getElementById('target-input');
+  if (input)
+  {
+    if (input.value != g_target_raw) input.value = g_target_raw;
+    input.classList.toggle('manual-target', g_target_manual);
+  }
+  let ratio = document.getElementById('target-protein-ratio');
+  if (ratio) ratio.textContent = proteinTargetRatioText();
+  let cut_percent = document.getElementById('target-cut-percent');
+  if (cut_percent) cut_percent.textContent = cutPercentText();
+  refreshNutritionSummary();
+  refreshLoadoutSummary();
+}
+
 function remainingKcalProteinRatio(totals)
 {
   let protein_remaining = g_target - totals.protein;
@@ -3843,6 +3889,7 @@ function buildBackupTSV()
 
   pushBackupTsvSection(lines, 'meta', ['key', 'value'], state);
   pushBackupTsvRow(lines, ['target', g_target], state);
+  pushBackupTsvRow(lines, ['target_manual', backupTsvBool(g_target_manual)], state);
   pushBackupTsvRow(lines, ['target_kcal_day', targetKcalDay()], state);
   pushBackupTsvRow(lines, ['cut_kcal', g_cut_kcal], state);
   pushBackupTsvRow(lines, ['bodyweight_kg', g_bodyweight_kg], state);
@@ -4469,6 +4516,7 @@ function parseBackupTSV(text)
       let value = parseTsvNumber(row.value);
 
       if (row.key == 'target' && value != null) payload.target = value;
+      else if (row.key == 'target_manual') payload.target_manual = parseTsvBool(row.value) == true;
       else if (row.key == 'target_kcal_ratio' && value != null) payload.target_kcal_ratio = value;
       else if (row.key == 'target_kcal_day' && value != null) payload.target_kcal_day = value;
       else if (row.key == 'cut_kcal' && value != null) payload.cut_kcal = value;
@@ -5137,6 +5185,7 @@ function applyReplaceImport()
     g_target = parsed.target;
     g_target_raw = String(g_target);
   }
+  g_target_manual = !!parsed.target_manual;
   if (parsed.target_kcal_day != null) g_target_kcal_day = parsed.target_kcal_day;
   else if (parsed.target_kcal_ratio != null) g_target_kcal_day = g_target*parsed.target_kcal_ratio;
   refreshTargetKcalRaw();
@@ -5410,8 +5459,10 @@ function fmtKcalProteinRatio(n)
 
 function makeSavePayload()
 {
+  updateAutomaticProteinTarget();
   return {
     target:g_target,
+    target_manual:g_target_manual,
     target_kcal_day:targetKcalDay(),
     cut_kcal:g_cut_kcal,
     bodyweight_kg:g_bodyweight_kg,
@@ -5587,6 +5638,7 @@ function refreshBodyweightFromShared()
     delete g_bodyweight_dirty_dates[date];
     if (date == todayISO()) g_bodyweight_kg = bodyweight_kg;
 
+    refreshProteinTarget();
     saveLocalJson(JSON.stringify(makeSavePayload()));
     if (input && date == g_view_date) input.value = bodyweightRawForDate(date);
     showBodyweightStatus(date, 'pulled ' + fmt2(bodyweight_kg) + ' kg');
@@ -6052,6 +6104,7 @@ function mergeLoadedPayload(payload)
   mergeMassEvents(payload.mass_events);
   mergeDailyActivityFromSync(payload.daily_activity);
   applyLegacyDeletedMassEvents(payload.deleted_mass_event_ids);
+  refreshProteinTarget();
 }
 
 function saveLocalJson(json_text)
@@ -6210,6 +6263,7 @@ function load()
       g_target = payload.target;
       g_target_raw = String(g_target);
     }
+    g_target_manual = !!payload.target_manual;
     if (payload.target_kcal_day != null) g_target_kcal_day = payload.target_kcal_day;
     else if (payload.target_kcal_ratio != null) g_target_kcal_day = g_target*payload.target_kcal_ratio;
     refreshTargetKcalRaw();
@@ -6405,9 +6459,21 @@ function renderTargetRow()
   let h = '';
 
   h += `<div class="targetrow">
-    <label>g/day <input type="text" inputmode="decimal" id="target-input" value="${g_target_raw}"></label>
-    <label>kcal/day <input type="text" inputmode="decimal" id="target-kcal-input" value="${g_target_kcal_raw}"></label>
-    <label>cut <input type="text" inputmode="decimal" id="target-cut-input" title="Kcal below maintenance per day" placeholder="0" value="${esc(g_cut_kcal_raw)}"></label>
+    <label>g/day <span class="protein-target-control">
+      <input type="text" inputmode="decimal" id="target-input"
+          class="${g_target_manual ? 'manual-target' : ''}"
+          value="${g_target_raw}">
+        <span id="target-protein-ratio" class="protein-target-ratio">
+          ${proteinTargetRatioText()}
+        </span>
+      </span>
+    </label>
+    <label>kcal/day <input type="text" inputmode="decimal" id="target-kcal-input"
+      value="${g_target_kcal_raw}"></label>
+    <label>cut <span class="protein-target-control"><input type="text" inputmode="decimal" id="target-cut-input"
+      title="Kcal below maintenance per day" placeholder="0" value="${esc(g_cut_kcal_raw)}">
+      <span id="target-cut-percent" class="protein-target-ratio target-cut-percent">${cutPercentText()}</span></span>
+    </label>
     </div>`;
     /* <button class="reset" data-a="reset">reset to defaults</button> */
 
@@ -7039,6 +7105,7 @@ function renderMassSection()
 
 function render(preserve_pantry_position = false)
 {
+  updateAutomaticProteinTarget();
   let app = document.getElementById('app');
   let pantry_top = preserve_pantry_position ? document.querySelector('.pantrytable').getBoundingClientRect().top : 0;
   let admin_class = g_admin_mode ? ' admin-on' : '';
@@ -8262,11 +8329,11 @@ document.addEventListener('input', function(ev)
 
   if (target.id == 'target-input')
   {
+    g_target_manual = true;
     g_target_raw = target.value;
     num = parseFloat(target.value);
     g_target = isNaN(num) ? 0 : num;
-    refreshNutritionSummary();
-    refreshLoadoutSummary();
+    refreshProteinTarget();
     scheduleInputSave();
     return;
   }
@@ -8276,7 +8343,7 @@ document.addEventListener('input', function(ev)
     g_target_kcal_raw = target.value;
     num = parseFloat(target.value);
     g_target_kcal_day = isNaN(num) ? 0 : num;
-    refreshNutritionSummary();
+    refreshProteinTarget();
     refreshProteinKgScale();
     scheduleInputSave();
     return;
@@ -8287,7 +8354,8 @@ document.addEventListener('input', function(ev)
     g_cut_kcal_raw = target.value;
     num = Number(target.value);
     g_cut_kcal = Number.isFinite(num) ? Math.max(0, num) : 0;
-    refreshNutritionSummary();
+    g_target_manual = false;
+    refreshProteinTarget();
     scheduleInputSave();
     return;
   }
@@ -8297,6 +8365,7 @@ document.addEventListener('input', function(ev)
     if (!viewDateIsEditable()) return;
     num = parseFloat(target.value);
     setBodyweightForDate(g_view_date, isNaN(num) ? 0 : num, target.value);
+    refreshProteinTarget();
     refreshProteinKgScale();
     scheduleInputSave();
     return;
@@ -8635,6 +8704,7 @@ document.addEventListener('click', function(ev)
       }
       g_target = 128;
       g_target_raw = '128';
+      g_target_manual = false;
       g_target_kcal_day = 2500;
       g_target_kcal_raw = '2500';
       g_cut_kcal = 0;

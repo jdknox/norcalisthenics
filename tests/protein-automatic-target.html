@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>Automatic protein targets regression</title>
+<output id="result">Running</output>
+<iframe id="app-frame" title="Isolated protein app" style="width:100%;height:800px;border:0"></iframe>
+<script>
+'use strict';
+
+let app_frame = document.getElementById('app-frame');
+let app_window;
+let app_document;
+let checks = 0;
+window.addEventListener('error', reportTestError);
+let request = new XMLHttpRequest();
+request.open('GET', '../protein-loadout.html');
+request.onload = loadApp;
+request.send();
+
+function reportTestError(event)
+{
+  document.getElementById('result').textContent = 'FAIL: ' + event.message;
+}
+
+function check(condition, message)
+{
+  if (!condition) throw new Error(message);
+  ++checks;
+}
+
+function evaluate(code)
+{
+  return app_window.eval(code);
+}
+
+function loadApp()
+{
+  check(request.status == 200, 'load app source');
+  let html = request.responseText.replace('<head>', '<head><base href="/">');
+  html = html.replace(/<script src="protein-shared-storage.js[^\"]*"><\/script>/, '');
+  html = html.replace('\nload();\n</' + 'script>', '\n</' + 'script>');
+  html = html.replace("if ('serviceWorker' in navigator)", 'if (false)');
+  app_frame.onload = runTests;
+  app_frame.srcdoc = html;
+}
+
+function edit(id, value)
+{
+  let input = app_document.getElementById(id);
+  input.focus();
+  input.value = value;
+  input.setSelectionRange(1, 1);
+  evaluate('window.test_writes = 0; window.test_renders = 0;');
+  input.dispatchEvent(new app_window.InputEvent('input',
+  {
+    bubbles:true,
+    inputType:'insertText',
+    isComposing:true
+  }));
+  check(input.isConnected && app_document.activeElement == input, 'input identity and focus: ' + id);
+  check(input.value == value && input.selectionStart == Math.min(1, value.length), 'raw text and caret: ' + id);
+  check(evaluate('test_writes == 0 && test_renders == 0'), 'typing neither saves immediately nor renders the page');
+  return input;
+}
+
+function checkTarget(grams, ratio, manual)
+{
+  check(Math.abs(evaluate('g_target') - grams) < 0.000001, 'expected protein grams: ' + grams);
+  check(Number(app_document.getElementById('target-input').value) == grams, 'target input follows model');
+  check(app_document.getElementById('target-protein-ratio').textContent.trim() == ratio + ' g/kg', 'expected g/kg readout: ' + ratio);
+  check(app_document.getElementById('target-input').classList.contains('manual-target') == manual &&
+        evaluate('g_target_manual') == manual, 'override indicator matches mode');
+}
+
+function checkCutPercent(percent)
+{
+  check(app_document.getElementById('target-cut-percent').textContent.trim() == percent, 'expected cut percentage: ' + percent);
+}
+
+function runTests()
+{
+  app_window = app_frame.contentWindow;
+  app_document = app_frame.contentDocument;
+  evaluate(`
+    g_storage_key = 'protein-automatic-target-test';
+    g_unsynced_key = g_storage_key + ':unsynced';
+    window.test_writes = 0;
+    window.test_renders = 0;
+    window.real_render = render;
+    render = function countRender(preserve)
+    {
+      ++window.test_renders;
+      real_render(preserve);
+    };
+    saveLocalJson = function captureSave(text)
+    {
+      ++window.test_writes;
+      localStorage.setItem(g_storage_key, text);
+    };
+    syncPendingChanges = function skipSharedSync() {};
+    mergeKnownItems();
+    g_view_date = todayISO();
+    g_bodyweight_kg = 80;
+    g_bodyweight_by_date = {[g_view_date]:80};
+    g_target_kcal_day = 2400;
+    refreshTargetKcalRaw();
+    g_cut_kcal = 0;
+    g_cut_kcal_raw = '';
+    g_target_manual = false;
+    g_log = {[g_view_date]:[{id:'meal', item_key:'custom', grams:300, protein_g:40, kcal:600}]};
+    window.original_log = JSON.stringify(g_log);
+    render();
+  `);
+  checkTarget(120, '1.50', false);
+  checkCutPercent('0.0%');
+  check(app_window.getComputedStyle(app_document.getElementById('target-cut-percent')).color ==
+        app_window.getComputedStyle(app_document.getElementById('target-cut-input')).color, 'cut percentage uses the cut input color');
+  edit('target-cut-input', '480');
+  checkTarget(132, '1.65', false);
+  checkCutPercent('20.0%');
+  edit('target-cut-input', '960');
+  checkTarget(144, '1.80', false);
+  checkCutPercent('40.0%');
+  edit('target-cut-input', '1440');
+  checkTarget(156, '1.95', false);
+  checkCutPercent('60.0%');
+  edit('target-cut-input', '2400');
+  checkTarget(180, '2.25', false);
+  checkCutPercent('100.0%');
+  edit('target-cut-input', '960.');
+  checkTarget(144, '1.80', false);
+
+  edit('target-input', '155.');
+  checkTarget(155, '1.94', true);
+  let target = app_document.getElementById('target-input');
+  let ratio = app_document.getElementById('target-protein-ratio');
+  let outline = app_window.getComputedStyle(target);
+  check(outline.outlineStyle == 'solid' && outline.outlineColor == app_window.getComputedStyle(ratio).color, 'manual outline uses the yellow readout color');
+  edit('bodyweight-input', '82.5');
+  checkTarget(155, '1.88', true);
+  edit('target-kcal-input', '4800');
+  checkTarget(155, '1.88', true);
+  checkCutPercent('20.0%');
+  edit('target-cut-input', '960');
+  checkTarget(137, '1.66', false);
+  check(app_window.getComputedStyle(target).outlineStyle == 'none', 'cut resets normal outline');
+  edit('bodyweight-input', '90.');
+  checkTarget(149, '1.66', false);
+  edit('target-kcal-input', '2400');
+  checkTarget(162, '1.80', false);
+  edit('target-cut-input', '-100');
+  checkTarget(135, '1.50', false);
+  edit('target-cut-input', '');
+  checkTarget(135, '1.50', false);
+  edit('target-kcal-input', '');
+  checkTarget(135, '1.50', false);
+  checkCutPercent('—%');
+  edit('target-kcal-input', '2400');
+
+  evaluate('g_view_date = shiftDateISO(todayISO(), -1); g_admin_mode = true; render();');
+  edit('bodyweight-input', '50');
+  checkTarget(135, '1.50', false);
+  evaluate('g_view_date = todayISO(); g_admin_mode = false; clearBodyweightDirtyDates(); render();');
+  let search = edit('scoop-search', 'keep typing');
+  evaluate('mergeLoadedPayload({bodyweight_kg:94, bodyweight_by_date:{[todayISO()]:94}});');
+  checkTarget(141, '1.50', false);
+  check(search.isConnected && app_document.activeElement == search && search.selectionStart == 1, 'synced bodyweight preserves unrelated active editor');
+  target = edit('target-input', '160.');
+  evaluate('mergeLoadedPayload({bodyweight_kg:100, bodyweight_by_date:{[todayISO()]:100}});');
+  checkTarget(160, '1.60', true);
+  check(app_document.activeElement == target && target.value == '160.' && target.selectionStart == 1, 'sync preserves an active manual override and partial decimal');
+
+  evaluate('flushPendingInputSave(); load();');
+  checkTarget(160, '1.60', true);
+  let backup = evaluate('buildBackupTSV()');
+  let parsed = app_window.parseBackupTSV(backup.text);
+  check(backup.ok && parsed.ok && parsed.payload.target_manual && parsed.payload.target == 160, 'TSV preserves manual mode and value');
+  edit('target-cut-input', '0');
+  checkTarget(150, '1.50', false);
+  evaluate('flushPendingInputSave(); load();');
+  checkTarget(150, '1.50', false);
+  evaluate('g_import_pending = ' + JSON.stringify(parsed.payload) + '; applyReplaceImport();');
+  checkTarget(160, '1.60', true);
+  let automatic = evaluate('makeSavePayload()');
+  automatic.target_manual = false;
+  automatic.target = 999;
+  automatic.bodyweight_kg = 95;
+  automatic.bodyweight_by_date[evaluate('todayISO()')] = 95;
+  evaluate('g_import_pending = ' + JSON.stringify(automatic) + '; applyReplaceImport();');
+  checkTarget(143, '1.51', false);
+  let auto_backup = evaluate('parseBackupTSV(buildBackupTSV().text)');
+  check(auto_backup.ok && auto_backup.payload.target_manual == false, 'TSV preserves automatic mode');
+  delete automatic.target_manual;
+  automatic.target = 999;
+  evaluate('localStorage.setItem(g_storage_key, ' + JSON.stringify(JSON.stringify(automatic)) + '); load();');
+  checkTarget(143, '1.51', false);
+  check(evaluate('JSON.stringify(g_log) == original_log'), 'target automation leaves logged food data intact');
+  document.getElementById('result').textContent = 'PASS: ' + checks + ' checks for linear extrapolation, bodyweight, overrides, yellow readout/outline, input preservation, sync merges, reload, and backup/import';
+}
+</script></html>

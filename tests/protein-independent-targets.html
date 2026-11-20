@@ -51,6 +51,7 @@ function runTests()
   evaluate(`syncPendingChanges = function skipSharedSync() {};
     mergeKnownItems();
     g_view_date = todayISO();
+    g_bodyweight_kg = 80; g_bodyweight_by_date[g_view_date] = 80;
     g_log[g_view_date] = [{id:'test-meal', item_key:'custom', grams:500, protein_g:80, kcal:1400}];
     render();`);
   input('target-input', '130');
@@ -72,7 +73,9 @@ function runTests()
   check(evaluate('g_target') == 160 && evaluate('targetKcalDay()') == 0, 'clearing calories leaves protein unchanged');
   input('target-kcal-input', '2400');
   input('target-cut-input', '400');
-  check(evaluate('dailyKcalBudget()') == 2000 && evaluate('targetKcalDay()') == 2400, 'the cut still applies only to the daily budget');
+  check(evaluate('dailyKcalBudget()') == 2000 && evaluate('targetKcalDay()') == 2400, 'the cut lowers the daily budget while preserving maintenance calories');
+  check(evaluate('g_target == 130 && !g_target_manual'), 'cut restores the interpolated protein target');
+  input('target-input', '160');
 
   let payload = evaluate('makeSavePayload()');
   check(payload.target == 160 && payload.target_kcal_day == 2400, 'save independent numeric targets');

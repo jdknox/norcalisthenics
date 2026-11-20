@@ -101,6 +101,7 @@ function checkPullRace()
 {
   check(field.isConnected && app_document.activeElement == field && field.value == '81.2', 'late pull preserves the editor and newer value');
   check(evaluate('bodyweightForDate(g_view_date)') == 81.2, 'late pull cannot overwrite the model');
+  check(evaluate('g_target == 122 && !g_target_manual'), 'new bodyweight updates the automatic protein target');
   check(evaluate("g_bodyweight_refresh_status.indexOf('keeping local edit') >= 0"), 'pull reports that a newer edit was kept');
   field = edit('#bodyweight-input', '82.1');
   evaluate('pushBodyweightToShared();');
@@ -112,6 +113,7 @@ function checkPushRace()
 {
   check(field.isConnected && app_document.activeElement == field && field.value == '82.2', 'late push preserves the editor and newer value');
   check(evaluate('bodyweightForDate(g_view_date)') == 82.2, 'push cannot overwrite newer model state');
+  check(evaluate('g_target == 124 && !g_target_manual'), 'automatic target follows the latest bodyweight through sync races');
   field = edit('#target-input', '140');
   evaluate('flushPendingInputSave();');
   edit('#target-input', '145');
@@ -133,6 +135,7 @@ function checkFinalPayload(event)
   let response = JSON.parse(request.responseText);
   let payload = JSON.parse(response.value);
   check(payload.target == 145 && payload.bodyweight_by_date[evaluate('g_view_date')] == 82.2, 'newer values survive real GET/POST sync races');
+  check(payload.target_manual, 'shared storage preserves manual target mode');
   check(field.isConnected && app_document.activeElement == field, 'network replies preserve the active target editor');
   payload.bodyweight_by_date[evaluate('g_view_date')] = 83.5;
   payload.bodyweight_kg = 83.5;
@@ -162,6 +165,7 @@ function checkUntouchedPull()
     return;
   }
   check(app_document.getElementById('bodyweight-input').value == '83.50', 'an untouched bodyweight updates from shared storage');
+  check(evaluate('g_target == 145 && g_target_manual'), 'shared bodyweight pull keeps the manual target override');
   check(field.isConnected && app_document.activeElement == field && field.value == 'Egg', 'bodyweight pull preserves an unrelated active editor');
   document.getElementById('result').textContent = 'PASS: real GET/POST, bodyweight pull/push races, newer input during sync, final shared values, untouched pull, and editor identity';
 }
