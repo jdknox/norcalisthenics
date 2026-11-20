@@ -6748,9 +6748,9 @@ function renderTrendsEstimates()
     <dl class="trends-values">
       <dt>7-day average intake</dt><dd class="trends-kcal">${averages.kcal_days > 0 ? fmt_1(averages.mean_kcal) : '—'}</dd>
       <dt>Maintenance</dt><dd class="trends-kcal">${targetKcalDay()}</dd>
-      <dt>Balance</dt><dd class="trends-kcal">${balance} <span>(${fmt0(balance/g_kcal_per_kg_bodyfat*1000)} g/day)</span></dd>
+      <dt>Balance</dt><dd class="trends-kcal">${balance} <span>(${averages.kcal_days > 0 ? fmt0(balance/g_kcal_per_kg_bodyfat*1000) + ' g/day' : '—'})</span></dd>
     </dl><p class="note">${averages.kcal_days} of 7 days have logged calories.
-      Unlogged days are excluded; the viewed day is included even if incomplete.</p></section>
+      Unlogged days are excluded. Today's weight rises from 0 at 10:00 to 1 at 22:00.</p></section>
 
       <section class="trends-card"><h2>Body composition estimate</h2>
       <dl class="trends-values">
@@ -8237,6 +8237,12 @@ function renderTagFilterBar()
   return h;
 }
 
+function todayCalorieWeight(now)
+{
+  let hours = now.getHours() + now.getMinutes()/60 + now.getSeconds()/3600;
+  return Math.max(0, Math.min(1, (hours - 10)/12));
+}
+
 function calculateMeanLoggedProtein(start_date, ndays)
 {
   let total_protein = 0;
@@ -8244,6 +8250,9 @@ function calculateMeanLoggedProtein(start_date, ndays)
   let total_bodyweight_kg = 0;
   let protein_days = 0;
   let kcal_days = 0;
+  let kcal_weight = 0;
+  let today = todayISO();
+  let today_weight = todayCalorieWeight(new Date());
   let bodyweight_days = 0;
   let result = {mean_protein: 0, mean_kcal: 0, mean_bodyweight_kg: 0, kcal_days:0};
 
@@ -8258,15 +8267,20 @@ function calculateMeanLoggedProtein(start_date, ndays)
     protein_days += protein > 0;
 
     let kcal = day_totals.kcal;
-    total_kcal += kcal;
-    kcal_days += kcal > 0;
+    if (kcal > 0)
+    {
+      let weight = date == today ? today_weight : 1;
+      total_kcal += kcal*weight;
+      kcal_weight += weight;
+      if (weight > 0) ++kcal_days;
+    }
 
     total_bodyweight_kg += bodyweight_kg;
     bodyweight_days += bodyweight_kg > 0;
   }
 
   if (protein_days) { result.mean_protein = total_protein/protein_days; }
-  if (kcal_days) { result.mean_kcal = total_kcal/kcal_days; }
+  if (kcal_weight) { result.mean_kcal = total_kcal/kcal_weight; }
   result.kcal_days = kcal_days;
   if (bodyweight_days) { result.mean_bodyweight_kg = total_bodyweight_kg/bodyweight_days; }
 
@@ -9546,10 +9560,19 @@ window.addEventListener('beforeunload', function(event)
 function saveInputWhenHidden()
 {
   if (document.visibilityState == 'hidden') flushPendingInputSave();
+  else refreshTodayCalorieWeight();
+}
+
+function refreshTodayCalorieWeight()
+{
+  if (document.visibilityState != 'visible' || g_view_date != todayISO()) return;
+  refreshProteinKgScale();
+  refreshTrendsEstimates();
 }
 
 document.addEventListener('visibilitychange', saveInputWhenHidden);
 window.addEventListener('pagehide', flushPendingInputSave);
+setInterval(refreshTodayCalorieWeight, 60000);
 
 function shouldGuardBrowserBack()
 {
