@@ -144,6 +144,7 @@ let g_cut_kcal_raw = '';
 let g_kcal_per_kg_bodyfat = 7700;
 let g_bodyweight_kg = 82;
 let g_lean_mass_by_date = {};
+let g_height = {cm:188, updated_at:0};
 let g_bodyweight_by_date = {};
 let g_bodyweight_raw_by_date = {};
 let g_bodyweight_dirty_dates = {};
@@ -2145,6 +2146,7 @@ function refreshProteinTarget()
   if (cut_percent) cut_percent.textContent = cutPercentText();
   refreshNutritionSummary();
   refreshLoadoutSummary();
+  refreshTrendsEstimates();
 }
 
 function remainingKcalProteinRatio(totals)
@@ -3927,6 +3929,8 @@ function buildBackupTSV()
   pushBackupTsvRow(lines, ['target_kcal_day', targetKcalDay()], state);
   pushBackupTsvRow(lines, ['cut_kcal', g_cut_kcal], state);
   pushBackupTsvRow(lines, ['bodyweight_kg', g_bodyweight_kg], state);
+  pushBackupTsvRow(lines, ['height_cm', g_height.cm], state);
+  pushBackupTsvRow(lines, ['height_updated_at', g_height.updated_at], state);
 
   pushBackupTsvSection(lines, 'bodyweight', ['date', 'kg'], state);
   for (let date in g_bodyweight_by_date)
@@ -4541,6 +4545,7 @@ function parseBackupTSV(text)
     daily_activity:{},
     bodyweight_by_date:{},
     lean_mass_by_date:{},
+    height:{cm:null, updated_at:0},
     collapsed_groups:{},
     favorites:{}
   };
@@ -4563,6 +4568,8 @@ function parseBackupTSV(text)
       else if (row.key == 'target_kcal_day' && value != null) payload.target_kcal_day = value;
       else if (row.key == 'cut_kcal' && value != null) payload.cut_kcal = value;
       else if (row.key == 'bodyweight_kg' && value != null) payload.bodyweight_kg = value;
+      else if (row.key == 'height_cm') payload.height.cm = value;
+      else if (row.key == 'height_updated_at' && value != null) payload.height.updated_at = value;
     }
   }
 
@@ -5254,6 +5261,7 @@ function applyReplaceImport()
   else g_bodyweight_by_date[todayISO()] = g_bodyweight_kg;
   clearBodyweightDirtyDates();
   g_lean_mass_by_date = parsed.lean_mass_by_date || {};
+  g_height = parsed.height || {cm:null, updated_at:0};
 
   if (Array.isArray(parsed.foods))
   {
@@ -5307,6 +5315,7 @@ function applyMergeImport()
   if (!parsed) return;
 
   mergeLeanMassDates(parsed.lean_mass_by_date);
+  mergeHeight(parsed.height);
 
   if (parsed.bodyweight_by_date && typeof parsed.bodyweight_by_date == 'object')
   {
@@ -5491,7 +5500,7 @@ function fmt3(n)
 
 function fmt_1(n)
 {
-  return (Math.ceil(n/10)*10).toFixed(0);
+  return (Math.sign(n)*Math.ceil(Math.abs(n)/10)*10).toFixed(0);
 }
 
 function fmtSi1(n)
@@ -5523,6 +5532,7 @@ function makeSavePayload()
     bodyweight_kg:g_bodyweight_kg,
     bodyweight_by_date:g_bodyweight_by_date,
     lean_mass_by_date:g_lean_mass_by_date,
+    height:g_height,
     foods:g_foods,
     scoop_items:g_scoop_items,
     log:g_log,
@@ -5647,6 +5657,11 @@ function mergeLeanMassDates(remote)
     let current = g_lean_mass_by_date[date];
     if (!current || entry.updated_at > current.updated_at) g_lean_mass_by_date[date] = entry;
   }
+}
+
+function mergeHeight(remote)
+{
+  if (remote && remote.updated_at > g_height.updated_at) g_height = remote;
 }
 
 function bodyweightRawForDate(date)
@@ -6180,6 +6195,7 @@ function mergeLoadedPayload(payload)
 
   mergeBodyweightByDate(payload.bodyweight_by_date);
   mergeLeanMassDates(payload.lean_mass_by_date);
+  mergeHeight(payload.height);
 
   mergeScoopItems(payload.scoop_items);
   if (mergeFavorites(payload.favorites)) refreshFavoriteRows();
@@ -6343,6 +6359,7 @@ function load()
 
     if (!payload) return;
     g_lean_mass_by_date = payload.lean_mass_by_date || {};
+    g_height = payload.height || {cm:null, updated_at:0};
     if (payload.target != null)
     {
       g_target = payload.target;
@@ -6527,13 +6544,13 @@ function renderTabBar()
 {
   let h = '';
   let pantry_on = g_active_tab == 'pantry' ? ' on' : '';
-  let loadout_on = g_active_tab == 'loadout' ? ' on' : '';
+  let trends_on = g_active_tab == 'trends' ? ' on' : '';
   let mass_on = g_active_tab == 'mass' ? ' on' : '';
 
   h += `<div id="tab-top" aria-hidden="true"></div><div class="apptabs">
     <button class="tabbtn${pantry_on}" data-a="tab-open" data-tab="pantry">pantry log</button>
     <button class="tabbtn${mass_on}" data-a="tab-open" data-tab="mass">hydration &amp; mass balance</button>
-    <button class="tabbtn${loadout_on}" data-a="tab-open" data-tab="loadout">weekly loadout</button>
+    <button class="tabbtn${trends_on}" data-a="tab-open" data-tab="trends">trends &amp; estimates</button>
   </div>`;
 
   return h;
@@ -6565,6 +6582,44 @@ function renderTargetRow()
   return h;
 }
 
+function signedEstimate(value)
+{
+  if (value == null) return '—';
+  let text = fmt1(value);
+  if (text == '-0.0') return '0.0';
+  return (value > 0 ? '+' : '') + text;
+}
+
+function bodyCompositionProjection()
+{
+  let averages = calculateMeanLoggedProtein(g_view_date, 7);
+  let mass = averages.mean_bodyweight_kg;
+  let lean = leanMassForDate(g_view_date);
+  let fat = lean != null && mass >= lean ? mass - lean : null;
+  let bodyfat = fat != null && mass > 0 ? 100*fat/mass : null;
+  let daily_change = averages.kcal_days > 0 ? (averages.mean_kcal - targetKcalDay())/g_kcal_per_kg_bodyfat : null;
+  let predictions = [];
+  for (let days of [7, 30.44, 365.24/4])
+  {
+    let change = daily_change != null ? days*daily_change : null;
+    let predicted_mass = change != null && mass > 0 && mass + change > 0 ? mass + change : null;
+    let predicted_fat = fat != null && predicted_mass != null && predicted_mass >= lean ? predicted_mass - lean : null;
+    let predicted_bodyfat = predicted_fat != null ? 100*predicted_fat/predicted_mass : null;
+    let height_m = g_height.cm/100;
+    predictions.push(
+    {
+      change:change,
+      mass:predicted_mass,
+      fat:predicted_fat,
+      bodyfat:predicted_bodyfat,
+      bodyfat_change:predicted_bodyfat != null ? predicted_bodyfat - bodyfat : null,
+      mass_percent:change != null && mass > 0 ? 100*change/mass : null,
+      fmi:predicted_fat != null && height_m > 0 ? predicted_fat/(height_m*height_m) : null
+    });
+  }
+  return {averages:averages, mass:mass, lean:lean, fat:fat, bodyfat:bodyfat, daily_change:daily_change, predictions:predictions};
+}
+
 function renderProteinKgScale(logged_protein)
 {
   let disabled = !viewDateIsEditable() ? ' disabled' : '';
@@ -6573,7 +6628,8 @@ function renderProteinKgScale(logged_protein)
   let scale_target = 1.666;
   let bodyweight_kg = bodyweightForDate(g_view_date);
   let bodyweight_raw = bodyweightRawForDate(g_view_date);
-  let {mean_protein, mean_kcal, mean_bodyweight_kg} = calculateMeanLoggedProtein(g_view_date, 7);
+  let projection = bodyCompositionProjection();
+  let {mean_protein, mean_kcal, mean_bodyweight_kg} = projection.averages;
   let ratio = bodyweight_kg > 0 ? logged_protein/bodyweight_kg : 0;
   let ratio_text = bodyweight_kg > 0 ? fmt2(ratio) : '—';
   let mean_ratio_text = bodyweight_kg > 0 ? fmt2(mean_protein/bodyweight_kg) : '—';
@@ -6587,22 +6643,9 @@ function renderProteinKgScale(logged_protein)
   }
   let refresh_status = `<span class="bodyweight-refresh-status">${esc(g_bodyweight_refresh_status)}</span>`;
 
-  let implied_mass = (mean_kcal - targetKcalDay())/g_kcal_per_kg_bodyfat;
-  let diff_sign = implied_mass >= 0 ? '+' : '';
-  let imw = `${diff_sign}${fmt1(7*implied_mass)}`;
-  let imm = `${diff_sign}${fmt1(30.44*implied_mass)}`;
-  let imq = `${diff_sign}${fmt0(365.24/4*implied_mass)}`;
-  let implied_percent = mean_bodyweight_kg > 0 ? 100*implied_mass/mean_bodyweight_kg : null;
-  let ipw = implied_percent != null ? `${diff_sign}${fmt1(7*implied_percent)}%` : '—';
-  let ipm = implied_percent != null ? `${diff_sign}${fmt1(30.44*implied_percent)}%` : '—';
-  let ipq = implied_percent != null ? `${diff_sign}${fmt0(365.24/4*implied_percent)}%` : '—';
-  let lean_mass = leanMassForDate(g_view_date);
-  let fat_mass = lean_mass != null ? mean_bodyweight_kg - lean_mass : 0;
-  let fat_percent = fat_mass > 0 ? 100*implied_mass/fat_mass : null;
-  let fat_text = fat_mass > 0 ? `${fmt1(fat_mass)} kg` : '—';
-  let fpw = fat_percent != null ? `${diff_sign}${fmt1(7*fat_percent)}%` : '—';
-  let fpm = fat_percent != null ? `${diff_sign}${fmt1(30.44*fat_percent)}%` : '—';
-  let fpq = fat_percent != null ? `${diff_sign}${fmt0(365.24/4*fat_percent)}%` : '—';
+  let week = projection.predictions[0];
+  let month = projection.predictions[1];
+  let fat_text = projection.fat != null ? `${fmt1(projection.fat)} kg` : '—';
 
   let h = '';
   h += `<div class="protein-kg-scale${range_class}">
@@ -6617,8 +6660,6 @@ function renderProteinKgScale(logged_protein)
         ${refresh_status}
       </span>
     </div>
-    ${g_admin_mode ? `<div class="protein-kg-controls"><label for="lean-mass-input">lean kg (from this date)</label>
-      <input type="text" inputmode="decimal" id="lean-mass-input" value="${lean_mass != null ? lean_mass : ''}"></div>` : ''}
     <div class="protein-kg-track">
       <span class="protein-kg-marker${range_class}" style="left:${marker_clamped}%${marker_transform}"></span>
       <span class="protein-kg-tick" style="left:0%"><i></i><b>1.2</b></span>
@@ -6634,11 +6675,10 @@ function renderProteinKgScale(logged_protein)
       <span>(${fmtKcalProteinRatio(mean_kcal/mean_protein)}/g)</span>
       <br />
       <span class="protein-kg-note-bodyweight">${fmt1(mean_bodyweight_kg)} kg</span>
-      <span>(${imw}/W ${imm}/M ${imq}/Q kg)</span>
-      <span>(${ipw}/W ${ipm}/M ${ipq}/Q)</span>
+      <span title="Projected change if recent calorie intake continues">(${signedEstimate(week.change)}/W ${signedEstimate(month.change)}/M kg)</span>
       <br />
       <span>est. fat mass ${fat_text}</span>
-      <span>(${fpw}/W ${fpm}/M ${fpq}/Q)</span>
+      <span title="Projected body-fat percentage-point change, holding lean mass constant">(${signedEstimate(week.bodyfat_change)}/W ${signedEstimate(month.bodyfat_change)}/M BF% points)</span>
     </span>
   </div>`;
 
@@ -6667,6 +6707,95 @@ function refreshNutritionSummary()
 {
   let summary = document.getElementById('pantry-nutrition-summary');
   if (summary) summary.outerHTML = renderPantryNutritionSummary(dayTotals(g_view_date));
+}
+
+function renderPredictionTable(projection, absolute)
+{
+  let rows = absolute ?
+    [['Mass (kg)', 'mass'], ['Fat mass (kg)', 'fat'], ['Body fat (%)', 'bodyfat'], ['FMI (kg/m²)', 'fmi']] :
+    [['Mass (kg)', 'change'], ['Bodyweight (%)', 'mass_percent'], ['Body fat (points)', 'bodyfat_change']];
+  let h = `<div class="prediction-table-wrap"><table class="prediction-table"><caption>${absolute ? 'Predicted values' : 'Estimated changes'}</caption>
+    <thead><tr><th scope="col">${absolute ? 'Prediction' : 'Change'}</th><th scope="col">1 week</th><th scope="col">1 month</th><th scope="col">1 quarter</th></tr></thead><tbody>`;
+  for (let row of rows)
+  {
+    h += `<tr><th scope="row">${row[0]}</th>`;
+    for (let prediction of projection.predictions)
+    {
+      let value = prediction[row[1]];
+      let text = value == null ? '—' : absolute ? fmt1(value) : signedEstimate(value);
+      h += `<td>${text}</td>`;
+    }
+    h += '</tr>';
+  }
+  return h + '</tbody></table></div>';
+}
+
+function renderTrendsEstimates()
+{
+  let projection = bodyCompositionProjection();
+  let averages = projection.averages;
+  let lean_date = '';
+  for (let date in g_lean_mass_by_date)
+  {
+    if (date <= g_view_date && date > lean_date && g_lean_mass_by_date[date].kg != null) lean_date = date;
+  }
+  let lean_text = projection.lean != null ? `${fmt1(projection.lean)} kg <span class="lean-mass-date">· from ${lean_date}</span>` : '—';
+  let fat_text = projection.fat != null ? `${fmt1(projection.fat)} kg · ${fmt1(projection.bodyfat)}%` : '—';
+  let balance_kcal = averages.mean_kcal - targetKcalDay();
+  let balance = averages.kcal_days > 0 ? (balance_kcal > 0 ? '+' : '') + fmt_1(balance_kcal) : '—';
+  let height_m = g_height.cm/100;
+  let h = `<section class="trends-card"><h2>Recent intake</h2>
+    <dl class="trends-values">
+      <dt>7-day average intake</dt><dd class="trends-kcal">${averages.kcal_days > 0 ? fmt_1(averages.mean_kcal) : '—'}</dd>
+      <dt>Maintenance</dt><dd class="trends-kcal">${targetKcalDay()}</dd>
+      <dt>Balance</dt><dd class="trends-kcal">${balance} <span>(${fmt0(balance/g_kcal_per_kg_bodyfat*1000)} g/day)</span></dd>
+    </dl><p class="note">${averages.kcal_days} of 7 days have logged calories.
+      Unlogged days are excluded; the viewed day is included even if incomplete.</p></section>
+
+      <section class="trends-card"><h2>Body composition estimate</h2>
+      <dl class="trends-values">
+        <dt>Average bodyweight</dt><dd>${fmt1(projection.mass)} kg</dd>
+        <dt>Lean mass</dt><dd>${lean_text}</dd>
+        <dt>Estimated fat mass</dt><dd>${fat_text}</dd>
+        <dt>FMI</dt><dd>${fmt2(projection.fat/(height_m*height_m))}</dd>
+        <dt>Height</dt><dd class="trends-height">${g_height.cm} cm</dd>
+      </dl>
+    </section>
+
+    <section class="trends-card"><h2>If this intake continues</h2>`;
+  h += renderPredictionTable(projection, false);
+  h += renderPredictionTable(projection, true);
+  h += `<p class="note">Estimates hold maintenance, intake, and lean mass constant,
+    using ${fmt0(g_kcal_per_kg_bodyfat)} kcal/kg.
+    Month = 30.4 days; quarter = 91.3 days.
+    </p></section>`;
+  return h;
+}
+
+function refreshTrendsEstimates()
+{
+  let content = document.getElementById('trends-estimates');
+  if (content) content.innerHTML = renderTrendsEstimates();
+}
+
+function renderTrendsSection()
+{
+  let lean = leanMassForDate(g_view_date);
+  let h = `<div class="dateblock"><div class="datenav">
+    <button class="smallbtn" data-a="date-prev" aria-label="Previous day">←</button>
+    <span class="datelabel">${esc(g_view_date)}</span>
+    <button class="smallbtn" data-a="date-next" aria-label="Next day"${g_view_date >= todayISO() ? ' disabled' : ''}>→</button>
+    <button class="smallbtn" data-a="date-today">today</button>
+    </div>${renderDateJumpButtons()}</div>`;
+  if (g_admin_mode)
+  {
+    h += `<div class="trends-settings">
+      <label for="lean-mass-input">Lean kg (from ${esc(g_view_date)})<input type="text" inputmode="decimal" id="lean-mass-input" value="${lean != null ? lean : ''}"></label>
+      <label for="height-input">Height (cm)<input type="text" inputmode="decimal" id="height-input" value="${g_height.cm != null ? g_height.cm : ''}"></label>
+      <p class="note">Lean mass carries forward until the next dated estimate. Clear the field to remove the estimate on this date and use the preceding one.</p>
+    </div>`;
+  }
+  return h + `<div id="trends-estimates">${renderTrendsEstimates()}</div>`;
 }
 
 function renderLoadoutSummary()
@@ -6880,13 +7009,19 @@ function renderMassSummary()
   let h = '';
 
   h += `<div class="summary mass-summary">
-    <div class="cell"><div class="lab">water in</div><div class="val water">${Math.round(t.water_in_ml)} mL</div></div>
-    <div class="cell"><div class="lab">total mass in</div><div class="val">${formatMassKg(t.total_mass_in_kg, false)}</div></div>
-    <div class="cell"><div class="lab">food mass in</div><div class="val">${formatMassKg(t.net_bracket_mass_in_kg + t.pantry_mass_in_kg, false)}</div></div>
+    <div class="cell"><div class="lab">water in</div><div class="val water">
+      ${Math.round(t.water_in_ml)} mL</div></div>
+    <div class="cell"><div class="lab">total mass in</div><div class="val">
+      ${formatMassKg(t.total_mass_in_kg, false)}</div></div>
+    <div class="cell"><div class="lab">food mass in</div><div class="val">
+      ${formatMassKg(t.net_bracket_mass_in_kg + t.pantry_mass_in_kg, false)}</div></div>
 
-    <div class="cell"><div class="lab">inferred mass out</div><div class="val under">${formatMassKg(t.inferred_mass_out_kg, false)}</div></div>
-    <div class="cell"><div class="lab">latest body mass</div><div class="val bodymass">${latest}</div></div>
-    <div class="cell"><div class="lab">net mass balance</div><div class="val">${formatMassKg(net, true)}</div></div>
+    <div class="cell"><div class="lab">inferred mass out</div><div class="val under">
+      ${formatMassKg(t.inferred_mass_out_kg, false)}</div></div>
+    <div class="cell"><div class="lab">latest body mass</div><div class="val bodymass">
+      ${latest}</div></div>
+    <div class="cell"><div class="lab">net mass balance</div><div class="val">
+      ${formatMassKg(net, true)}</div></div>
 
     <div class="cell"><div class="lab">steps</div><div class="val" data-dailyactivity-summary="steps">${esc(Math.round(activity.steps))}</div></div>
     <div class="cell"><div class="lab">e-bike min</div><div class="val" data-dailyactivity-summary="ebike_minutes">${esc(Math.round(activity.ebike_minutes))} min</div></div>
@@ -7230,7 +7365,8 @@ function render(preserve_pantry_position = false)
   if (g_active_tab != 'mass') h += renderTargetRow();
   h += renderTabBar();
 
-  if (g_active_tab == 'loadout') h += renderLoadoutSection();
+  if (g_active_tab == 'trends') h += renderTrendsSection();
+  else if (g_active_tab == 'loadout') h += renderLoadoutSection();
   else if (g_active_tab == 'mass') h += renderMassSection();
   else h += renderScoopSection();
 
@@ -8109,7 +8245,7 @@ function calculateMeanLoggedProtein(start_date, ndays)
   let protein_days = 0;
   let kcal_days = 0;
   let bodyweight_days = 0;
-  let result = {mean_protein: 0, mean_kcal: 0, mean_bodyweight_kg: 0};
+  let result = {mean_protein: 0, mean_kcal: 0, mean_bodyweight_kg: 0, kcal_days:0};
 
   for (let d = 0; d < ndays; ++d)
   {
@@ -8131,6 +8267,7 @@ function calculateMeanLoggedProtein(start_date, ndays)
 
   if (protein_days) { result.mean_protein = total_protein/protein_days; }
   if (kcal_days) { result.mean_kcal = total_kcal/kcal_days; }
+  result.kcal_days = kcal_days;
   if (bodyweight_days) { result.mean_bodyweight_kg = total_bodyweight_kg/bodyweight_days; }
 
   return result;
@@ -8221,8 +8358,9 @@ function renderPantryNutritionSummary(totals)
       <div class="lab">kcal</div>
       <div class="val kval">${fmt_1(totals.kcal)}</div>
       <span class="pantry-macro-ratio">
-        <span title="Remaining against kcal/day minus cut">${kcal_remaining_text}</span> (<span title="Compared with full maintenance">${kcal_balance_text}</span>)<br />
-        <span title="Assumes kcal/day is full maintenance; uses 7,700 kcal/kg">
+        <span title="Remaining against kcal/day minus cut">${kcal_remaining_text}</span>
+        (<span title="Compared with full maintenance">${kcal_balance_text}</span>)<br />
+        <span title="Assumes kcal/day is full maintenance; uses ${g_kcal_per_kg_bodyfat} kcal/kg">
         ${delta_sign}${weekly_mass_text}<br />
         ${delta_sign}${fmt1(30.44*delta_mass_kg, 1, 0) + ' kg/m'}</span>
       </span>
@@ -8549,6 +8687,17 @@ document.addEventListener('input', function(ev)
     let updated_at = Math.max(Date.now(), current ? current.updated_at + 1 : 0);
     g_lean_mass_by_date[g_view_date] = {kg:target.value.trim() && Number.isFinite(num) && num > 0 ? num : null, updated_at:updated_at};
     refreshProteinKgScale();
+    refreshTrendsEstimates();
+    scheduleInputSave();
+    return;
+  }
+
+  if (target.id == 'height-input')
+  {
+    if (!g_admin_mode) return;
+    num = Number(target.value);
+    g_height = {cm:Number.isFinite(num) && num > 0 ? num : null, updated_at:Math.max(Date.now(), g_height.updated_at + 1)};
+    refreshTrendsEstimates();
     scheduleInputSave();
     return;
   }
@@ -8860,7 +9009,8 @@ document.addEventListener('click', function(ev)
   switch (action)
   {
     case 'tab-open':
-      g_active_tab = target.dataset.tab == 'loadout' || target.dataset.tab == 'mass' ? target.dataset.tab : 'pantry';
+      flushPendingInputSave();
+      g_active_tab = target.dataset.tab == 'trends' || target.dataset.tab == 'mass' ? target.dataset.tab : 'pantry';
       render();
       load();
       document.getElementById('tab-top').scrollIntoView({behavior:'instant', block:'start'});

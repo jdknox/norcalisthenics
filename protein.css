@@ -90,6 +90,26 @@ h1{font-family:var(--mono);font-size:20px;font-weight:600;margin:6px 0 18px;lett
 .protein-kg-controls{display:inline-flex;align-items:center;gap:5px}
 .protein-kg-controls label{color:var(--faint)}
 .protein-kg-controls input{width:48px;padding:3px 5px;text-align:center;font-size:11px}
+.trends-card{border:1px solid var(--line);border-radius:6px;background:var(--panel);padding:14px;margin-bottom:16px}
+.trends-card h2{font-size:15px;margin:0 0 12px;color:var(--search-hi)}
+.trends-card p.note{margin:0;padding-top:10px}
+.trends-values{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:8px 12px;font-size:13px;margin:0}
+.trends-values dt{color:var(--muted)}
+.trends-values dd{margin:0;font-family:var(--mono);overflow-wrap:anywhere}
+.trends-kcal{color:var(--blue)}
+.trends-kcal span{color:var(--text)}
+.lean-mass-date,.trends-height{color:var(--muted)}
+.trends-settings{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:18px;font-size:12px}
+.trends-settings label{display:flex;align-items:center;gap:8px;color:var(--muted)}
+.trends-settings input{width:72px}
+.trends-settings .note{flex-basis:100%;margin:0;padding-top: 10px;}
+.prediction-table-wrap{overflow-x:auto}
+.prediction-table caption{text-align:left;color:var(--muted);padding:8px 0;font-size:13px}
+.prediction-table th,.prediction-table td{padding:9px 6px;font-size:12px}
+.prediction-table thead th{text-transform:none;letter-spacing:0;white-space:nowrap;text-align:right}
+.prediction-table thead th:first-child,.prediction-table tbody th{text-align:left}
+.prediction-table tbody th{font-weight:normal;color:var(--muted);letter-spacing:0;text-transform:none}
+.prediction-table td{text-align:right;font-family:var(--mono);white-space:nowrap}
 .bodyweight-refresh {
   display:none;
   padding:2px 5px;line-height:1}
@@ -547,7 +567,7 @@ body.admin-mode #tab-top{scroll-margin-top:calc(58px + env(safe-area-inset-top,0
   .foodname .unit{font-size:calc(11.0px*var(--mobile-text-scale));line-height:1.25}
   .pack-out{font-size:calc(13.5px*var(--mobile-text-scale))}
   td input{font-size:calc(13px*var(--mobile-text-scale))}
-  .note{font-size:calc(13px*var(--mobile-text-scale))}
+  .note{font-size:calc(11px*var(--mobile-text-scale))}
   .adjusted-log-toggle{font-size:calc(12.5px*var(--mobile-text-scale))}
   .adjusted-log-item{font-size:calc(12.5px*var(--mobile-text-scale))}
   .tagfilterbtn{font-size:calc(12px*var(--mobile-text-scale));padding:6px 10px}
