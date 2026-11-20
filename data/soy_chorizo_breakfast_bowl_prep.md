@@ -17,7 +17,7 @@ Based on splitting **one full 340g tube of soy chorizo** and **one standard 400g
 | **Feta Cheese** | 25g | 125g | 66 kcal | 3.6g | **18.3:1** |
 | **Cherry Tomatoes** | 75g | 375g | 14 kcal | 0.7g | **20.0:1** |
 | **Cooked Butternut Squash** | 100g | 500g | 40 kcal | 0.9g | **44.4:1** |
-| **Avocado** | 50g | 250g (~1.5–2 avocados) | 80 kcal | 1.0g | **80.0:1** |
+| **Avocado** | 50g | 250g (~2.5 avocados) | 80 kcal | 1.0g | **80.0:1** |
 | **Total Bowl** | **566g** | — | **615 kcal** | **47.7g** | **12.9:1** |
 
 > **Optional Calorie Trim:** Drop down to **1 whole egg (50g)** per day to bring the bowl to **543 kcal** and **41.4g protein** (**13.1:1** ratio).
