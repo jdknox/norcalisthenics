@@ -6742,15 +6742,17 @@ function renderTrendsEstimates()
   let lean_text = projection.lean != null ? `${fmt1(projection.lean)} kg <span class="lean-mass-date">· from ${lean_date}</span>` : '—';
   let fat_text = projection.fat != null ? `${fmt1(projection.fat)} kg · ${fmt1(projection.bodyfat)}%` : '—';
   let balance_kcal = averages.mean_kcal - targetKcalDay();
-  let balance = averages.kcal_days > 0 ? (balance_kcal > 0 ? '+' : '') + fmt_1(balance_kcal) : '—';
+  let has_kcal_days = averages.kcal_days > 0;
+  let balance = has_kcal_days ? (balance_kcal > 0 ? '+' : '') + fmt_1(balance_kcal) : '—';
   let height_m = g_height.cm/100;
   let h = `<section class="trends-card"><h2>Recent intake</h2>
     <dl class="trends-values">
-      <dt>7-day average intake</dt><dd class="trends-kcal">${averages.kcal_days > 0 ? fmt_1(averages.mean_kcal) : '—'}</dd>
+      <dt>7-day average intake</dt><dd class="trends-kcal">${has_kcal_days ? fmt_1(averages.mean_kcal) : '—'}</dd>
       <dt>Maintenance</dt><dd class="trends-kcal">${targetKcalDay()}</dd>
-      <dt>Balance</dt><dd class="trends-kcal">${balance} <span>(${averages.kcal_days > 0 ? fmt0(balance/g_kcal_per_kg_bodyfat*1000) + ' g/day' : '—'})</span></dd>
+      <dt>Balance</dt><dd class="trends-kcal">${balance}
+        <span>(${has_kcal_days ? fmt0(balance/g_kcal_per_kg_bodyfat*1000) : '—'} g/day)</span></dd>
     </dl><p class="note">${averages.kcal_days} of 7 days have logged calories.
-      Unlogged days are excluded. Today's weight rises from 0 at 10:00 to 1 at 22:00.</p></section>
+      Unlogged days are excluded. Today is weighted from 10:00 to 22:00.</p></section>
 
       <section class="trends-card"><h2>Body composition estimate</h2>
       <dl class="trends-values">
