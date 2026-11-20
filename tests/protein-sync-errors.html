@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>Sync warning details regression</title>
+<p>Serve with a static HTTP server; the final check deliberately requests its missing storage endpoint.</p>
+<output id="result">Running</output>
+<iframe id="app-frame" title="Isolated protein app" style="width:100%;height:800px;border:0"></iframe>
+<script>
+'use strict';
+
+let app_frame = document.getElementById('app-frame');
+let app_window;
+let app_document;
+let field;
+let polls = 0;
+window.addEventListener('error', reportTestError);
+let request = new XMLHttpRequest();
+request.open('GET', '../protein-loadout.html');
+request.onload = loadApp;
+request.send();
+
+function reportTestError(event)
+{
+  document.getElementById('result').textContent = 'FAIL: ' + event.message;
+}
+
+function check(condition, message)
+{
+  if (!condition) throw new Error(message);
+}
+
+function evaluate(code)
+{
+  return app_window.eval(code);
+}
+
+function loadApp()
+{
+  check(request.status == 200, 'load app source');
+  let html = request.responseText;
+  html = html.replace('<head>', '<head><base href="/">');
+  html = html.replace('\nload();\n</' + 'script>', '\n</' + 'script>');
+  html = html.replace("if ('serviceWorker' in navigator)", 'if (false)');
+  app_frame.onload = runTests;
+  app_frame.srcdoc = html;
+}
+
+function runTests()
+{
+  app_window = app_frame.contentWindow;
+  app_document = app_frame.contentDocument;
+  evaluate(`
+    saveLocalJson = function ignoreSave() {};
+    saveUnsyncedFlag = function ignoreFlag() {};
+    scheduleSyncRetry = function ignoreRetry() {};
+    mergeKnownItems();
+    render();
+    window.test_sync_error = new Error('Request rejected <img src=x onerror=alert(1)>');
+    test_sync_error.status = 503;
+    test_sync_error.result =
+    {
+      error:'Service unavailable',
+      value:'private database contents'
+    };
+    setSyncFailed('local only / sync failed', test_sync_error);
+  `);
+  let banner = app_document.getElementById('sync-status');
+  check(banner.tagName == 'DETAILS' && !banner.open, 'warning is collapsed and expandable');
+  banner.querySelector('summary').click();
+  check(banner.open, 'tapping warning opens details');
+  let text = banner.querySelector('pre').textContent;
+  check(text.includes('HTTP status: 503') && text.includes('Server: Service unavailable'), 'HTTP and server errors are visible');
+  check(text.includes('Version: ') && text.includes('/api/storage') && text.includes('Time: ') && text.includes('Browser online: '), 'diagnostic context is included');
+  check(!text.includes('private database contents') && !banner.querySelector('img'), 'error text is escaped and database payload is excluded');
+  field = app_document.getElementById('scoop-search');
+  field.focus();
+  field.value = 'still typing';
+  field.setSelectionRange(4, 4);
+  evaluate('setSyncFailed("local only / sync failed", new TypeError("Failed to fetch"));');
+  check(app_document.getElementById('sync-status') == banner && banner.open, 'retry updates preserve expanded banner');
+  check(field.isConnected && app_document.activeElement == field && field.selectionStart == 4, 'error update preserves editor and caret');
+  evaluate('setSyncFailed(g_sync_status);');
+  check(banner.querySelector('pre').textContent.includes('TypeError: Failed to fetch'), 'back guard does not erase the underlying error');
+  evaluate('render();');
+  check(app_document.getElementById('sync-status').querySelector('pre').textContent.includes('Failed to fetch'), 'ordinary render retains error details');
+  evaluate('setSyncOk();');
+  check(!app_document.getElementById('sync-status') && evaluate('g_sync_error_detail') == '', 'successful sync removes warning and clears stale error');
+  evaluate('g_storage_key = "sync-errors-test"; g_unsynced_changes = true; syncPendingChanges();');
+  setTimeout(checkNetworkFailure, 100);
+}
+
+function checkNetworkFailure()
+{
+  check(++polls < 50, 'failed request completes');
+  if (evaluate('g_sync_in_flight'))
+  {
+    setTimeout(checkNetworkFailure, 100);
+    return;
+  }
+  check(evaluate('g_sync_failed && g_sync_error_detail.length > 0'), 'actual storage failure reaches banner');
+  check(app_document.getElementById('sync-status').querySelector('pre').textContent.includes(evaluate('g_sync_error_detail')), 'actual request error is visible');
+  document.getElementById('result').textContent = 'PASS: expandable errors, HTTP/server details, context, escaping, payload exclusion, retry/editor preservation, recovery, and actual failed storage request';
+}
+</script></html>
