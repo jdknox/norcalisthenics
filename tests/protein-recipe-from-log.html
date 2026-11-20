@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>Recipe from logged ingredients regression</title>
+<output id="result">Running</output>
+<iframe id="app-frame" title="Isolated protein app" style="width:100%;height:800px;border:0"></iframe>
+<script>
+'use strict';
+
+let app_frame = document.getElementById('app-frame');
+let app_window;
+let app_document;
+window.addEventListener('error', reportTestError);
+let request = new XMLHttpRequest();
+request.open('GET', '../protein-loadout.html');
+request.onload = loadApp;
+request.send();
+
+function reportTestError(event)
+{
+  document.getElementById('result').textContent = 'FAIL: ' + event.message;
+}
+
+function check(condition, message)
+{
+  if (!condition) throw new Error(message);
+}
+
+function evaluate(code)
+{
+  return app_window.eval(code);
+}
+
+function loadApp()
+{
+  check(request.status == 200, 'load app source');
+  let html = request.responseText.replace('<head>', '<head><base href="/">');
+  html = html.replace(/<script src="protein-shared-storage.js[^\"]*"><\/script>/, '');
+  html = html.replace('\nload();\n</' + 'script>', '\n</' + 'script>');
+  html = html.replace("if ('serviceWorker' in navigator)", 'if (false)');
+  app_frame.onload = runTests;
+  app_frame.srcdoc = html;
+}
+
+function openLoggedRecipe(index)
+{
+  let panels = app_document.querySelectorAll('.logged-recipe-ingredients');
+  let panel = panels[index];
+  check(!panel.open, 'recipe action starts inside collapsed ingredients');
+  panel.querySelector('summary').click();
+  check(panel.open, 'ingredients expand');
+  panel.querySelector('[data-a="recipe-from-log"]').click();
+  check(app_document.querySelector('.recipe-editor'), 'opens existing recipe editor');
+}
+
+function runTests()
+{
+  app_window = app_frame.contentWindow;
+  app_document = app_frame.contentDocument;
+  evaluate(`
+    window.test_saves = 0;
+    save = function captureSave() { ++window.test_saves; };
+    g_view_date = shiftDateISO(todayISO(), -1);
+    g_log = {};
+    g_logged_foods_open = true;
+    g_scoop_items =
+    [
+      {
+        key:'powder', name:'Powder', scoop_g:20, protein_g:16, kcal:80
+      },
+      {
+        key:'yogurt', name:'Yogurt', scoop_g:100, protein_g:10, kcal:60
+      },
+      {
+        key:'mix', name:'Mix', scoop_g:100, protein_g:17, kcal:94, yield_g:200,
+        ingredients:[{item_key:'powder', grams:20}, {item_key:'yogurt', grams:180}]
+      },
+      {
+        key:'bowl', name:'Historic bowl', scoop_g:75, protein_g:13.5, kcal:77, yield_g:150,
+        ingredients:[{item_key:'mix', grams:100}, {item_key:'yogurt', grams:100}, {item_key:'powder', grams:0}]
+      }
+    ];
+    addScoop('bowl');
+    pushLogEntry('custom', 75, 13.5, 77, 1, JSON.parse(JSON.stringify(g_log[g_view_date][0].recipe_snapshot)));
+    g_log[g_view_date][1].note = 'Quick bowl';
+    addScoop('yogurt');
+    g_scoop_items[2].ingredients = [{item_key:'powder', grams:40}, {item_key:'yogurt', grams:160}];
+    g_scoop_items[2].protein_g = 26;
+    g_scoop_items[2].kcal = 128;
+    g_scoop_items[3].name = 'Changed bowl';
+    g_scoop_items[3].ingredients = [{item_key:'powder', grams:999}];
+    g_scoop_items[0].protein_g = 18;
+    g_scoop_items[0].archived = true;
+    window.original_items = JSON.stringify(g_scoop_items);
+    window.original_log = JSON.stringify(g_log);
+    window.original_totals = JSON.stringify(dayTotals(g_view_date));
+    render();
+  `);
+  check(app_document.querySelectorAll('[data-a="recipe-from-log"]').length == 2, 'action only appears for snapshot meals');
+  openLoggedRecipe(1);
+  check(evaluate('g_recipe_draft.name') == 'Quick bowl', 'one-off meal keeps its displayed name');
+  check(evaluate('g_recipe_draft.key') == '', 'draft creates a new recipe');
+  check(evaluate('test_saves') == 0 && evaluate('JSON.stringify(g_scoop_items) == original_items'), 'opening makes no pantry changes or saves');
+  app_document.querySelector('[data-a="recipe-cancel"]').click();
+  check(evaluate('g_recipe_draft == null && test_saves == 0'), 'cancel does not save');
+
+  openLoggedRecipe(0);
+  check(evaluate('g_recipe_draft.name') == 'Historic bowl', 'saved meal uses its historical name');
+  check(evaluate('g_recipe_draft.ingredients.length') == 2, 'direct ingredients are retained and zero grams omitted');
+  check(evaluate('g_recipe_draft.ingredients[0].item_key == "mix" && Number(g_recipe_draft.ingredients[0].grams) == 50'), 'retains sub-recipe at its logged gram amount');
+  check(evaluate('g_recipe_draft.ingredients[1].item_key == "yogurt" && Number(g_recipe_draft.ingredients[1].grams) == 50'), 'retains direct food at its logged gram amount');
+  check(evaluate('g_recipe_draft.yield_g == "75" && g_recipe_draft.scoop_g == "75"'), 'logged portion retains cooked yield instead of the raw ingredient sum');
+  check(evaluate('JSON.stringify(g_log) == original_log && JSON.stringify(dayTotals(g_view_date)) == original_totals'), 'opening preserves original log, snapshots, and totals');
+  app_document.querySelector('[data-a="recipe-save"]').click();
+  check(evaluate('test_saves == 1 && g_scoop_items.length == 5'), 'explicit save adds one pantry recipe');
+  check(evaluate('g_scoop_items[4].key != "bowl" && g_scoop_items[4].yield_g == 75 && g_scoop_items[4].scoop_g == 75'), 'new recipe has its own key and logged serving weight');
+  check(evaluate('g_scoop_items[4].ingredients[0].item_key == "mix" && g_scoop_items[4].ingredients[0].grams == 50 && g_scoop_items[4].ingredients[1].grams == 50'), 'saved recipe preserves direct food and sub-recipe quantities');
+  check(evaluate('g_scoop_items[4].protein_g == 18'), 'new recipe uses current sub-recipe nutrition');
+  evaluate('window.new_snapshot = makeRecipeLogSnapshot(g_scoop_items[4], 75, 18, 94, 1).snapshot;');
+  check(evaluate('new_snapshot.ingredients[0].ingredients[0].grams == 10 && new_snapshot.ingredients[0].ingredients[1].grams == 40'), 'future logs use current sub-recipe ingredients scaled to the copied amount');
+  check(evaluate('JSON.stringify(g_scoop_items.slice(0, 4)) == original_items && JSON.stringify(g_log) == original_log'), 'saving preserves existing pantry items and historical entries');
+  document.getElementById('result').textContent = 'PASS: expanded action, one-off and historic meals, direct sub-recipe references, current sub-recipe contents, zero amounts, cooked yield, cancel, explicit save, and unchanged logs';
+}
+</script></html>

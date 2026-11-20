@@ -2538,6 +2538,34 @@ function openRecipeDraft(item, context = 'standalone')
   if (item) scrollBelowTabs(document.querySelector('.recipe-editor'));
 }
 
+function openRecipeFromLog(entry_id)
+{
+  let entry = findLogEntryById(entry_id);
+  if (!entry || !entry.recipe_snapshot) return;
+
+  let snapshot = entry.recipe_snapshot;
+  let ingredients = [];
+  for (let ingredient of snapshot.ingredients)
+  {
+    if (ingredient.grams == 0) continue;
+    ingredients.push(
+    {
+      item_key:ingredient.item_key,
+      grams:ingredient.grams != null ? String(ingredient.grams) : ''
+    });
+  }
+  // Keep direct ingredient references, including sub-recipes, as in normal editing.
+  openRecipeDraft(
+  {
+    key:'',
+    name:entry.item_key == 'custom' && entry.note ? entry.note : snapshot.name,
+    yield_g:entry.grams != null ? entry.grams : '',
+    scoop_g:entry.grams != null ? entry.grams : '',
+    tags:[],
+    ingredients:ingredients
+  });
+}
+
 function recipeGramsForItem(key)
 {
   for (let ingredient of g_recipe_draft.ingredients)
@@ -3702,6 +3730,7 @@ function appendRecipeSnapshotText(lines, snapshot, indent)
 {
   for (let ingredient of snapshot.ingredients)
   {
+    if (ingredient.grams == 0) continue;
     lines.push(indent + '- ' + ingredient.name
       + (ingredient.brand ? ' — ' + ingredient.brand : '')
       + (ingredient.barcode ? ' [' + ingredient.barcode + ']' : '')
@@ -7569,6 +7598,23 @@ function renderTemporaryMeals()
   return h;
 }
 
+function renderRecipeIngredientList(snapshot)
+{
+  let h = '<ul>';
+  for (let ingredient of snapshot.ingredients)
+  {
+    if (ingredient.grams == 0) continue;
+    let grams = ingredient.grams != null ? fmt1(ingredient.grams) : '—';
+    h += `<li>${esc(ingredient.name)} · ${grams} g`;
+    if (ingredient.ingredients && ingredient.ingredients.length)
+    {
+      h += renderRecipeIngredientList(ingredient);
+    }
+    h += '</li>';
+  }
+  return h + '</ul>';
+}
+
 function renderLoggedFoodMain(entry, is_today)
 {
   let is_custom = entry.item_key == 'custom';
@@ -7581,6 +7627,7 @@ function renderLoggedFoodMain(entry, is_today)
   let inline_note_input = '';
   let note_line_input = '';
   let detail_line = '';
+  let ingredients = '';
 
   if (custom_note_label)
   {
@@ -7611,11 +7658,17 @@ function renderLoggedFoodMain(entry, is_today)
     detail_line = `<span class="logged-food-detail">${loggedEntryDetail(entry)}</span>`;
   }
 
+  if (entry.recipe_snapshot && entry.recipe_snapshot.ingredients && entry.recipe_snapshot.ingredients.length)
+  {
+    ingredients = `<details class="logged-recipe-ingredients"><summary>ingredients</summary>${renderRecipeIngredientList(entry.recipe_snapshot)}<button class="smallbtn" data-a="recipe-from-log" data-entry="${esc(entry.id)}">save as recipe</button></details>`;
+  }
+
   return `<div class="logged-food-titleline${empty_note_class}">
     ${title_content}${inline_note_input}
   </div>
   ${note_line_input}
-  ${detail_line}`;
+  ${detail_line}
+  ${ingredients}`;
 }
 
 function renderLoggedFoodList()
@@ -8632,6 +8685,10 @@ document.addEventListener('click', function(ev)
     case 'logged-foods-toggle':
       g_logged_foods_open = !g_logged_foods_open;
       render();
+      return;
+
+    case 'recipe-from-log':
+      openRecipeFromLog(target.dataset.entry);
       return;
 
     case 'meal-new':
