@@ -6712,22 +6712,26 @@ function refreshNutritionSummary()
 function renderPredictionTable(projection, absolute)
 {
   let rows = absolute ?
-    [['Mass (kg)', 'mass'], ['Fat mass (kg)', 'fat'], ['Body fat (%)', 'bodyfat'], ['FMI (kg/m²)', 'fmi']] :
-    [['Mass (kg)', 'change'], ['Bodyweight (%)', 'mass_percent'], ['Body fat (points)', 'bodyfat_change']];
+    [['Mass (kg)', 'mass', 'kg'], ['Fat mass (kg)', 'fat', 'kg'], ['Body fat (%)', 'bodyfat', '%'], ['FMI (kg/m²)', 'fmi', '']] :
+    [['Mass (kg)', 'change', 'kg'], ['Bodyweight (%)', 'mass_percent', '%'], ['Body fat (points)', 'bodyfat_change', 'pp']];
   let h = `<div class="prediction-table-wrap"><table class="prediction-table"><caption>${absolute ? 'Predicted values' : 'Estimated changes'}</caption>
     <thead><tr><th scope="col">${absolute ? 'Prediction' : 'Change'}</th><th scope="col">1 week</th><th scope="col">1 month</th><th scope="col">1 quarter</th></tr></thead><tbody>`;
   for (let row of rows)
   {
-    h += `<tr><th scope="row">${row[0]}</th>`;
+    let points_class = row[1] == 'bodyfat_change' ? ' class="prediction-points"' : '';
+    h += `<tr${points_class}><th scope="row">${row[0]}</th>`;
     for (let prediction of projection.predictions)
     {
       let value = prediction[row[1]];
       let text = value == null ? '—' : absolute ? fmt1(value) : signedEstimate(value);
+      if (value != null && row[2]) text += ` <span class="prediction-unit"${row[2] == 'pp' ? ' title="percentage points"' : ''}>${row[2]}</span>`;
       h += `<td>${text}</td>`;
     }
     h += '</tr>';
   }
-  return h + '</tbody></table></div>';
+  h += '</tbody></table></div>';
+  if (!absolute) h += '<p class="note">pp = body-fat percentage points.</p>';
+  return h;
 }
 
 function renderTrendsEstimates()
