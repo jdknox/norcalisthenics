@@ -6,7 +6,7 @@
 */
 
 let protein_storage_url = '/api/storage';
-let protein_storage_timeout_ms = 2500;
+let protein_storage_timeout_ms = 10000;
 
 function proteinStorageUrl(key)
 {
@@ -32,8 +32,10 @@ function readProteinStorageJson(response)
 function proteinStorageFetch(url, options)
 {
   let controller = new AbortController();
+  let timed_out = false;
   let timeout_id = setTimeout(function()
   {
+    timed_out = true;
     controller.abort();
   }, protein_storage_timeout_ms);
 
@@ -46,6 +48,7 @@ function proteinStorageFetch(url, options)
   }, function(error)
   {
     clearTimeout(timeout_id);
+    if (timed_out) throw new Error('storage ' + options.method + ' timed out after ' + protein_storage_timeout_ms/1000 + ' seconds');
     throw error;
   });
 }
