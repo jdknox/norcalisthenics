@@ -856,11 +856,11 @@ let g_lognote_dirty_ids = {};
 let custom_kcal_ratio_fallback = 23;
 let custom_kcal_ratio_rho = 0.85;
 let g_default_water_ml = 740;
-let g_water_slider_ml = g_default_water_ml;
-let g_water_slider_raw = String(g_default_water_ml);
 let g_water_slider_min_ml = 100;
-let g_water_slider_max_ml = 1000;
+let g_water_slider_max_ml = 580;
 let g_water_slider_step_ml = 10;
+let g_water_slider_ml = g_water_slider_max_ml;
+let g_water_slider_raw = String(g_water_slider_ml);
 let g_meal_pair_max_minutes = 240;
 
 function proteinPerGram(food)
@@ -8727,7 +8727,7 @@ document.addEventListener('input', function(ev)
     let value = Math.round(parseFloat(target.value));
     let input = document.getElementById('mass-water-input');
 
-    if (isNaN(value)) value = g_default_water_ml;
+    if (isNaN(value)) value = g_water_slider_max_ml;
     g_water_slider_ml = value;
     g_water_slider_raw = String(value);
     if (input) input.value = g_water_slider_raw;
