@@ -2648,7 +2648,7 @@ function refreshLookupDebug()
   if (debug) debug.innerHTML = renderLookupDebug();
 }
 
-function addEditorNumberText(value)
+function pantryEditorNumberText(value)
 {
   if (value == null || String(value).trim() == '') return '';
   let number = Number(value);
@@ -2666,7 +2666,7 @@ function refreshDraftMacroFields(kind, draft)
   for (let field of ['macro_protein', 'macro_kcal'])
   {
     let input = document.querySelector('[data-' + kind + 'draft="' + field + '"]');
-    if (input != document.activeElement) input.value = kind == 'add' ? addEditorNumberText(draft[field]) : draft[field];
+    if (input != document.activeElement) input.value = pantryEditorNumberText(draft[field]);
     let unit = input.parentElement.querySelector('.unitghost');
     if (unit) unit.textContent = mode == '100g' ? '/100g' : field == 'macro_protein' ? 'g' : 'kcal';
   }
@@ -3333,22 +3333,21 @@ function renderScoopEditRow(item)
         <input type="text" data-editdraft="tags" autocomplete="off" placeholder="tags, comma separated (e.g. Skyr bowl, Snack mix)" value="${esc(d.tags)}">
         <div class="tagsuggest"></div>
       </span>
-      <input type="text" data-editdraft="barcode" placeholder="barcode" value="${esc(d.barcode)}">
       <input type="text" data-editdraft="volume" autocapitalize="characters" placeholder="volume (mL, or BOWL/CAN)" value="${esc(d.volume)}">
-      <span class="unitinput">
-        <input type="text" inputmode="decimal" data-editdraft="scoop_g" placeholder="scoop" value="${esc(d.scoop_g)}">
+      <div class="pantry-editor-row"><span class="unitinput pantry-scoop-size">
+        <input type="text" inputmode="decimal" data-editdraft="scoop_g" placeholder="scoop" value="${esc(pantryEditorNumberText(d.scoop_g))}">
         <span class="unitghost" aria-hidden="true">g</span>
-      </span>`;
+      </span></div>`;
 
   h += renderWaterContentField('edit', d);
   h += renderMacroModeControl('edit', mode);
 
   h += `<span class="unitinput">
-        <input type="text" inputmode="decimal" data-editdraft="macro_protein" placeholder="protein" value="${esc(d.macro_protein)}">
+        <input type="text" inputmode="decimal" data-editdraft="macro_protein" placeholder="protein" value="${esc(pantryEditorNumberText(d.macro_protein))}">
         <span class="unitghost" aria-hidden="true">${protein_unit}</span>
       </span>
       <span class="unitinput">
-        <input type="text" inputmode="decimal" data-editdraft="macro_kcal" placeholder="kcal" value="${esc(d.macro_kcal)}">
+        <input type="text" inputmode="decimal" data-editdraft="macro_kcal" placeholder="kcal" value="${esc(pantryEditorNumberText(d.macro_kcal))}">
         <span class="unitghost" aria-hidden="true">${kcal_unit}</span>
       </span>
       <span class="hint" data-macro-ratio="edit" style="width:100%">${draftMacroRatioText(d)}</span>
@@ -3356,11 +3355,14 @@ function renderScoopEditRow(item)
 
   let fetch_disabled = g_fetch_pending[item.key] ? ' disabled' : '';
   let fetch_hidden = d.barcode.trim().length > 2 ? '' : ' hidden';
-  h += `<button class="smallbtn" data-a="scoop-fetch" data-key="${item.key}" data-context="${esc(g_edit_context || 'standalone')}"${fetch_disabled}${fetch_hidden}>fetch O.F.F.</button>`;
+  h += `<div class="pantry-editor-row">
+      <input type="text" data-editdraft="barcode" placeholder="barcode" value="${esc(d.barcode)}">
+      <button class="smallbtn" data-a="scoop-fetch" data-key="${item.key}" data-context="${esc(g_edit_context || 'standalone')}"${fetch_disabled}${fetch_hidden}>fetch O.F.F.</button>
+    </div>`;
 
-  h += `<button class="smallbtn" data-a="scoop-edit-save">save</button>
-      <button class="smallbtn" data-a="scoop-edit-cancel">cancel</button>
-      <button class="smallbtn archivebtn" data-a="${archive_action}">${archive_label}</button>
+  h += `<div class="pantry-editor-row"><button class="smallbtn" data-a="scoop-edit-save">save</button>
+      <button class="smallbtn" data-a="scoop-edit-cancel">cancel</button></div>
+      <div class="pantry-editor-row"><button class="smallbtn archivebtn" data-a="${archive_action}">${archive_label}</button></div>
       <div class="hint" style="width:100%;margin-top:2px">Use 100g for label/O.F.F. values per 100g; use serving for values that belong to the scoop mass entered here. This changes future logs only, not days already logged. Tags are comma separated.</div>
     </div>
   </td></tr>`;
@@ -8854,18 +8856,20 @@ function renderScoopSection()
           placeholder="tags, comma separated" aria-label="Tags" value="${esc(d.tags)}">
         <span class="tagsuggest"></span>
       </span>
-      <input type="text" data-adddraft="volume" autocapitalize="characters" placeholder="volume (mL, or BOWL/CAN)" aria-label="Volume" value="${esc(d.volume || '')}">
-      <input type="text" inputmode="decimal" data-adddraft="scoop_g" placeholder="scoop g" value="${esc(addEditorNumberText(d.scoop_g))}">`;
+      <div class="pantry-add-sizes">
+        <input type="text" data-adddraft="volume" autocapitalize="characters" placeholder="volume (mL, or BOWL/CAN)" aria-label="Volume" value="${esc(d.volume || '')}">
+        <input type="text" inputmode="decimal" data-adddraft="scoop_g" placeholder="scoop g" value="${esc(pantryEditorNumberText(d.scoop_g))}">
+      </div>`;
 
     h += renderWaterContentField('add', d);
     h += renderMacroModeControl('add', mode);
 
     h += `<span class="unitinput">
-        <input type="text" inputmode="decimal" data-adddraft="macro_protein" placeholder="protein" value="${esc(addEditorNumberText(d.macro_protein))}">
+        <input type="text" inputmode="decimal" data-adddraft="macro_protein" placeholder="protein" value="${esc(pantryEditorNumberText(d.macro_protein))}">
         <span class="unitghost" aria-hidden="true">${protein_unit}</span>
       </span>
       <span class="unitinput">
-        <input type="text" inputmode="decimal" data-adddraft="macro_kcal" placeholder="kcal" value="${esc(addEditorNumberText(d.macro_kcal))}">
+        <input type="text" inputmode="decimal" data-adddraft="macro_kcal" placeholder="kcal" value="${esc(pantryEditorNumberText(d.macro_kcal))}">
         <span class="unitghost" aria-hidden="true">${kcal_unit}</span>
       </span>
       <span class="hint" id="addex-macro-preview" style="width:100%">${addItemMacroPreviewText(d, true)}</span>

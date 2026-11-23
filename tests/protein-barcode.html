@@ -136,6 +136,16 @@ function checkPreviewFinished()
   click('addex-barcode-scan');
   check(doc.getElementById('barcode-add-status').textContent.includes('does not support'), 'unsupported browser feedback');
   check(doc.querySelector('[data-adddraft="barcode"]'), 'manual barcode entry remains available');
+  app.eval(`
+    g_scoop_add_draft = null;
+    g_flatten_view = true;
+    g_scoop_items.push({key:'decimal-test', name:'Decimal test', scoop_g:100, protein_g:21.4285714285714, kcal:392.8571428571428});
+    openScoopEdit('decimal-test');
+  `);
+  check(doc.querySelector('[data-editdraft="macro_protein"]').value == '21.4', 'edit protein field is formatted');
+  check(doc.querySelector('[data-editdraft="macro_kcal"]').value == '392.9', 'edit kcal field is formatted');
+  click('edit-macro-mode');
+  check(doc.querySelector('[data-editdraft="macro_kcal"]').value == '392.9', 'edit mode conversion remains formatted');
   document.getElementById('result').textContent = 'PASS: regular pantry capture, draft preservation, camera cleanup, stale callbacks, permissions, unsupported browsers, and no data writes';
 }
 </script>

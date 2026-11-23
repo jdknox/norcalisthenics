@@ -428,6 +428,15 @@ body.admin-mode #tab-top{scroll-margin-top:calc(58px + env(safe-area-inset-top,0
   font-size:smaller;
 }
 .addform input{width:120px;max-width:100%}
+.pantry-add-sizes {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 1.2fr);
+  gap: 8px;
+  flex: 0 0 100%
+}
+.addform .pantry-add-sizes input{width:100%;min-width:0}
+.pantry-editor-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px;flex:0 0 100%}
+.pantry-editor-row .archivebtn{font-size:9px}
 .addform input[data-adddraft="macro_kcal"],.addform input[data-editdraft="macro_kcal"]{color:var(--blue)}
 .addform input[data-adddraft="macro_protein"],.addform input[data-editdraft="macro_protein"]{color:var(--search-hi)}
 .pantry-serving-protein{color:var(--search-hi)}
@@ -450,6 +459,9 @@ body.admin-mode #tab-top{scroll-margin-top:calc(58px + env(safe-area-inset-top,0
 .unitghost{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-family:var(--mono);font-size:13px;color:var(--faint);pointer-events:none;user-select:none}
 .tagwrap{position:relative}
 .tagwrap input{width:260px}
+.addform input[data-editdraft="volume"]{width:260px}
+.pantry-editor-row .pantry-scoop-size{width:260px;max-width:100%;flex:0 1 260px}
+.addform .pantry-scoop-size input{width:100%}
 .tagsuggest{display:none;position:absolute;left:0;top:100%;z-index:5;margin-top:4px;max-height:180px;overflow:auto;background:var(--panel);border:1px solid var(--line2);border-radius:6px;box-shadow:0 8px 24px rgba(0,0,0,.4);min-width:220px}
 .tagsuggest.open{display:block}
 .tagsuggestitem{display:block;width:100%;text-align:left;font-family:var(--sans);font-size:13px;padding:8px 11px;color:var(--text);border:none;border-bottom:1px solid var(--line);background:none;cursor:pointer}
