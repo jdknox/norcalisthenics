@@ -235,11 +235,13 @@ class WorkoutHandler(http.server.SimpleHTTPRequestHandler):
                 return writeJsonText(self, 400, {'error': 'invalid key'})
 
             storage_lock.acquire()
-            data = readSharedStorageFile()
-            stored_value = data.get(key, None)
-            value = storageResponseValue(stored_value)
-            revision = storageRevision(stored_value)
-            storage_lock.release()
+            try:
+                data = readSharedStorageFile()
+                stored_value = data.get(key, None)
+                value = storageResponseValue(stored_value)
+                revision = storageRevision(stored_value)
+            finally:
+                storage_lock.release()
             return writeJsonText(self, 200, {'value': value, 'revision': revision})
 
         return http.server.SimpleHTTPRequestHandler.do_GET(self)
@@ -267,25 +269,26 @@ class WorkoutHandler(http.server.SimpleHTTPRequestHandler):
             if key == 'protein-loadout:v1' and not expected_revision:
                 return writeJsonText(self, 428, {'error': 'storage revision required'})
 
-            storage_lock.acquire()
-            data = readSharedStorageFile()
-            stored_value = data.get(key, None)
-            current_revision = storageRevision(stored_value)
-
-            if expected_revision and expected_revision != current_revision:
-                value = storageResponseValue(stored_value)
-                storage_lock.release()
-                return writeJsonText(self, 409, {
-                    'error': 'storage conflict',
-                    'value': value,
-                    'revision': current_revision
-                })
-
             new_value = parseStorageValue(text)
-            data[key] = new_value
-            writeSharedStorageFile(data)
-            new_revision = storageRevision(new_value)
-            storage_lock.release()
+            storage_lock.acquire()
+            try:
+                data = readSharedStorageFile()
+                stored_value = data.get(key, None)
+                current_revision = storageRevision(stored_value)
+
+                if expected_revision and expected_revision != current_revision:
+                    value = storageResponseValue(stored_value)
+                    return writeJsonText(self, 409, {
+                        'error': 'storage conflict',
+                        'value': value,
+                        'revision': current_revision
+                    })
+
+                data[key] = new_value
+                writeSharedStorageFile(data)
+                new_revision = storageRevision(new_value)
+            finally:
+                storage_lock.release()
             return writeJsonText(self, 200, {'ok': True, 'revision': new_revision})
 
         return writePlainText(self, 404, 'not found\n', 'text/plain; charset=utf-8')
