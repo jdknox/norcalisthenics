@@ -211,6 +211,8 @@ body.admin-mode #tab-top{scroll-margin-top:calc(58px + env(safe-area-inset-top,0
 .smallbtn[data-a="scoop-add-item-open"]:hover{color:var(--bg);background:var(--green)}
 .smallbtn[data-a="recipe-new"]{color:var(--blue);border-color:var(--blue)}
 .smallbtn[data-a="recipe-new"]:hover{color:var(--bg);background:var(--blue)}
+.smallbtn[data-a="addex-barcode-scan"],.smallbtn[data-a="barcode-test-start"]{color:var(--blue);border-color:var(--blue)}
+.smallbtn[data-a="addex-barcode-scan"]:hover,.smallbtn[data-a="barcode-test-start"]:hover{color:var(--bg);background:var(--blue)}
 .admin-toggle.admin-on{color:#1b0f0b;background:var(--coral);border-color:#f0b09c;font-weight:666}
 .datenav{display:flex;align-items:center;gap:10px;margin:0px 0 12px}
 .dateblock{display:block;width:max-content;margin:0 0 12px}
@@ -405,6 +407,7 @@ body.admin-mode #tab-top{scroll-margin-top:calc(58px + env(safe-area-inset-top,0
 .custom-inputs input{width:100%;margin:0}
 .custom-inputs input[data-custom="grams"]{grid-column:1 / -1}
 .fetchstatus{font-size:11.5px;color:var(--faint);padding:2px 8px 12px}
+.barcode-status{flex:0 0 100%;display:flex;flex-wrap:wrap;gap:4px 12px;padding:0}
 .addform {
   display: flex; gap: 8px; flex-wrap: wrap;
   border: 1px solid var(--line); border-radius: 6px;

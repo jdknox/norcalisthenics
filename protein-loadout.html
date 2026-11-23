@@ -8748,7 +8748,10 @@ function renderScoopSection()
       <button type="button" class="smallbtn" data-a="addex-barcode-scan">Scan barcode</button>
       <button type="button" class="smallbtn" data-a="addex-barcode-stop">Stop camera</button>
       <button class="smallbtn" data-a="addex-lookup-off">look up on O.F.F.</button>
-      <span id="barcode-add-status" class="hint" role="status" style="flex:0 0 100%">${esc(g_barcode_add_status)}</span>
+      <div class="barcode-status fetchstatus">
+        <span id="barcode-add-status" role="status">${esc(g_barcode_add_status)}</span>
+        <span id="addex-lookup-status" role="status"${g_add_item_status ? '' : ' hidden'}>${esc(g_add_item_status)}</span>
+      </div>
       <video id="barcode-add-video" autoplay muted playsinline hidden style="width:100%;max-width:360px"></video>
       <textarea rows="1" data-adddraft="name" placeholder="name">${esc(d.name)}</textarea>
       <textarea rows="1" data-adddraft="brand" placeholder="brand">${esc(d.brand)}</textarea>
@@ -8774,8 +8777,6 @@ function renderScoopSection()
       <span class="hint" id="addex-macro-preview" style="width:100%">${esc(addItemMacroPreviewText(d))}</span>
       <button class="smallbtn" data-a="scoop-add-item-save">save</button>
       <button class="smallbtn" data-a="scoop-add-item-cancel">cancel</button>`;
-
-    h += `<div id="addex-lookup-status" class="fetchstatus" style="width:100%"${g_add_item_status ? '' : ' hidden'}>${esc(g_add_item_status)}</div>`;
 
     h += `<div class="hint" style="width:100%;margin-top:2px">Use 100g when copying label or O.F.F. values per 100g; use serving when the label values are for the scoop/serving mass you entered.</div>
     </div>`;
