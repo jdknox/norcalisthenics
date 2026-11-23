@@ -2415,7 +2415,7 @@ function loggedEntryDetail(entry)
     let kcal_g = kcal/protein_g;
     let formatted = fmtKcalProteinRatio(kcal_g);
     let value = `(${formatted.padStart(4)}/g)`.padStart(10);
-    detail += `<span class="logged-food-grams">${value}</span>`;
+    detail += `<span class="kcal-protein-ratio">${value}</span>`;
   }
 
   return detail || 'logged';
@@ -3144,7 +3144,7 @@ function renderRecipeDraft()
     let item = findScoopItem(ingredient.item_key);
     let ratio = item ? itemKcalProteinRatio(item) : null;
     h += `<div class="recipe-ingredient"><span>${esc(item ? item.name : 'Missing ingredient: ' + ingredient.item_key)}${item && item.brand ? `<span class="recipe-ingredient-brand">${esc(item.brand)}</span>` : ''}</span>
-      <span class="recipe-clear-input"><label class="recipe-amount unitinput"><input aria-label="${esc((item ? item.name : 'Ingredient') + ' grams')}" inputmode="decimal" data-recipeindex="${i}" data-recipefield="grams" value="${esc(ingredient.grams)}"><span class="unitghost">g</span><small class="recipe-ingredient-ratio" title="kcal per gram of protein">${ratio != null ? fmtKcalProteinRatio(ratio) : '—'} kcal/g</small></label>
+      <span class="recipe-clear-input"><label class="recipe-amount unitinput"><input aria-label="${esc((item ? item.name : 'Ingredient') + ' grams')}" inputmode="decimal" data-recipeindex="${i}" data-recipefield="grams" value="${esc(ingredient.grams)}"><span class="unitghost">g</span><small class="recipe-ingredient-ratio kcal-protein-ratio" title="kcal per gram of protein">${ratio != null ? fmtKcalProteinRatio(ratio) : '—'} kcal/g</small></label>
       <button type="button" class="editbtn" data-a="recipe-amount-edit" data-index="${i}" title="Clear and edit ingredient grams" aria-label="Clear and edit ${esc(item ? item.name : 'ingredient')} grams">⌫</button></span>
       <button class="smallbtn" data-a="recipe-zero" data-index="${i}" title="Set ingredient grams to zero" aria-label="Set ${esc(item ? item.name : 'ingredient')} grams to zero">0</button>
       <button class="smallbtn" data-a="recipe-remove" data-index="${i}" title="Remove ingredient" aria-label="Remove ingredient">−</button></div>`;
@@ -3370,7 +3370,7 @@ function renderScoopEditRow(item)
         <input type="text" inputmode="decimal" data-editdraft="macro_kcal" placeholder="kcal" value="${esc(pantryEditorNumberText(d.macro_kcal))}">
         <span class="unitghost" aria-hidden="true">${kcal_unit}</span>
       </span>
-      <span class="hint" data-macro-ratio="edit" style="width:100%">${draftMacroRatioText(d)}</span>
+      <span class="hint kcal-protein-ratio" data-macro-ratio="edit" style="width:100%">${draftMacroRatioText(d)}</span>
       `;
 
   let fetch_disabled = g_fetch_pending[item.key] ? ' disabled' : '';
@@ -3620,7 +3620,7 @@ function renderScalePanel(item)
         <span class="scaleunitbox">
           <input type="text" inputmode="decimal" data-scaledraft="protein_g"
             value="${esc(d.protein_g_raw)}"${g_recipe_draft ? ' readonly' : ''}><span>protein g</span>
-          ${g_recipe_draft ? `<small class="scale-macro-ratio">${itemKcalProteinRatio(item) != null ? fmtKcalProteinRatio(itemKcalProteinRatio(item)) : '—'} kcal/g protein</small>` : ''}
+          ${g_recipe_draft ? `<small class="scale-macro-ratio kcal-protein-ratio">${itemKcalProteinRatio(item) != null ? fmtKcalProteinRatio(itemKcalProteinRatio(item)) : '—'} kcal/g protein</small>` : ''}
         </span>
         <span class="scaleunitbox">
           <input type="text" inputmode="decimal" data-scaledraft="kcal"
@@ -6970,7 +6970,7 @@ function renderProteinKgScale(logged_protein)
       <span>(${mean_ratio_text}/kg)</span>
 
       <span class="protein-kg-note-kcal">${fmt_1(mean_kcal)}</span>
-      <span>(${fmtKcalProteinRatio(mean_kcal/mean_protein)}/g)</span>
+      <span class="kcal-protein-ratio">(${fmtKcalProteinRatio(mean_kcal/mean_protein)}/g)</span>
       <br />
       <span class="protein-kg-note-bodyweight">${fmt1(mean_bodyweight_kg)} kg</span>
       <span title="Projected change if recent calorie intake continues">(${signedEstimate(week.change)}/W ${signedEstimate(month.change)}/M kg)</span>
@@ -7860,7 +7860,7 @@ function renderItemRow(item, is_today, indent, context)
     </td>
     <td class="num pack-out measurestack"><span>${esc(formatVolume(item))}</span><span>${scoop_g}</span></td>
     <td class="num pack-out protein">${protein}</td>
-    <td class="num pack-out kcal"><span>${kcal}</span><span class="pantry-macro-ratio">${macro_ratio}</span></td>
+    <td class="num pack-out kcal"><span>${kcal}</span><span class="pantry-macro-ratio kcal-protein-ratio">${macro_ratio}</span></td>
     <td class="num scoopcount"${g_recipe_draft ? ' data-recipe-grams="' + esc(item.key) + '"' : ''}>${count}</td>
     <td class="scoopactions">
       <div class="scoopactionstack">
@@ -8237,7 +8237,7 @@ function renderCustomRow()
 
   h += `<tr class="scooprow customrow">
     <td colspan="1">
-      <span class="foodname">Custom<span class="unit">history estimate<br />kcal ≈ ${fmt0(kcal_ratio)}x protein</span></span>
+      <span class="foodname">Custom<span class="unit">history estimate<br /><span class="kcal-protein-ratio">kcal ≈ ${fmt0(kcal_ratio)}x protein</span></span></span>
     </td>
     <td class="num" colspan="3">
       <div class="custom-inputs">
@@ -8423,7 +8423,7 @@ function renderTemporaryMeals()
         <span class="logged-food-grams">${totals.grams != null ? fmt0(totals.grams) : '—'} g</span>
         <span class="logged-food-protein">${totals.protein_g != null ? fmt1(totals.protein_g) : '—'} g protein</span>
         <span class="logged-food-kcal">${totals.kcal != null ? fmt0(totals.kcal) : '—'} kcal</span>
-        <span>${ratio != null ? fmtKcalProteinRatio(ratio) : '—'} kcal/g protein</span>
+        <span class="kcal-protein-ratio">${ratio != null ? fmtKcalProteinRatio(ratio) : '—'} kcal/g protein</span>
       </div>
     </div>`;
   }
@@ -8542,7 +8542,7 @@ function renderLoggedFoodList()
       <button class="logged-foods-headbtn logged-foods-collapse" data-a="logged-foods-toggle">
         ${collapse_toggle} <span class="logged-foods-title">logged foods</span>
       </button>
-      <div class="logged-foods-title info"><span>
+      <div class="logged-foods-title info"><span class="kcal-protein-ratio">
         (avg&nbsp;${fmtKcalProteinRatio(kcal_g).padStart(4)} kcal/g)
       </span></div>
       <div class="logged-foods-controls">${details_button}
@@ -8821,7 +8821,7 @@ function renderPantryNutritionSummary(totals)
     <div class="cell">
       <div class="lab">protein</div>
       <div class="val">${fmt0(totals.protein)} g</div>
-      <span class="pantry-macro-ratio">${remaining_ratio_text + '/g rem'}</span>
+      <span class="pantry-macro-ratio kcal-protein-ratio">${remaining_ratio_text + '/g rem'}</span>
     </div>
     <div class="cell">
       <div class="lab">${target_label}</div>
@@ -8894,7 +8894,7 @@ function renderScoopSection()
         <span class="unitghost" aria-hidden="true">${kcal_unit}</span>
       </span>
       <span class="hint" id="addex-macro-preview" style="width:100%">${addItemMacroPreviewText(d, true)}</span>
-      <span class="hint" data-macro-ratio="add" style="width:100%">${draftMacroRatioText(d)}</span>
+      <span class="hint kcal-protein-ratio" data-macro-ratio="add" style="width:100%">${draftMacroRatioText(d)}</span>
       <button class="smallbtn" data-a="scoop-add-item-save">save</button>
       <button class="smallbtn" data-a="scoop-add-item-cancel">cancel</button>`;
 

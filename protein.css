@@ -10,6 +10,7 @@
   --faint:#666e69;
   --green:#7fae7a;
   --blue:#72a3cc;
+  --kcal-protein-ratio:#b49bd3;
   --green-p:#86b076;
   --green-hi:#95c78f;
   --search-hi:#cbbb7f;
@@ -540,6 +541,7 @@ body.admin-mode #tab-top{scroll-margin-top:calc(58px + env(safe-area-inset-top,0
 .recipe-editor [data-a="recipe-archive"]{font-size:9px}
 .recipe-nutrition-line{min-height:21px;overflow-x:auto;font-family:var(--mono);font-size:14px;color:var(--muted)}
 .recipe-nutrition-values{white-space:pre}
+.kcal-protein-ratio,.pantry-macro-ratio.kcal-protein-ratio,.hint.kcal-protein-ratio,.scaleunitbox .scale-macro-ratio,.recipe-ingredient-ratio{color:var(--kcal-protein-ratio)}
 .mass-activity-panel{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:10px 0}
 .mass-activity-input{display:block;min-height:54px}
 .mass-activity-input .mass-slider-label{display:block;margin:0 0 4px}

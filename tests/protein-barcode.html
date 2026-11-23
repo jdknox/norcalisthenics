@@ -104,9 +104,9 @@ function runChecks()
     protein_input.dispatchEvent(new Event('input', {bubbles:true}));
     kcal_input.value = '100';
     kcal_input.dispatchEvent(new Event('input', {bubbles:true}));
-    if (draftMacroRatioText({macro_protein:'0', macro_kcal:'100'}) != 'kcal/protein: — kcal/g') throw Error('zero-protein ratio');
+    if (draftMacroRatioText({macro_protein:'0', macro_kcal:'100'}) != '— kcal/g') throw Error('zero-protein ratio');
   `);
-  check(doc.querySelector('[data-macro-ratio="add"]').textContent == 'kcal/protein: 10.0 kcal/g', 'ratio updates while editing nutrition');
+  check(doc.querySelector('[data-macro-ratio="add"]').textContent == '10.0 kcal/g', 'ratio updates while editing nutrition');
   check(app.eval('test_stopped == 0 && test_writes == 0'), 'capture keeps camera open and does not save');
   check(!doc.getElementById('barcode-add-video').hidden, 'preview remains visible after capture');
   check(doc.getElementById('barcode-add-status').textContent == 'Barcode captured.', 'capture feedback');
