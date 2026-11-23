@@ -408,6 +408,9 @@ body.admin-mode #tab-top{scroll-margin-top:calc(58px + env(safe-area-inset-top,0
 .custom-inputs input[data-custom="grams"]{grid-column:1 / -1}
 .fetchstatus{font-size:11.5px;color:var(--faint);padding:2px 8px 12px}
 .barcode-status{flex:0 0 100%;display:flex;flex-wrap:wrap;gap:4px 12px;padding:0}
+.barcode-status.fetchstatus{font-size:10px}
+.barcode-status .status-matched{color:var(--green)}
+.barcode-status .status-failed{color:var(--coral)}
 .addform {
   display: flex; gap: 8px; flex-wrap: wrap;
   border: 1px solid var(--line); border-radius: 6px;

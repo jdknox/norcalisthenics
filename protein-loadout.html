@@ -2592,11 +2592,23 @@ function addItemMacroPreviewText(d)
     + ' / ' + (fields.kcal != null ? fields.kcal + ' kcal' : '— kcal');
 }
 
+function barcodeStatusHTML(message)
+{
+  if (message == 'This browser does not support barcode scanning.')
+  {
+    return '<span class="status-failed">' + esc(message) + '</span>';
+  }
+  return esc(message).replace(/\b(matched|failed)\b/gi, function colorStatusWord(word)
+  {
+    return '<span class="status-' + word.toLowerCase() + '">' + word + '</span>';
+  });
+}
+
 function refreshAddItemStatus()
 {
   let status = document.getElementById('addex-lookup-status');
   if (!status) return;
-  status.textContent = g_add_item_status;
+  status.innerHTML = barcodeStatusHTML(g_add_item_status);
   status.hidden = !g_add_item_status;
 }
 
@@ -7570,10 +7582,16 @@ function stopBarcodeScan()
 
 function setBarcodeScanStatus(message)
 {
-  if (g_barcode_scan_context == 'add') g_barcode_add_status = message;
+  if (g_barcode_scan_context == 'add')
+  {
+    g_barcode_add_status = message;
+  }
   else g_barcode_test_status = message;
   let node = document.getElementById('barcode-' + g_barcode_scan_context + '-status');
-  if (node) node.textContent = message;
+  if (node)
+  {
+    node.innerHTML = barcodeStatusHTML(message);
+  }
 }
 
 function scanBarcodeFrame(detector, generation)
@@ -8749,8 +8767,8 @@ function renderScoopSection()
       <button type="button" class="smallbtn" data-a="addex-barcode-stop">Stop camera</button>
       <button class="smallbtn" data-a="addex-lookup-off">look up on O.F.F.</button>
       <div class="barcode-status fetchstatus">
-        <span id="barcode-add-status" role="status">${esc(g_barcode_add_status)}</span>
-        <span id="addex-lookup-status" role="status"${g_add_item_status ? '' : ' hidden'}>${esc(g_add_item_status)}</span>
+        <span id="barcode-add-status" role="status">${barcodeStatusHTML(g_barcode_add_status)}</span>
+        <span id="addex-lookup-status" role="status"${g_add_item_status ? '' : ' hidden'}>${barcodeStatusHTML(g_add_item_status)}</span>
       </div>
       <video id="barcode-add-video" autoplay muted playsinline hidden style="width:100%;max-width:360px"></video>
       <textarea rows="1" data-adddraft="name" placeholder="name">${esc(d.name)}</textarea>
