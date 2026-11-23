@@ -70,7 +70,7 @@ function waitForSync(next)
 function pollSync()
 {
   check(++polls < 100, 'sync completes without a retry loop');
-  if (evaluate('g_input_save_timer == null && !g_sync_in_flight && !g_unsynced_changes'))
+  if (evaluate('g_input_save_timer == null && !g_load_in_flight && !g_sync_in_flight && !g_unsynced_changes'))
   {
     next_sync_check();
     return;
@@ -167,6 +167,26 @@ function checkUntouchedPull()
   check(app_document.getElementById('bodyweight-input').value == '83.50', 'an untouched bodyweight updates from shared storage');
   check(evaluate('g_target == 145 && g_target_manual'), 'shared bodyweight pull keeps the manual target override');
   check(field.isConnected && app_document.activeElement == field && field.value == 'Egg', 'bodyweight pull preserves an unrelated active editor');
-  document.getElementById('result').textContent = 'PASS: real GET/POST, bodyweight pull/push races, newer input during sync, final shared values, untouched pull, and editor identity';
+  field.blur();
+  evaluate(`g_bodyweight_kg = 80; g_bodyweight_by_date[g_view_date] = 80;
+    saveLocalJson(JSON.stringify(makeSavePayload())); load();`);
+  waitForSync(checkReloadedBodyweight);
+}
+
+function checkReloadedBodyweight()
+{
+  check(evaluate('bodyweightForDate(g_view_date)') == 83.5, 'reload uses shared bodyweight over stale synced local data');
+  let request = new XMLHttpRequest();
+  request.open('GET', '/api/storage?key=' + encodeURIComponent(evaluate('g_storage_key')));
+  request.onload = checkReloadedSharedBodyweight;
+  request.send();
+}
+
+function checkReloadedSharedBodyweight(event)
+{
+  check(event.target.status == 200, 'read shared state after reload');
+  let payload = JSON.parse(JSON.parse(event.target.responseText).value);
+  check(payload.bodyweight_by_date[evaluate('g_view_date')] == 83.5, 'reload does not overwrite shared bodyweight with stale local data');
+  document.getElementById('result').textContent = 'PASS: real GET/POST, bodyweight pull/push races, editor preservation, and shared bodyweight on reload';
 }
 </script></html>
