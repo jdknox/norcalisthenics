@@ -7596,8 +7596,13 @@ function scanBarcodeFrame(detector, generation)
         input.value = codes[0].rawValue;
         input.dispatchEvent(new Event('input', {bubbles:true}));
       }
-      stopBarcodeScan();
       setBarcodeScanStatus('Barcode captured.');
+      g_barcode_scan_timer = setTimeout(function finishBarcodePreview()
+      {
+        if (generation != g_barcode_scan_generation) return;
+        stopBarcodeScan();
+      }, 1000);
+      if (input && g_barcode_scan_context == 'add') lookupOFFForAddItem();
       return;
     }
     g_barcode_scan_timer = setTimeout(function scanNextFrame() { scanBarcodeFrame(detector, generation); }, 150);

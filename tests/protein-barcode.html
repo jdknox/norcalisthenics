@@ -53,6 +53,13 @@ function runChecks()
   app.eval(`
     window.test_stopped = 0;
     window.test_writes = 0;
+    window.test_lookups = 0;
+    fetchOFFProduct = function captureLookup(barcode, callback)
+    {
+      ++test_lookups;
+      window.lookup_barcode = barcode;
+      window.lookup_done = callback;
+    };
     save = function captureSave() { ++test_writes; };
     window.test_stream = {getTracks:function getTracks() { return [{stop:function stopTrack() { ++test_stopped; }}]; }};
     window.BarcodeDetector = function testDetector()
@@ -74,9 +81,20 @@ function runChecks()
   app.eval('camera_done(test_stream); detect_done([{rawValue:"1234567890123"}]);');
   check(barcode.value == '1234567890123', 'scan fills existing barcode field');
   check(app.eval('g_scoop_add_draft.barcode') == barcode.value, 'draft receives barcode');
+  check(app.eval('test_lookups == 1 && lookup_barcode == g_scoop_add_draft.barcode'), 'scan automatically looks up captured barcode once');
+  app.eval("lookup_done({found:true, name:'Product', brand:'Brand', protein_100g:1, kcal_100g:20});");
   check(name.isConnected && name.value == 'Keep my draft', 'scan preserves other draft fields');
-  check(app.eval('test_stopped == 1 && test_writes == 0'), 'scan stops camera and does not save');
+  check(doc.querySelector('[data-adddraft="brand"]').value == 'Brand', 'lookup fills empty fields');
+  check(app.eval('test_stopped == 0 && test_writes == 0'), 'capture keeps camera open and does not save');
+  check(!doc.getElementById('barcode-add-video').hidden, 'preview remains visible after capture');
   check(doc.getElementById('barcode-add-status').textContent == 'Barcode captured.', 'capture feedback');
+  setTimeout(checkPreviewFinished, 1100);
+}
+
+function checkPreviewFinished()
+{
+  check(app.eval('test_stopped == 1'), 'camera stops after preview delay');
+  check(doc.getElementById('barcode-add-video').hidden, 'preview closes after delay');
   click('addex-barcode-scan');
   app.eval('camera_done(test_stream); window.late_detection = detect_done;');
   click('scoop-add-item-cancel');
