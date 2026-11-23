@@ -1,0 +1,146 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Pantry water and hydration regression</title>
+<output id="result">Running</output>
+<iframe id="app" style="width:100%;height:1200px;border:0"></iframe>
+<script>
+'use strict';
+let frame = document.getElementById('app');
+let app;
+let doc;
+window.addEventListener('error', reportFailure);
+let request = new XMLHttpRequest();
+request.open('GET', '../protein-loadout.html');
+request.onload = loadFixture;
+request.send();
+
+function reportFailure(event)
+{
+  document.getElementById('result').textContent = 'FAIL: ' + event.message;
+}
+
+function check(condition, message)
+{
+  if (!condition) throw new Error(message);
+}
+
+function loadFixture()
+{
+  let html = request.responseText.replace('<head>', '<head><base href="/">');
+  html = html.replace(/<script src="protein-shared-storage.js[^\"]*"><\/script>/, '');
+  html = html.replace('\nload();\n</' + 'script>', '\n</' + 'script>');
+  html = html.replace("if ('serviceWorker' in navigator)", 'if (false)');
+  frame.onload = runChecks;
+  frame.srcdoc = html;
+}
+
+function inputField(selector, text)
+{
+  let input = doc.querySelector(selector);
+  check(input, 'input exists: ' + selector);
+  input.focus();
+  input.value = text;
+  input.dispatchEvent(new app.Event('input', {bubbles:true}));
+  check(input.isConnected && doc.activeElement == input && input.value == text, 'input retains focus and raw text: ' + selector);
+}
+
+function runChecks()
+{
+  app = frame.contentWindow;
+  doc = frame.contentDocument;
+  app.eval(`
+    window.test_writes = 0;
+    save = function captureSave() { ++test_writes; };
+    g_view_date = todayISO();
+    g_log = {};
+    g_mass_events = {};
+    g_scoop_items = [
+      {key:'yogurt', name:'Yogurt', scoop_g:200, protein_g:20, kcal:120, water_content:85},
+      {key:'dry', name:'Dry', scoop_g:50, protein_g:5, kcal:100},
+      {key:'mix', name:'Mix', scoop_g:100, yield_g:250, protein_g:10, kcal:88,
+        ingredients:[{item_key:'yogurt', grams:200}, {item_key:'dry', grams:50}]},
+      {key:'nested', name:'Nested', scoop_g:100, yield_g:200, protein_g:10, kcal:88,
+        ingredients:[{item_key:'mix', grams:200}]}
+    ];
+    pushLogEntry('yogurt', 200, 20, 120, 1);
+    window.first_entry = g_log[g_view_date][0];
+    if (foodWaterEvents(g_view_date).length != 1) throw Error('one derived event');
+    let ledger = computeMassLedger(g_view_date);
+    if (ledger.totals.water_in_ml != 170 || ledger.totals.total_mass_in_kg != 0.2 || ledger.totals.water_mass_in_kg != 0.17) throw Error('hydration without duplicate mass');
+    if (Math.abs(ledger.totals.pantry_mass_in_kg - 0.03) > 0.000001 || massSummaryForDate(g_view_date).food_mass_in_g != 30) throw Error('food mass excludes food water');
+    if (Math.abs(ledger.totals.pantry_mass_in_kg + ledger.totals.water_mass_in_kg - ledger.totals.total_mass_in_kg) > 0.000001) throw Error('water plus food equals total intake');
+    if (!foodWaterEvents(g_view_date)[0].note.includes('Yogurt')) throw Error('source note');
+    g_scoop_items[0].water_content = 20;
+    g_scoop_items[0].name = 'Changed';
+    if (foodWaterEvents(g_view_date)[0].water_volume_ml != 170 || !foodWaterEvents(g_view_date)[0].note.includes('Yogurt')) throw Error('historic amount and source');
+    removeLogEntry(first_entry.id);
+    if (foodWaterEvents(g_view_date).length) throw Error('deleted source');
+    restoreLogEntry(first_entry.id);
+    if (foodWaterEvents(g_view_date).length != 1) throw Error('restored source');
+    g_scoop_items[0].water_content = 85;
+    pushLogEntry('nested', 100, 10, 88, 1);
+    if (Math.abs(g_log[g_view_date][1].water_sources[0].water_ml - 68) > 0.000001) throw Error('nested recipe serving scale');
+    g_scoop_items[3].water_content = 50;
+    pushLogEntry('nested', 100, 10, 88, 1);
+    if (g_log[g_view_date][2].water_sources[0].water_ml != 50) throw Error('recipe override replaces ingredients');
+    g_scoop_items[3].water_content = 0;
+    pushLogEntry('nested', 100, 10, 88, 1);
+    if (g_log[g_view_date][3].water_sources.length) throw Error('explicit zero override');
+    pushLogEntry('dry', 50, 5, 100, 1);
+    if (g_log[g_view_date][4].water_sources.length) throw Error('unspecified water');
+    let unknown = makeRecipeLogSnapshot(g_scoop_items[2], null, 0, 0, null);
+    let sources = [];
+    appendSnapshotWater(unknown.snapshot, '', sources);
+    if (sources.length) throw Error('unknown ingredient masses');
+    window.before_water = computeMassLedger(g_view_date).totals.water_in_ml;
+    window.before_mass = computeMassLedger(g_view_date).totals.total_mass_in_kg;
+    window.before_sources = JSON.stringify(foodWaterEvents(g_view_date).map(function(source) { return [source.timestamp, source.water_volume_ml, source.note]; }));
+    g_temporary_meal_edit = addTemporaryMeal(g_log[g_view_date].map(function(entry) { return entry.id; }));
+    finishMealSelection();
+    if (computeMassLedger(g_view_date).totals.water_in_ml != before_water || computeMassLedger(g_view_date).totals.total_mass_in_kg != before_mass) throw Error('grouping preserves totals');
+    if (JSON.stringify(foodWaterEvents(g_view_date).map(function(source) { return [source.timestamp, source.water_volume_ml, source.note]; })) != before_sources) throw Error('grouping preserves sources and times');
+    let payload = makeSavePayload();
+    mergeLogEntries(payload.log);
+    if (computeMassLedger(g_view_date).totals.water_in_ml != before_water) throw Error('repeated sync duplicates water');
+    let backup = parseBackupTSV(buildBackupTSV().text);
+    if (!backup.ok || backup.payload.scoop_items[0].water_content != 85) throw Error('pantry TSV roundtrip');
+    if (JSON.stringify(backup.payload.log[g_view_date].at(-1).water_sources) != JSON.stringify(g_log[g_view_date].at(-1).water_sources)) throw Error('log TSV roundtrip');
+    if (!buildMassEventsCSV().includes('Yogurt')) throw Error('CSV includes food-only dates and source notes');
+    if (!makeMassEventsExportPayload().food_water_events[g_view_date].length) throw Error('JSON hydration sources');
+    let start = {timestamp:g_view_date + 'T00:00'};
+    let end = {timestamp:g_view_date + 'T23:59'};
+    if (loggedWaterMassBetween(foodWaterEvents(g_view_date), start, end) != 0) throw Error('food water excluded from separate drink subtraction');
+    g_active_tab = 'mass';
+    render();
+  `);
+  check(Array.from(doc.querySelectorAll('.mass-log .mass-event-detail')).some(function(detail) { return detail.textContent.trim() == '+170 mL · Yogurt'; }), 'hydration source shows volume and item name');
+  check(doc.querySelector('.mass-log').textContent.includes('Pantry mass excluding water'), 'food water explains mass accounting');
+  app.eval("g_active_tab = 'pantry'; g_flatten_view = true; openScoopEdit('yogurt');");
+  inputField('[data-editdraft="water_content"]', '85.');
+  check(doc.querySelector('[data-water-preview="edit"]').textContent.includes('170'), 'live percentage preview');
+  inputField('[data-editdraft="scoop_g"]', '100');
+  check(doc.querySelector('[data-water-preview="edit"]').textContent.includes('85.0 g'), 'live serving preview');
+  inputField('[data-editdraft="water_content"]', '101');
+  check(doc.querySelector('[data-water-preview="edit"]').textContent.includes('0 to 100'), 'invalid percentage explained');
+  app.eval("saveScoopEdit(); if (findScoopItem('yogurt').water_content != 85) throw Error('invalid save changed pantry');");
+  inputField('[data-editdraft="water_content"]', '');
+  app.eval("saveScoopEdit(); if (findScoopItem('yogurt').water_content != null) throw Error('clear water content'); openRecipeDraft(findScoopItem('mix')); render();");
+  inputField('[data-recipedraft="water_content"]', '50');
+  check(doc.querySelector('[data-water-preview="recipe"]').textContent.includes('50.0 g'), 'recipe override preview');
+  app.eval(`
+    let pantry_count = g_scoop_items.length;
+    logRecipeDraft();
+    if (g_scoop_items.length != pantry_count || g_log[g_view_date].at(-1).water_sources[0].water_ml != 125) throw Error('quick recipe logs batch water without saving pantry item');
+    let before_drink = computeMassLedger(g_view_date).totals;
+    addMassWater(100);
+    let after_drink = computeMassLedger(g_view_date).totals;
+    if (after_drink.water_in_ml - before_drink.water_in_ml != 100 || Math.abs(after_drink.total_mass_in_kg - before_drink.total_mass_in_kg - 0.1) > 0.000001) throw Error('manual drinks still add water and mass');
+  `);
+  app.eval("g_recipe_draft = null; g_scoop_add_draft = {name:'Drink', brand:'', barcode:'', tags:'', scoop_g:'200', macro_mode:'100g', macro_protein:'0', macro_kcal:'0', water_content:''}; render(); window.writes_before = test_writes;");
+  inputField('[data-adddraft="water_content"]', '90');
+  check(doc.querySelector('[data-water-preview="add"]').textContent.includes('180.0 g'), 'new pantry item preview');
+  check(app.eval('test_writes == writes_before'), 'typing water content does not save');
+  app.eval("saveAddItemDraft(); if (g_scoop_items.at(-1).water_content != 90) throw Error('new pantry water saved');");
+  document.getElementById('result').textContent = 'PASS: food water, scaling, recipes, overrides, history, grouping, deletion, sync, mass accounting, backups, exports, and live input previews';
+}
+</script>

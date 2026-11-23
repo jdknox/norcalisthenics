@@ -1071,6 +1071,103 @@ function showAddFeedback(bounds, message)
   }, 1000);
 }
 
+function waterContentError(value)
+{
+  if (value == null || String(value).trim() == '') return '';
+  let percent = Number(value);
+  return Number.isFinite(percent) && percent >= 0 && percent <= 100 ? '' : 'Enter water content from 0 to 100%.';
+}
+
+function waterContentValue(value)
+{
+  return value == null || String(value).trim() == '' ? null : Number(value);
+}
+
+function appendSnapshotWater(snapshot, timestamp, sources)
+{
+  if (snapshot.water_content != null && String(snapshot.water_content).trim() != '')
+  {
+    let percent = Number(snapshot.water_content);
+    let grams = snapshot.grams;
+    if (waterContentError(percent) || grams == null || !(Number(grams) > 0) || percent <= 0) return;
+    sources.push(
+    {
+      timestamp:timestamp,
+      name:snapshot.name,
+      grams:Number(grams),
+      water_content:percent,
+      water_ml:Number(grams)*percent/100
+    });
+    return;
+  }
+  for (let child of snapshot.ingredients || []) appendSnapshotWater(child, timestamp, sources);
+}
+
+function foodWaterEvents(date)
+{
+  let events = [];
+  for (let entry of g_log[date] || [])
+  {
+    if (logEntryIsDeleted(entry)) continue;
+    let index = 0;
+    for (let source of entry.water_sources || [])
+    {
+      let ml = Number(source.water_ml);
+      if (!(ml > 0)) continue;
+      events.push(
+      {
+        id:'food-water:' + entry.id + ':' + index,
+        timestamp:source.timestamp,
+        event_type:'water',
+        food_water:true,
+        water_volume_ml:ml,
+        mass_in_kg:0,
+        note:source.name
+      });
+      ++index;
+    }
+  }
+  return events;
+}
+
+function waterPreviewText(draft, recipe = false)
+{
+  let error = waterContentError(draft.water_content);
+  if (error) return error;
+  let grams = Number(draft.scoop_g);
+  if (recipe && !String(draft.scoop_g).trim()) grams = recipeBatchGrams(draft);
+  let percent = waterContentValue(draft.water_content);
+  if (percent == null)
+  {
+    if (!recipe) return 'Water per serving: —';
+    let nutrition = recipeNutrition(draft);
+    if (nutrition.error) return 'Water per serving: —';
+    let result = makeRecipeLogSnapshot(draft, grams, 0, 0, grams/nutrition.yield_g);
+    if (result.error) return result.error;
+    let sources = [];
+    appendSnapshotWater(result.snapshot, '', sources);
+    if (!sources.length) return 'Water per serving: — (no ingredient estimate)';
+    let water = 0;
+    for (let source of sources) water += source.water_ml;
+    return 'Estimated water per serving: ' + fmt1(water) + ' g (≈' + fmt1(water) + ' mL), from known ingredients';
+  }
+  if (!Number.isFinite(grams) || grams <= 0) return 'Water per serving: —';
+  let water = grams*percent/100;
+  return 'Water per serving: ' + fmt1(water) + ' g (≈' + fmt1(water) + ' mL)';
+}
+
+function renderWaterContentField(kind, draft)
+{
+  let hint = kind == 'recipe' ? 'Optional override; blank estimates water from known ingredients.' : 'Optional percentage of the food mass that is water.';
+  return `<label>Water content (%)<input type="text" inputmode="decimal" data-${kind}draft="water_content" value="${esc(draft.water_content || '')}" placeholder="optional" title="${hint}"></label><span class="hint" data-water-preview="${kind}">${esc(waterPreviewText(draft, kind == 'recipe'))}</span>`;
+}
+
+function refreshWaterPreview(kind, draft)
+{
+  let node = document.querySelector('[data-water-preview="' + kind + '"]');
+  if (node) node.textContent = waterPreviewText(draft, kind == 'recipe');
+}
+
 function addScoop(key)
 {
   let item = findScoopItem(key);
@@ -1103,6 +1200,14 @@ function pushLogEntry(key, grams, protein_g, kcal, scale, recipe_snapshot = null
     if (result.error) return result.error;
     recipe_snapshot = result.snapshot;
   }
+  entry.water_sources = [];
+  let water_snapshot = recipe_snapshot ||
+  {
+    name:item ? item.name : key,
+    grams:grams,
+    water_content:item ? item.water_content : null
+  };
+  appendSnapshotWater(water_snapshot, massTimestampForNewEvent(currentTimeText()), entry.water_sources);
   // Ingredient snapshots describe this meal; only the outer log entry counts toward totals.
   if (recipe_snapshot) entry.recipe_snapshot = recipe_snapshot;
   let day = g_log[g_view_date];
@@ -1348,7 +1453,7 @@ function massEventsForDate(date)
     if (!massEventIsDeleted(source[i])) day.push(source[i]);
   }
 
-  return day;
+  return day.concat(foodWaterEvents(date));
 }
 
 function sortedMassEvents(date)
@@ -1380,7 +1485,7 @@ function sortedMassEvents(date)
 
 function sortedVisibleMassEvents(date)
 {
-  let source = rawMassEventsForDate(date);
+  let source = rawMassEventsForDate(date).concat(foodWaterEvents(date));
   let day = [];
 
   for (let i = 0; i < source.length; ++i)
@@ -1857,7 +1962,7 @@ function loggedWaterMassBetween(events, start_event, end_event)
     let t = massEventTimestampValue(event);
 
     if (t <= start_time || t > end_time) continue;
-    if (event.event_type == 'water') total += waterEventMassKg(event);
+    if (event.event_type == 'water' && !event.food_water) total += waterEventMassKg(event);
   }
 
   return total;
@@ -1871,6 +1976,7 @@ function computeMassLedger(date)
   let checkpoints = [];
   let totals = {
     pantry_mass_in_kg:dayTotals(date).grams/1000,
+    food_water_in_kg:0,
     water_mass_in_kg:0,
     water_in_ml:0,
     net_bracket_mass_in_kg:0,
@@ -1895,6 +2001,7 @@ function computeMassLedger(date)
       info.mass_in_kg = waterEventMassKg(event);
       totals.water_mass_in_kg += info.mass_in_kg;
       totals.water_in_ml += Number(event.water_volume_ml) || Math.round(info.mass_in_kg*1000);
+      if (event.food_water) totals.food_water_in_kg += Number(event.water_volume_ml)/1000;
     }
     else if (event.event_type == 'food_mass')
     {
@@ -1995,6 +2102,10 @@ function computeMassLedger(date)
   }
 
   totals.total_mass_in_kg = totals.water_mass_in_kg + totals.net_bracket_mass_in_kg + totals.pantry_mass_in_kg;
+  // Food water is part of the logged pantry mass: transfer it between categories.
+  // Keep it out of timestamped drink mass used in meal/checkpoint calculations.
+  totals.pantry_mass_in_kg -= totals.food_water_in_kg;
+  totals.water_mass_in_kg += totals.food_water_in_kg;
   if (totals.first_mass_kg != null && totals.latest_mass_kg != null) totals.mass_change_kg = totals.latest_mass_kg - totals.first_mass_kg;
   // Pantry grams have no timestamps; daily out uses the whole day's intake and weight change.
   if (totals.checkpoint_count > 1) totals.inferred_mass_out_kg = totals.total_mass_in_kg - totals.mass_change_kg;
@@ -2431,6 +2542,7 @@ function saveAddItemDraft()
 
   if (!d) return;
   if (!d.name.trim()) return;
+  if (waterContentError(d.water_content)) return;
 
   fields = macroFieldsFromDraft(d);
 
@@ -2444,6 +2556,7 @@ function saveAddItemDraft()
     kcal: fields.kcal,
     protein_100g: fields.protein_100g,
     kcal_100g: fields.kcal_100g,
+    water_content:waterContentValue(d.water_content),
     tags: parseTagsInput(d.tags)
   };
   item.scoop_g_raw = item.scoop_g != null ? String(item.scoop_g) : '';
@@ -2581,6 +2694,7 @@ function openRecipeDraft(item, context = 'standalone')
     yield_g:item ? String(item.yield_g) : '',
     scoop_g:item ? String(item.scoop_g) : '',
     tags:item ? itemTags(item).join(', ') : '',
+    water_content:item && item.water_content != null ? String(item.water_content) : '',
     save_modifications:false,
     ingredients:[]
   };
@@ -2645,6 +2759,7 @@ function openRecipeFromLog(entry_id)
     name:entry.item_key == 'custom' && entry.note ? entry.note : snapshot.name,
     yield_g:entry.grams != null ? entry.grams : '',
     scoop_g:entry.grams != null ? entry.grams : '',
+    water_content:snapshot.water_content,
     tags:[],
     ingredients:ingredients
   });
@@ -2743,7 +2858,8 @@ function makeRecipeLogSnapshot(item, grams, protein_g, kcal, ingredient_scale, t
       barcode:item.barcode || '',
       grams:grams,
       protein_g:protein_g,
-      kcal:kcal
+      kcal:kcal,
+      water_content:waterContentValue(item.water_content)
     }
   };
   if (!Array.isArray(item.ingredients)) return result;
@@ -2827,6 +2943,7 @@ function renderRecipePreview()
 
 function refreshRecipePreview()
 {
+  refreshWaterPreview('recipe', g_recipe_draft);
   document.getElementById('recipe-preview').innerHTML = renderRecipePreview();
   document.getElementById('recipe-total-preview').innerHTML = renderRecipeTotalPreview();
   let batch_input = document.querySelector('[data-recipedraft="yield_g"]');
@@ -2908,12 +3025,13 @@ function revealPantryItem(item, preferred_context)
 function saveRecipeItem(draft)
 {
   let nutrition = recipeNutrition(draft);
-  if (!draft.name.trim() || nutrition.error)
+  if (!draft.name.trim() || nutrition.error || waterContentError(draft.water_content))
   {
-    document.getElementById('recipe-preview').textContent = !draft.name.trim() ? 'Enter a recipe name.' : nutrition.error;
+    document.getElementById('recipe-preview').textContent = !draft.name.trim() ? 'Enter a recipe name.' : nutrition.error || waterContentError(draft.water_content);
     return;
   }
   let item = draft.key ? findScoopItem(draft.key) : {key:uid()};
+  item.water_content = waterContentValue(draft.water_content);
   item.name = draft.name.trim();
   item.brand = 'knox';
   item.tags = parseTagsInput(draft.tags);
@@ -3000,6 +3118,7 @@ function renderRecipeDraft()
         </span>
       </label>
     </div>
+    ${renderWaterContentField('recipe', draft)}
     <div id="recipe-preview" class="recipe-nutrition-line" role="status">${renderRecipePreview()}</div>
     <div class="btnrow2"><button class="smallbtn" data-a="recipe-save">save</button>
       <button class="smallbtn" data-a="recipe-cancel">cancel</button>`;
@@ -3017,9 +3136,9 @@ function logRecipeDraft()
   let draft = g_recipe_draft;
   if (!draft || !viewDateIsEditable()) return;
   let totals = recipeIngredientTotals(draft);
-  if (totals.error)
+  if (totals.error || waterContentError(draft.water_content))
   {
-    document.getElementById('recipe-preview').textContent = totals.error;
+    document.getElementById('recipe-preview').textContent = totals.error || waterContentError(draft.water_content);
     return;
   }
   // Draft logging records the full ingredient batch, independently of serving/yield overrides.
@@ -3068,6 +3187,7 @@ function openScoopEdit(key, context)
     barcode: item.barcode || '',
     volume: item.volume_ml != null ? String(item.volume_ml) : (item.volume_label || ''),
     scoop_g: item.scoop_g != null ? String(item.scoop_g) : '',
+    water_content:item.water_content != null ? String(item.water_content) : '',
     macro_mode: 'serving',
     macro_protein: '',
     macro_kcal: '',
@@ -3095,7 +3215,9 @@ function saveScoopEdit()
 
   if (!item || !d) return;
   if (!d.name.trim()) return;
+  if (waterContentError(d.water_content)) return;
 
+  item.water_content = waterContentValue(d.water_content);
   item.name = d.name.trim();
   item.brand = d.brand.trim();
   item.barcode = d.barcode.trim() ? d.barcode.trim() : null;
@@ -3162,6 +3284,7 @@ function renderScoopEditRow(item)
         <span class="unitghost" aria-hidden="true">g</span>
       </span>`;
 
+  h += renderWaterContentField('edit', d);
   h += renderMacroModeControl('edit', mode);
 
   h += `<span class="unitinput">
@@ -3975,11 +4098,11 @@ function buildBackupTSV()
     pushBackupTsvRow(lines, [food.key, food.name, food.kind, food.unit_grams, food.unit_protein, food.package_grams, food.package_protein, food.daily, food.price, food.package_units], state);
   }
 
-  pushBackupTsvSection(lines, 'pantry_items', ['key', 'name', 'brand', 'barcode', 'scoop_g', 'protein_g', 'kcal', 'protein_100g', 'kcal_100g', 'volume_ml', 'volume_label', 'archived', 'yield_g'], state);
+  pushBackupTsvSection(lines, 'pantry_items', ['key', 'name', 'brand', 'barcode', 'scoop_g', 'protein_g', 'kcal', 'protein_100g', 'kcal_100g', 'volume_ml', 'volume_label', 'archived', 'yield_g', 'water_content'], state);
   for (let i = 0; i < g_scoop_items.length; ++i)
   {
     let item = g_scoop_items[i];
-    pushBackupTsvRow(lines, [item.key, item.name, item.brand, item.barcode, item.scoop_g, item.protein_g, item.kcal, item.protein_100g, item.kcal_100g, item.volume_ml, item.volume_label, backupTsvBool(item.archived), item.yield_g], state);
+    pushBackupTsvRow(lines, [item.key, item.name, item.brand, item.barcode, item.scoop_g, item.protein_g, item.kcal, item.protein_100g, item.kcal_100g, item.volume_ml, item.volume_label, backupTsvBool(item.archived), item.yield_g, item.water_content], state);
   }
 
   pushBackupTsvSection(lines, 'recipe_ingredients', ['recipe_key', 'item_key', 'grams'], state);
@@ -4004,7 +4127,7 @@ function buildBackupTSV()
     }
   }
 
-  pushBackupTsvSection(lines, 'log_entries', ['date', 'id', 'item_key', 'grams', 'protein_g', 'kcal', 'scale', 'note', 'deleted_at', 'delete_count', 'buried_at', 'restored_at', 'recipe_snapshot'], state);
+  pushBackupTsvSection(lines, 'log_entries', ['date', 'id', 'item_key', 'grams', 'protein_g', 'kcal', 'scale', 'note', 'deleted_at', 'delete_count', 'buried_at', 'restored_at', 'recipe_snapshot', 'water_sources'], state);
   for (let date in g_log)
   {
     let day = g_log[date];
@@ -4014,7 +4137,7 @@ function buildBackupTSV()
     {
       let entry = day[i];
       let recipe_snapshot = entry.recipe_snapshot ? JSON.stringify(entry.recipe_snapshot) : '';
-      pushBackupTsvRow(lines, [date, entry.id, entry.item_key, entry.grams, entry.protein_g, entry.kcal, entry.scale, entry.note, entry.deleted_at, entry.delete_count, entry.buried_at, entry.restored_at, recipe_snapshot], state);
+      pushBackupTsvRow(lines, [date, entry.id, entry.item_key, entry.grams, entry.protein_g, entry.kcal, entry.scale, entry.note, entry.deleted_at, entry.delete_count, entry.buried_at, entry.restored_at, recipe_snapshot, entry.water_sources ? JSON.stringify(entry.water_sources) : ''], state);
     }
   }
 
@@ -4037,10 +4160,17 @@ function buildBackupTSV()
 
 function makeMassEventsExportPayload()
 {
+  let food_water_events = {};
+  for (let date in g_log)
+  {
+    let events = foodWaterEvents(date);
+    if (events.length) food_water_events[date] = events;
+  }
   return {
     export_type:'protein-loadout-mass-events',
     exported_at:new Date().toISOString(),
     mass_events:g_mass_events,
+    food_water_events:food_water_events,
     daily_activity:g_daily_activity
   };
 }
@@ -4059,11 +4189,15 @@ function massEventExportTimestamp(date, event)
 function buildMassEventsCSV()
 {
   let dates = [];
-  let lines = ['timestamp,body_mass_kg,water_delta_kg,event'];
+  let lines = ['timestamp,body_mass_kg,water_delta_kg,event,note'];
 
   for (let date in g_mass_events)
   {
     if (massEventsForDate(date).length) dates.push(date);
+  }
+  for (let date in g_log)
+  {
+    if (!dates.includes(date) && foodWaterEvents(date).length) dates.push(date);
   }
 
   dates.sort();
@@ -4083,7 +4217,7 @@ function buildMassEventsCSV()
 
       if (event.event_type == 'water')
       {
-        water_delta = fmt3(waterEventMassKg(event));
+        water_delta = fmt3(Number(event.water_volume_ml)/1000);
       }
       else if (massEventCountsAsWaterLoss(event) && info.mass_out_kg != null)
       {
@@ -4093,7 +4227,8 @@ function buildMassEventsCSV()
       lines.push(csvCell(massEventExportTimestamp(date, event))
         + ',' + csvCell(body_mass != null ? fmt2(body_mass) : '')
         + ',' + csvCell(water_delta)
-        + ',' + csvCell(massEventLabel(event.event_type)));
+        + ',' + csvCell(massEventLabel(event.event_type))
+        + ',' + csvCell(event.note || ''));
     }
   }
 
@@ -4683,6 +4818,7 @@ function parseBackupTSV(text)
       setIfNumber(item, 'kcal_100g', row.kcal_100g);
       setIfNumber(item, 'volume_ml', row.volume_ml);
       setIfNumber(item, 'yield_g', row.yield_g);
+      setIfNumber(item, 'water_content', row.water_content);
       if (item.yield_g != null) item.ingredients = [];
       setIfBool(item, 'archived', row.archived);
 
@@ -4742,6 +4878,7 @@ function parseBackupTSV(text)
       setIfText(entry, 'buried_at', row.buried_at);
       setIfText(entry, 'restored_at', row.restored_at);
       if (row.recipe_snapshot) entry.recipe_snapshot = JSON.parse(row.recipe_snapshot);
+      if (row.water_sources) entry.water_sources = JSON.parse(row.water_sources);
 
       if (date && entry.id && entry.item_key)
       {
@@ -5954,6 +6091,11 @@ function mergeLogEntryState(local_entry, remote_entry)
 
   if (remote_entry.note && !local_entry.note && !g_lognote_dirty_ids[local_entry.id]) local_entry.note = remote_entry.note;
 
+  if (!local_entry.water_sources && remote_entry.water_sources)
+  {
+    local_entry.water_sources = JSON.parse(JSON.stringify(remote_entry.water_sources));
+  }
+
   if (!local_entry.recipe_snapshot && remote_entry.recipe_snapshot)
   {
     local_entry.recipe_snapshot = JSON.parse(JSON.stringify(remote_entry.recipe_snapshot));
@@ -7147,7 +7289,7 @@ function renderMassEventLog()
     <div class="mass-section-head">event log</div>
     <div class="mass-event">
       <div class="mass-event-main">
-        <div class="mass-event-title">Pantry mass</div>
+        <div class="mass-event-title">Pantry mass excluding water</div>
         <div class="mass-event-detail">${esc(formatMassKg(ledger.totals.pantry_mass_in_kg, false))}</div>
       </div>
     </div>`;
@@ -7161,7 +7303,7 @@ function renderMassEventLog()
     let detail = '';
     let extra = '';
     let edit = !is_deleted && g_mass_edit_id == event.id ? renderMassEventEditRow(event) : '';
-    let disabled = !viewDateIsEditable() || is_deleted ? ' disabled' : '';
+    let disabled = !viewDateIsEditable() || is_deleted || event.food_water ? ' disabled' : '';
     let deleted_class = is_deleted ? ' deleted' : '';
 
     ++rendered_count;
@@ -7169,7 +7311,7 @@ function renderMassEventLog()
     if (event.event_type == 'water')
     {
       primary = '+' + Math.round(Number(event.water_volume_ml) || 0) + ' mL';
-      detail = '+' + formatMassKg(waterEventMassKg(event), false);
+      detail = event.food_water ? event.note : '+' + formatMassKg(waterEventMassKg(event), false);
     }
     else if (event.event_type == 'food_mass')
     {
@@ -7206,10 +7348,11 @@ function renderMassEventLog()
         <div class="mass-event-detail">
           ${esc(primary)}${detail ? ' · ' + esc(detail) : ''}${extra ? ' · ' + esc(extra) : ''}
         </div>
+        ${event.note && !event.food_water ? `<div class="mass-event-detail">${esc(event.note)}</div>` : ''}
         ${edit}
       </div>
       <div class="mass-event-actions">
-        <button class="logged-food-remove" data-a="mass-event-delete" data-event="${esc(event.id)}" title="${is_deleted ? 'hide deleted mass event' : 'delete mass event'}"${!viewDateIsEditable() ? ' disabled' : ''}>−</button>
+        <button class="logged-food-remove" data-a="mass-event-delete" data-event="${esc(event.id)}" title="${event.food_water ? 'Managed through the food log' : is_deleted ? 'hide deleted mass event' : 'delete mass event'}"${!viewDateIsEditable() || event.food_water ? ' disabled' : ''}>−</button>
       </div>
     </div>`;
   }
@@ -7980,7 +8123,13 @@ function finishMealSelection()
       kcal:totals.kcal,
       ingredients:ingredients
     });
-    g_log[g_view_date].at(-1).note = name;
+    let combined = g_log[g_view_date].at(-1);
+    combined.note = name;
+    combined.water_sources = [];
+    for (let entry of selected)
+    {
+      for (let source of entry.water_sources || []) combined.water_sources.push({...source});
+    }
     for (let entry of selected)
     {
       // Keep sync tombstones for the entries now represented by the combined meal.
@@ -8460,6 +8609,7 @@ function renderScoopSection()
       <span class="tagwrap"><input type="text" data-adddraft="tags" autocomplete="off" placeholder="tags, comma separated" aria-label="Tags" value="${esc(d.tags)}"><span class="tagsuggest"></span></span>
       <input type="text" inputmode="decimal" data-adddraft="scoop_g" placeholder="scoop g" value="${esc(d.scoop_g)}">`;
 
+    h += renderWaterContentField('add', d);
     h += renderMacroModeControl('add', mode);
 
     h += `<span class="unitinput">
@@ -8904,6 +9054,7 @@ document.addEventListener('input', function(ev)
   if (adddraft_field)
   {
     g_scoop_add_draft[adddraft_field] = target.value;
+    refreshWaterPreview('add', g_scoop_add_draft);
     g_add_item_edit_versions[adddraft_field] = (g_add_item_edit_versions[adddraft_field] || 0) + 1;
     if (adddraft_field == 'barcode')
     {
@@ -8932,6 +9083,7 @@ document.addEventListener('input', function(ev)
   {
     if (editdraft_field == 'barcode' || editdraft_field == 'macro_protein' || editdraft_field == 'macro_kcal') ++g_edit_lookup_version;
     g_edit_draft[editdraft_field] = target.value;
+    refreshWaterPreview('edit', g_edit_draft);
     fitDraftTextarea(target);
     if (editdraft_field == 'name' || editdraft_field == 'brand') return;
     if (editdraft_field == 'volume') return;
@@ -9255,7 +9407,7 @@ document.addEventListener('click', function(ev)
       return;
 
     case 'scoop-add-item-open':
-      g_scoop_add_draft = { barcode:'', barcode_keyboard:false, name:'', brand:'', tags:'', scoop_g:'', macro_mode:'100g', macro_protein:'', macro_kcal:'' };
+      g_scoop_add_draft = { barcode:'', barcode_keyboard:false, name:'', brand:'', tags:'', scoop_g:'', macro_mode:'100g', macro_protein:'', macro_kcal:'', water_content:'' };
       g_add_item_edit_versions =
       {
       };
