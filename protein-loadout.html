@@ -2585,7 +2585,10 @@ function addItemMacroPreviewText(d, colored = false)
   let fields = macroFieldsFromDraft(d);
   let mode = draftMacroMode(d);
 
-  if (fields.protein_g == null && fields.kcal == null) return 'enter at least one nutrition value';
+  if (fields.protein_g == null && fields.kcal == null)
+  {
+    return colored ? '<span class="pantry-nutrition-prompt">enter at least one nutrition value</span>' : 'enter at least one nutrition value';
+  }
   if (mode == '100g' && fields.scoop_g == null) return 'enter scoop g to preview this serving';
 
   let protein = fields.protein_g != null ? fmt1(fields.protein_g) + ' g protein' : '— g protein';
@@ -2603,7 +2606,7 @@ function draftMacroRatioText(draft)
   let protein = numberOrNull(draft.macro_protein);
   let kcal = numberOrNull(draft.macro_kcal);
   let ratio = Number.isFinite(protein) && protein > 0 && Number.isFinite(kcal) && kcal >= 0 ? fmtKcalProteinRatio(kcal/protein) : '—';
-  return 'kcal/protein: ' + ratio + ' kcal/g';
+  return ratio + ' kcal/g';
 }
 
 function refreshDraftMacroRatio(kind, draft)
@@ -3139,8 +3142,10 @@ function renderRecipeDraft()
   {
     let ingredient = draft.ingredients[i];
     let item = findScoopItem(ingredient.item_key);
-    h += `<div class="recipe-ingredient"><span>${esc(item ? item.name : 'Missing ingredient: ' + ingredient.item_key)}</span>
-      <label class="recipe-amount unitinput"><input aria-label="${esc((item ? item.name : 'Ingredient') + ' grams')}" inputmode="decimal" data-recipeindex="${i}" data-recipefield="grams" value="${esc(ingredient.grams)}"><span class="unitghost">g</span></label>
+    let ratio = item ? itemKcalProteinRatio(item) : null;
+    h += `<div class="recipe-ingredient"><span>${esc(item ? item.name : 'Missing ingredient: ' + ingredient.item_key)}${item && item.brand ? `<span class="recipe-ingredient-brand">${esc(item.brand)}</span>` : ''}</span>
+      <span class="recipe-clear-input"><label class="recipe-amount unitinput"><input aria-label="${esc((item ? item.name : 'Ingredient') + ' grams')}" inputmode="decimal" data-recipeindex="${i}" data-recipefield="grams" value="${esc(ingredient.grams)}"><span class="unitghost">g</span><small class="recipe-ingredient-ratio" title="kcal per gram of protein">${ratio != null ? fmtKcalProteinRatio(ratio) : '—'} kcal/g</small></label>
+      <button type="button" class="editbtn" data-a="recipe-amount-edit" data-index="${i}" title="Clear and edit ingredient grams" aria-label="Clear and edit ${esc(item ? item.name : 'ingredient')} grams">⌫</button></span>
       <button class="smallbtn" data-a="recipe-zero" data-index="${i}" title="Set ingredient grams to zero" aria-label="Set ${esc(item ? item.name : 'ingredient')} grams to zero">0</button>
       <button class="smallbtn" data-a="recipe-remove" data-index="${i}" title="Remove ingredient" aria-label="Remove ingredient">−</button></div>`;
   }
@@ -3157,29 +3162,44 @@ function renderRecipeDraft()
     </div>
     <label class="tagwrap">Tags<input data-recipedraft="tags" autocomplete="off" value="${esc(draft.tags)}"><span class="tagsuggest"></span></label>
     <div class="recipe-save-fields">
-      <label class="recipe-serving">Serving<span class="unitinput"><input inputmode="decimal" data-recipedraft="scoop_g" placeholder="${Number.isFinite(recipeBatchGrams(draft)) ? fmt1(recipeBatchGrams(draft)) : ''}" value="${esc(draft.scoop_g)}"><span class="unitghost">g</span></span></label>
-      <label class="recipe-override">
-        Override total
-        <span class="unitinput">
-          <input class="${recipeMassDiffers(draft) ? 'recipe-mass-diff' : ''}"
-            inputmode="decimal" data-recipedraft="yield_g"
-            title="Optional finished weight; blank uses the ingredient total"
-            placeholder="${fmt1(recipeIngredientGrams(draft))}"
-            value="${esc(draft.yield_g)}">
-          <span class="unitghost">g</span>
+      <label class="recipe-serving">Serving
+        <span class="recipe-clear-input">
+          <span class="unitinput">
+            <input inputmode="decimal" data-recipedraft="scoop_g"
+                placeholder="${Number.isFinite(recipeBatchGrams(draft)) ? fmt1(recipeBatchGrams(draft)) : ''}"
+                value="${esc(draft.scoop_g)}">
+              <span class="unitghost">g</span>
+          </span>
+          <button type="button" class="editbtn" data-a="recipe-field-clear" data-field="scoop_g"
+            title="Clear and edit serving" aria-label="Clear and edit serving">⌫</button>
+        </span>
+      </label>
+
+      <label class="recipe-override">Override total
+        <span class="recipe-clear-input">
+          <span class="unitinput">
+            <input class="${recipeMassDiffers(draft) ? 'recipe-mass-diff' : ''}"
+              inputmode="decimal" data-recipedraft="yield_g"
+              title="Optional finished weight; blank uses the ingredient total"
+              placeholder="${fmt1(recipeIngredientGrams(draft))}"
+              value="${esc(draft.yield_g)}">
+            <span class="unitghost">g</span>
+          </span>
+          <button type="button" class="editbtn" data-a="recipe-field-clear" data-field="yield_g"
+              title="Clear and edit override total" aria-label="Clear and edit override total">⌫</button>
         </span>
       </label>
     </div>
     ${renderWaterContentField('recipe', draft)}
     <div id="recipe-preview" class="recipe-nutrition-line" role="status">${renderRecipePreview()}</div>
     <div class="btnrow2"><button class="smallbtn" data-a="recipe-save">save</button>
-      <button class="smallbtn" data-a="recipe-cancel">cancel</button>`;
+      <button class="smallbtn" data-a="recipe-cancel">cancel</button></div>`;
   if (draft.key)
   {
     let archive_label = itemIsArchived(findScoopItem(draft.key)) ? 'unarchive' : 'archive';
-    h += `<button class="smallbtn archivebtn" data-a="recipe-archive" title="${archive_label} saved recipe without saving draft changes">${archive_label}</button>`;
+    h += `<div><button class="smallbtn archivebtn" data-a="recipe-archive" title="${archive_label} saved recipe without saving draft changes">${archive_label}</button></div>`;
   }
-  h += '</div></div>';
+  h += '</div>';
   return h;
 }
 
@@ -3592,7 +3612,7 @@ function renderScalePanel(item)
 
   h += `<div class="hint" style="margin:2px 0 8px">volume at this scale: <span id="scale-volume-preview">${esc(volume_preview)}</span></div>
 
-      <div class="scalerow">
+      <div class="scalerow${g_recipe_draft ? ' recipe-scale-row' : ''}">
         <span class="scaleunitbox">
           <input type="text" inputmode="decimal" data-scaledraft="grams"
             value="${esc(d.grams_raw)}"><span>mass g</span>
@@ -3600,6 +3620,7 @@ function renderScalePanel(item)
         <span class="scaleunitbox">
           <input type="text" inputmode="decimal" data-scaledraft="protein_g"
             value="${esc(d.protein_g_raw)}"${g_recipe_draft ? ' readonly' : ''}><span>protein g</span>
+          ${g_recipe_draft ? `<small class="scale-macro-ratio">${itemKcalProteinRatio(item) != null ? fmtKcalProteinRatio(itemKcalProteinRatio(item)) : '—'} kcal/g protein</small>` : ''}
         </span>
         <span class="scaleunitbox">
           <input type="text" inputmode="decimal" data-scaledraft="kcal"
@@ -8837,7 +8858,7 @@ function renderScoopSection()
     let protein_unit = mode == '100g' ? '/100g' : 'g';
     let kcal_unit = mode == '100g' ? '/100g' : 'kcal';
 
-    h += `<div class="addform">
+    h += `<div id="pantry-add-editor" class="addform">
       <span class="barcode-entry">
         <input type="text" inputmode="${d.barcode_keyboard ? 'numeric' : 'none'}" data-adddraft="barcode" placeholder="barcode" aria-label="Barcode" value="${esc(d.barcode)}">
         <button type="button" id="barcode-add-toggle" class="smallbtn" data-a="addex-barcode-scan">Scan barcode</button>
@@ -9663,6 +9684,14 @@ document.addEventListener('click', function(ev)
       refreshRecipeDisplays();
       return;
 
+    case 'recipe-amount-edit':
+    case 'recipe-field-clear':
+      let ingredient_input = target.dataset.field ? document.querySelector(`[data-recipedraft="${target.dataset.field}"]`) : document.querySelector(`[data-recipeindex="${target.dataset.index}"][data-recipefield="grams"]`);
+      ingredient_input.value = '';
+      ingredient_input.focus();
+      ingredient_input.dispatchEvent(new Event('input', {bubbles:true}));
+      return;
+
     case 'recipe-save':
       saveRecipeDraft();
       return;
@@ -9688,6 +9717,7 @@ document.addEventListener('click', function(ev)
       g_add_item_status = '';
       g_barcode_add_status = '';
       render();
+      scrollBelowTabs(document.getElementById('pantry-add-editor'));
       return;
 
     case 'addex-barcode-scan':
