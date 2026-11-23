@@ -10,7 +10,7 @@
   --faint:#666e69;
   --green:#7fae7a;
   --blue:#72a3cc;
-  --kcal-protein-ratio:#b49bd3;
+  --kcal-protein-ratio:#d39bbb;
   --green-p:#86b076;
   --green-hi:#95c78f;
   --search-hi:#cbbb7f;
@@ -212,14 +212,14 @@ body.admin-mode #tab-top{scroll-margin-top:calc(58px + env(safe-area-inset-top,0
 .smallbtn[data-a="scoop-add-item-open"]:hover{color:var(--bg);background:var(--green)}
 .smallbtn[data-a="recipe-new"]{color:var(--blue);border-color:var(--blue)}
 .smallbtn[data-a="recipe-new"]:hover{color:var(--bg);background:var(--blue)}
-.smallbtn[data-a="addex-barcode-scan"],.smallbtn[data-a="barcode-test-start"]{color:var(--blue);border-color:var(--blue)}
-.smallbtn[data-a="addex-barcode-scan"]:hover,.smallbtn[data-a="barcode-test-start"]:hover{color:var(--bg);background:var(--blue)}
+.smallbtn[data-a="addex-barcode-scan"],.smallbtn[data-a="barcode-test-start"],.smallbtn[data-a="drink-scan-open"]{color:var(--blue);border-color:var(--blue)}
+.smallbtn[data-a="addex-barcode-scan"]:hover,.smallbtn[data-a="barcode-test-start"]:hover,.smallbtn[data-a="drink-scan-open"]:hover{color:var(--bg);background:var(--blue)}
 .smallbtn[data-a="addex-barcode-stop"]{color:var(--coral);border-color:var(--coral)}
 .smallbtn[data-a="addex-barcode-stop"]:hover{color:var(--bg);background:var(--coral)}
 .smallbtn[data-a="addex-lookup-off"]{color:var(--green);border-color:var(--green)}
 .smallbtn[data-a="addex-lookup-off"]:hover{color:var(--bg);background:var(--green)}
-.smallbtn[data-a="scoop-add-item-save"],.smallbtn[data-a="scoop-edit-save"]{color:var(--green);border-color:var(--green)}
-.smallbtn[data-a="scoop-add-item-save"]:hover,.smallbtn[data-a="scoop-edit-save"]:hover{color:var(--bg);background:var(--green)}
+.smallbtn[data-a="scoop-add-item-save"],.smallbtn[data-a="scoop-edit-save"],.smallbtn[data-a="drink-confirm"]{color:var(--green);border-color:var(--green)}
+.smallbtn[data-a="scoop-add-item-save"]:hover,.smallbtn[data-a="scoop-edit-save"]:hover,.smallbtn[data-a="drink-confirm"]:hover{color:var(--bg);background:var(--green)}
 .smallbtn[data-a="scoop-add-item-cancel"],.smallbtn[data-a="scoop-edit-cancel"]{color:var(--coral);border-color:var(--coral)}
 .smallbtn[data-a="scoop-add-item-cancel"]:hover,.smallbtn[data-a="scoop-edit-cancel"]:hover{color:var(--bg);background:var(--coral)}
 .admin-toggle.admin-on{color:#1b0f0b;background:var(--coral);border-color:#f0b09c;font-weight:666}
