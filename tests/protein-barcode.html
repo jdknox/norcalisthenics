@@ -69,6 +69,13 @@ function runChecks()
     Object.defineProperty(navigator, 'mediaDevices', {configurable:true, value:
       {getUserMedia:function openCamera() { return {then:function receiveCamera(done, fail) { window.camera_done = done; window.camera_fail = fail; }}; }}});
     g_admin_mode = false;
+    let preview = addItemMacroPreviewText({scoop_g:'240', macro_mode:'100g', macro_protein:'0', macro_kcal:'33.33333333333337'});
+    if (preview != 'serving: 0.0 g protein / 80.0 kcal') throw Error('serving preview exposes floating point artifacts');
+    if (offProductAmounts({serving_size:'1 scoop (30 g)', quantity:'1 kg'}).scoop_g != 30) throw Error('serving weight preference');
+    if (offProductAmounts({quantity:'0.5 kg'}).scoop_g != 500) throw Error('package weight fallback');
+    let drink = offProductAmounts({serving_size:'250 ml', quantity:'1 L'});
+    if (drink.scoop_g != null || drink.volume != 250) throw Error('volume does not imply grams');
+    if (offProductAmounts({product_quantity:750, product_quantity_unit:'ml'}).volume != 750) throw Error('structured package volume');
     render();
   `);
   click('scoop-add-item-open');
@@ -82,9 +89,11 @@ function runChecks()
   check(barcode.value == '1234567890123', 'scan fills existing barcode field');
   check(app.eval('g_scoop_add_draft.barcode') == barcode.value, 'draft receives barcode');
   check(app.eval('test_lookups == 1 && lookup_barcode == g_scoop_add_draft.barcode'), 'scan automatically looks up captured barcode once');
-  app.eval("lookup_done({found:true, name:'Product', brand:'Brand', protein_100g:1, kcal_100g:20});");
+  app.eval("lookup_done({found:true, name:'Product', brand:'Brand', scoop_g:240, volume:240, protein_100g:1, kcal_100g:20});");
   check(name.isConnected && name.value == 'Keep my draft', 'scan preserves other draft fields');
   check(doc.querySelector('[data-adddraft="brand"]').value == 'Brand', 'lookup fills empty fields');
+  check(doc.querySelector('[data-adddraft="scoop_g"]').value == '240', 'lookup fills serving grams');
+  check(doc.querySelector('[data-adddraft="volume"]').value == '240', 'lookup fills volume');
   check(app.eval('test_stopped == 0 && test_writes == 0'), 'capture keeps camera open and does not save');
   check(!doc.getElementById('barcode-add-video').hidden, 'preview remains visible after capture');
   check(doc.getElementById('barcode-add-status').textContent == 'Barcode captured.', 'capture feedback');

@@ -1167,7 +1167,7 @@ function waterPreviewText(draft, recipe = false)
 function renderWaterContentField(kind, draft)
 {
   let hint = kind == 'recipe' ? 'Optional override; blank estimates water from known ingredients.' : 'Optional percentage of the food mass that is water.';
-  return `<label>Water content (%)<input type="text" inputmode="decimal" data-${kind}draft="water_content" value="${esc(draft.water_content || '')}" placeholder="optional" title="${hint}"></label><span class="hint" data-water-preview="${kind}">${esc(waterPreviewText(draft, kind == 'recipe'))}</span>`;
+  return `<label>Water content (%)<input type="text" inputmode="decimal" data-${kind}draft="water_content" value="${esc(draft.water_content || '')}" placeholder="optional" title="${hint}"></label><button type="button" class="smallbtn" data-a="water-content-full" data-kind="${kind}" title="Set water content to 100%" aria-label="Set water content to 100%">100</button><span class="hint" data-water-preview="${kind}">${esc(waterPreviewText(draft, kind == 'recipe'))}</span>`;
 }
 
 function refreshWaterPreview(kind, draft)
@@ -2588,8 +2588,8 @@ function addItemMacroPreviewText(d)
   if (fields.protein_g == null && fields.kcal == null) return 'enter at least one nutrition value';
   if (mode == '100g' && fields.scoop_g == null) return 'enter scoop g to preview this serving';
 
-  return 'serving: ' + (fields.protein_g != null ? fields.protein_g + ' g protein' : '— g protein')
-    + ' / ' + (fields.kcal != null ? fields.kcal + ' kcal' : '— kcal');
+  return 'serving: ' + (fields.protein_g != null ? fmt1(fields.protein_g) + ' g protein' : '— g protein')
+    + ' / ' + (fields.kcal != null ? fmt1(fields.kcal) + ' kcal' : '— kcal');
 }
 
 function barcodeStatusHTML(message)
@@ -2680,12 +2680,12 @@ function lookupOFFForAddItem()
       return;
     }
 
-    for (let field of ['name', 'brand'])
+    for (let field of ['name', 'brand', 'scoop_g', 'volume'])
     {
       let input = document.querySelector('[data-adddraft="' + field + '"]');
-      if (!d[field].trim() && result[field] && g_add_item_edit_versions[field] == edit_versions[field] && input != document.activeElement)
+      if (!String(d[field] || '').trim() && result[field] && g_add_item_edit_versions[field] == edit_versions[field] && input != document.activeElement)
       {
-        d[field] = result[field];
+        d[field] = String(result[field]);
         input.value = d[field];
         fitDraftTextarea(input);
       }
@@ -2703,6 +2703,7 @@ function lookupOFFForAddItem()
       refreshDraftMacroFields('add', d);
     }
 
+    refreshWaterPreview('add', d);
     g_add_item_status = formatOFFMatchStatus(result);
     refreshAddItemStatus();
   });
@@ -3681,6 +3682,38 @@ function recomputeItemMacrosFromDensity(item)
   }
 }
 
+function offQuantity(text)
+{
+  let match = String(text || '').match(/(?:^|\s|\()([0-9]+(?:[.,][0-9]+)?)\s*(kg|g|ml|l)(?=\s|\)|$)/i);
+  let result =
+  {
+    grams:null,
+    volume_ml:null
+  };
+  if (!match) return result;
+  let amount = Number(match[1].replace(',', '.'));
+  if (!(amount > 0)) return result;
+  let unit = match[2].toLowerCase();
+  if (unit == 'g') result.grams = amount;
+  else if (unit == 'kg') result.grams = amount*1000;
+  else if (unit == 'ml') result.volume_ml = amount;
+  else if (unit == 'l') result.volume_ml = amount*1000;
+  return result;
+}
+
+function offProductAmounts(product)
+{
+  let serving = offQuantity(product.serving_size);
+  let quantity = product.product_quantity && product.product_quantity_unit ? product.product_quantity + ' ' + product.product_quantity_unit : product.quantity;
+  let package_amount = offQuantity(quantity);
+  let result =
+  {
+    scoop_g:serving.grams != null ? serving.grams : package_amount.grams,
+    volume:serving.volume_ml != null ? serving.volume_ml : package_amount.volume_ml
+  };
+  return result;
+}
+
 /* low-level OFF lookup, callback-style to match the rest of this file's .then()
    chains. calls onResult with either { found:true, name, brand, protein_100g,
    kcal_100g } or { found:false, reason }. never throws — network/parse errors
@@ -3707,11 +3740,14 @@ function fetchOFFProduct(barcode, onResult)
       }
 
       nutriments = data.product.nutriments || {};
+      let amounts = offProductAmounts(data.product);
       onResult({
         found: true,
         source: 'off',
         name: data.product.product_name || null,
         brand: data.product.brands || null,
+        scoop_g:amounts.scoop_g,
+        volume:amounts.volume,
         protein_100g: nutriments.proteins_100g != null ? nutriments.proteins_100g : null,
         kcal_100g: nutriments['energy-kcal_100g'] != null ? nutriments['energy-kcal_100g'] : null
       });
@@ -8796,7 +8832,7 @@ function renderScoopSection()
       <button class="smallbtn" data-a="scoop-add-item-save">save</button>
       <button class="smallbtn" data-a="scoop-add-item-cancel">cancel</button>`;
 
-    h += `<div class="hint" style="width:100%;margin-top:2px">Use 100g when copying label or O.F.F. values per 100g; use serving when the label values are for the scoop/serving mass you entered.</div>
+    h += `<div class="hint pantry-macro-help">Use 100g when copying label or O.F.F. values per 100g; use serving when the label values are for the scoop/serving mass you entered.</div>
     </div>`;
   }
 
@@ -9400,6 +9436,12 @@ document.addEventListener('click', function(ev)
 
   switch (action)
   {
+    case 'water-content-full':
+      let water_input = document.querySelector('[data-' + target.dataset.kind + 'draft="water_content"]');
+      water_input.value = '100';
+      water_input.dispatchEvent(new Event('input', {bubbles:true}));
+      return;
+
     case 'barcode-test-start':
       startBarcodeScan('test');
       return;
