@@ -85,15 +85,18 @@ function runChecks()
   name.dispatchEvent(new app.Event('input', {bubbles:true}));
   prepareVideo('barcode-add-video');
   click('addex-barcode-scan');
+  check(doc.getElementById('barcode-add-toggle').textContent == 'Stop camera', 'scan button becomes stop while opening camera');
   app.eval('camera_done(test_stream); detect_done([{rawValue:"1234567890123"}]);');
   check(barcode.value == '1234567890123', 'scan fills existing barcode field');
   check(app.eval('g_scoop_add_draft.barcode') == barcode.value, 'draft receives barcode');
   check(app.eval('test_lookups == 1 && lookup_barcode == g_scoop_add_draft.barcode'), 'scan automatically looks up captured barcode once');
-  app.eval("lookup_done({found:true, name:'Product', brand:'Brand', scoop_g:240, volume:240, protein_100g:1, kcal_100g:20});");
+  app.eval("lookup_done({found:true, name:'Product', brand:'Brand', scoop_g:240, volume:240, protein_100g:1, kcal_100g:571.4285714285714});");
   check(name.isConnected && name.value == 'Keep my draft', 'scan preserves other draft fields');
   check(doc.querySelector('[data-adddraft="brand"]').value == 'Brand', 'lookup fills empty fields');
   check(doc.querySelector('[data-adddraft="scoop_g"]').value == '240', 'lookup fills serving grams');
   check(doc.querySelector('[data-adddraft="volume"]').value == '240', 'lookup fills volume');
+  check(doc.querySelector('[data-adddraft="macro_kcal"]').value == '571.4', 'lookup-generated input has one decimal');
+  check(app.eval('g_scoop_add_draft.macro_kcal') == '571.4285714285714', 'display formatting retains calculation precision');
   check(app.eval('test_stopped == 0 && test_writes == 0'), 'capture keeps camera open and does not save');
   check(!doc.getElementById('barcode-add-video').hidden, 'preview remains visible after capture');
   check(doc.getElementById('barcode-add-status').textContent == 'Barcode captured.', 'capture feedback');
@@ -104,6 +107,7 @@ function checkPreviewFinished()
 {
   check(app.eval('test_stopped == 1'), 'camera stops after preview delay');
   check(doc.getElementById('barcode-add-video').hidden, 'preview closes after delay');
+  check(doc.getElementById('barcode-add-toggle').textContent == 'Scan barcode', 'scan button returns after camera closes');
   click('addex-barcode-scan');
   app.eval('camera_done(test_stream); window.late_detection = detect_done;');
   click('scoop-add-item-cancel');

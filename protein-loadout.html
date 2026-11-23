@@ -2628,6 +2628,13 @@ function refreshLookupDebug()
   if (debug) debug.innerHTML = renderLookupDebug();
 }
 
+function addEditorNumberText(value)
+{
+  if (value == null || String(value).trim() == '') return '';
+  let number = Number(value);
+  return Number.isFinite(number) ? fmt1(number).replace(/\.0$/, '') : String(value);
+}
+
 function refreshDraftMacroFields(kind, draft)
 {
   let mode = draftMacroMode(draft);
@@ -2638,7 +2645,7 @@ function refreshDraftMacroFields(kind, draft)
   for (let field of ['macro_protein', 'macro_kcal'])
   {
     let input = document.querySelector('[data-' + kind + 'draft="' + field + '"]');
-    if (input != document.activeElement) input.value = draft[field];
+    if (input != document.activeElement) input.value = kind == 'add' ? addEditorNumberText(draft[field]) : draft[field];
     let unit = input.parentElement.querySelector('.unitghost');
     if (unit) unit.textContent = mode == '100g' ? '/100g' : field == 'macro_protein' ? 'g' : 'kcal';
   }
@@ -7597,6 +7604,15 @@ function renderMassSection()
   The browser's camera and barcode APIs needlessly force Promise-based code.
   This scanner is the approved exception; keep it isolated here.
 */
+function updateBarcodeScanButton()
+{
+  let button = document.getElementById('barcode-add-toggle');
+  if (!button) return;
+  let active = g_barcode_scan_context == 'add' && (g_barcode_scan_pending || g_barcode_scan_stream != null);
+  button.textContent = active ? 'Stop camera' : 'Scan barcode';
+  button.dataset.a = active ? 'addex-barcode-stop' : 'addex-barcode-scan';
+}
+
 function stopBarcodeScan()
 {
   g_barcode_scan_pending = false;
@@ -7614,6 +7630,7 @@ function stopBarcodeScan()
     video.srcObject = null;
     video.hidden = true;
   }
+  updateBarcodeScanButton();
 }
 
 function setBarcodeScanStatus(message)
@@ -7688,6 +7705,7 @@ function startBarcodeScan(context)
   let detector = new BarcodeDetector();
   setBarcodeScanStatus('Opening camera…');
   g_barcode_scan_pending = true;
+  updateBarcodeScanButton();
   navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}}, audio:false}).then(function cameraOpened(stream)
   {
     if (generation != g_barcode_scan_generation)
@@ -7712,6 +7730,7 @@ function startBarcodeScan(context)
     if (generation != g_barcode_scan_generation) return;
     g_barcode_scan_pending = false;
     setBarcodeScanStatus('Camera unavailable: ' + error.message);
+    updateBarcodeScanButton();
   });
 }
 /*
@@ -8797,10 +8816,9 @@ function renderScoopSection()
     h += `<div class="addform">
       <span class="barcode-entry">
         <input type="text" inputmode="${d.barcode_keyboard ? 'numeric' : 'none'}" data-adddraft="barcode" placeholder="barcode" aria-label="Barcode" value="${esc(d.barcode)}">
+        <button type="button" id="barcode-add-toggle" class="smallbtn" data-a="addex-barcode-scan">Scan barcode</button>
         <button type="button" class="smallbtn" data-a="addex-barcode-keyboard" title="Type barcode" aria-label="Type barcode">&#9000;&#65038;</button>
       </span>
-      <button type="button" class="smallbtn" data-a="addex-barcode-scan">Scan barcode</button>
-      <button type="button" class="smallbtn" data-a="addex-barcode-stop">Stop camera</button>
       <button class="smallbtn" data-a="addex-lookup-off">look up on O.F.F.</button>
       <div class="barcode-status fetchstatus">
         <span id="barcode-add-status" role="status">${barcodeStatusHTML(g_barcode_add_status)}</span>
@@ -8815,17 +8833,17 @@ function renderScoopSection()
         <span class="tagsuggest"></span>
       </span>
       <input type="text" data-adddraft="volume" autocapitalize="characters" placeholder="volume (mL, or BOWL/CAN)" aria-label="Volume" value="${esc(d.volume || '')}">
-      <input type="text" inputmode="decimal" data-adddraft="scoop_g" placeholder="scoop g" value="${esc(d.scoop_g)}">`;
+      <input type="text" inputmode="decimal" data-adddraft="scoop_g" placeholder="scoop g" value="${esc(addEditorNumberText(d.scoop_g))}">`;
 
     h += renderWaterContentField('add', d);
     h += renderMacroModeControl('add', mode);
 
     h += `<span class="unitinput">
-        <input type="text" inputmode="decimal" data-adddraft="macro_protein" placeholder="protein" value="${esc(d.macro_protein)}">
+        <input type="text" inputmode="decimal" data-adddraft="macro_protein" placeholder="protein" value="${esc(addEditorNumberText(d.macro_protein))}">
         <span class="unitghost" aria-hidden="true">${protein_unit}</span>
       </span>
       <span class="unitinput">
-        <input type="text" inputmode="decimal" data-adddraft="macro_kcal" placeholder="kcal" value="${esc(d.macro_kcal)}">
+        <input type="text" inputmode="decimal" data-adddraft="macro_kcal" placeholder="kcal" value="${esc(addEditorNumberText(d.macro_kcal))}">
         <span class="unitghost" aria-hidden="true">${kcal_unit}</span>
       </span>
       <span class="hint" id="addex-macro-preview" style="width:100%">${esc(addItemMacroPreviewText(d))}</span>
