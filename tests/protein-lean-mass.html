@@ -1,0 +1,101 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Lean mass history</title>
+<output id="result">Running</output>
+<iframe id="app" style="width:100%;height:1400px;border:0"></iframe>
+<script>
+let frame = document.getElementById('app');
+let request = new XMLHttpRequest();
+window.addEventListener('error', function(event)
+{
+  document.getElementById('result').textContent = 'FAIL: ' + event.message;
+});
+request.open('GET', '../protein-loadout.html');
+request.onload = function()
+{
+  let html = request.responseText.replace('<head>', '<head><base href="/">');
+  html = html.replace(/<script src="protein-shared-storage.js[^\"]*"><\/script>/, '');
+  html = html.replace('\nload();\n</' + 'script>', '\n</' + 'script>');
+  html = html.replace("if ('serviceWorker' in navigator)", 'if (false)');
+  frame.onload = runChecks;
+  frame.srcdoc = html;
+};
+request.send();
+
+function runChecks()
+{
+  let app = frame.contentWindow;
+  app.eval(`
+    g_admin_mode = true;
+    g_view_date = '2026-11-20';
+    g_bodyweight_kg = 80;
+    g_target_kcal_day = 2000;
+    g_active_tab = 'trends';
+    mergeKnownItems();
+    g_lean_mass_by_date = {
+      '2026-01-01':{kg:60, updated_at:1},
+      '2026-11-01':{kg:62, updated_at:2}
+    };
+    if (leanMassForDate('2025-12-31') != null || leanMassForDate('2026-10-01') != 60 || leanMassForDate('2026-11-20') != 62) throw Error('dated history');
+    mergeLeanMassDates({'2026-11-01':{kg:61, updated_at:1}, '2026-11-10':{kg:63, updated_at:3}});
+    if (leanMassForDate('2026-11-20') != 63 || leanMassForDate('2026-11-01') != 62) throw Error('sync merge');
+    let backup_text = buildBackupTSV();
+    let parsed_backup = parseBackupTSV(backup_text.text);
+    if (!parsed_backup.ok) throw Error('TSV backup: ' + parsed_backup.error);
+    let backup = parsed_backup.payload;
+    if (backup.lean_mass_by_date['2026-11-10'].kg != 63) throw Error('TSV backup');
+    if (makeSavePayload().lean_mass_by_date['2026-11-01'].kg != 62) throw Error('save payload');
+    render();
+  `);
+  let input = frame.contentDocument.getElementById('lean-mass-input');
+  input.focus();
+  input.value = '64';
+  input.dispatchEvent(new app.InputEvent('input', {bubbles:true}));
+  if (frame.contentDocument.activeElement != input || !input.isConnected) throw Error('input focus');
+  if (app.eval("leanMassForDate('2026-11-20')") != 64) throw Error('edit');
+  if (!frame.contentDocument.getElementById('trends-estimates').textContent.includes('16.0 kg')) throw Error('fat mass display');
+  app.eval(`
+    g_bodyweight_kg = 79.1;
+    g_lean_mass_by_date = {'2026-11-01':{kg:66, updated_at:2}};
+    g_height = {cm:180, updated_at:1};
+    g_log = {'2026-11-20':[{id:'calories', item_key:'custom', protein_g:120, kcal:1980}]};
+    g_target_kcal_day = 2530;
+    let projection = bodyCompositionProjection();
+    let week = projection.predictions[0];
+    if (Math.abs(week.mass - 78.6) > 0.000001 || Math.abs(week.fat - 12.6) > 0.000001) throw Error('projected mass');
+    if (Math.abs(week.bodyfat_change - (100*12.6/78.6 - 100*13.1/79.1)) > 0.000001) throw Error('bodyfat points');
+    if (Math.abs(week.fmi - 12.6/3.24) > 0.000001) throw Error('FMI');
+    if (projection.averages.kcal_days != 1) throw Error('logged day count');
+    let pantry = renderProteinKgScale(120);
+    if (!pantry.includes('BF% points') || pantry.includes('/Q') || pantry.includes('lean-mass-input')) throw Error('compact pantry');
+    let backup = parseBackupTSV(buildBackupTSV().text).payload;
+    if (backup.height.cm != 180 || makeSavePayload().height.cm != 180) throw Error('height persistence');
+    mergeHeight({cm:150, updated_at:0});
+    if (g_height.cm != 180) throw Error('stale height');
+    g_admin_mode = false;
+    render();
+  `);
+  if (frame.contentDocument.getElementById('lean-mass-input') || !frame.contentDocument.getElementById('trends-estimates').textContent.includes('66.0 kg')) throw Error('lean mass visible outside admin');
+  if (frame.contentDocument.querySelectorAll('.prediction-table').length != 2) throw Error('two prediction tables');
+  app.eval('g_admin_mode = true; render();');
+  let height = frame.contentDocument.getElementById('height-input');
+  height.focus();
+  height.value = '175.';
+  height.dispatchEvent(new app.InputEvent('input', {bubbles:true}));
+  if (frame.contentDocument.activeElement != height || !height.isConnected || height.value != '175.') throw Error('height focus and raw text');
+  app.eval(`
+    g_log = {};
+    if (bodyCompositionProjection().predictions[0].mass != null) throw Error('empty history');
+    g_log = {'2026-11-20':[{id:'calories', item_key:'custom', protein_g:120, kcal:1}]};
+    g_target_kcal_day = 100000;
+    if (bodyCompositionProjection().predictions[0].bodyfat != null) throw Error('invalid composition');
+  `);
+  app.eval(`
+    g_log = {'2026-11-20':[{id:'calories', item_key:'custom', protein_g:120, kcal:1980}]};
+    g_target_kcal_day = 2530;
+    g_admin_mode = false;
+    render();
+  `);
+  document.getElementById('result').textContent = 'PASS: history, sync, backup, BF percentage points, FMI, tables, admin visibility, empty data, and input focus';
+}
+</script>

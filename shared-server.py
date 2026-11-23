@@ -5,6 +5,7 @@
 
 import http.server
 import glob
+import gzip
 import hashlib
 import json
 import os
@@ -63,6 +64,12 @@ def versionHtmlScripts(html_text):
         html_text = html_text.replace("const PROTEIN_COMMIT_MESSAGE = '';", f'const PROTEIN_COMMIT_MESSAGE = {message_json};')
 
     nonce = str(time.time_ns())
+    css_start = 'href="protein.css'
+    css_index = html_text.find(css_start)
+    if css_index >= 0:
+        css_end = html_text.index('"', css_index + len(css_start))
+        css_hash = hashlib.sha256(readTextFile('protein.css').encode('utf-8')).hexdigest()[:16]
+        html_text = html_text[:css_index] + f'href="protein.css?v={css_hash}' + html_text[css_end:]
     script_names = [
         'shared-storage.js',
         'data/workout-exercises.js',
@@ -86,6 +93,7 @@ def writeHtml(handler, path):
     body = versionHtmlScripts(html_text).encode('utf-8')
     handler.send_response(200)
     handler.send_header('Content-Type', 'text/html; charset=utf-8')
+    body = compressResponseBody(handler, body)
     handler.send_header('Content-Length', str(len(body)))
     # handler.send_header('Clear-Site-Data', '"cache"')
     noCacheHeaders(handler)
@@ -97,10 +105,23 @@ def writePlainText(handler, code, text, content_type):
     body = text.encode('utf-8')
     handler.send_response(code)
     handler.send_header('Content-Type', content_type)
+    body = compressResponseBody(handler, body)
     handler.send_header('Content-Length', str(len(body)))
     noCacheHeaders(handler)
     handler.end_headers()
     handler.wfile.write(body)
+
+
+def compressResponseBody(handler, body):
+    handler.send_header('Vary', 'Accept-Encoding')
+    if len(body) < 1024:
+        return body
+    for encoding in handler.headers.get('Accept-Encoding', '').split(','):
+        parts = encoding.strip().split(';')
+        if parts[0] == 'gzip' and 'q=0' not in [part.strip() for part in parts[1:]]:
+            handler.send_header('Content-Encoding', 'gzip')
+            return gzip.compress(body, compresslevel=5)
+    return body
 
 
 def writeJsonText(handler, code, value):

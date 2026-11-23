@@ -1,0 +1,80 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Network guidance and trends styles</title>
+<output id="result">Running</output>
+<iframe id="app" style="width:100%;height:1400px;border:0"></iframe>
+<script>
+let frame = document.getElementById('app');
+let app;
+let doc;
+let edited;
+window.addEventListener('error', reportFailure);
+let request = new XMLHttpRequest();
+request.open('GET', '../protein-loadout.html');
+request.onload = loadFixture;
+request.send();
+
+function reportFailure(event)
+{
+  document.getElementById('result').textContent = 'FAIL: ' + event.message;
+}
+
+function check(condition, message)
+{
+  if (!condition) throw new Error(message);
+}
+
+function loadFixture()
+{
+  let html = request.responseText.replace('<head>', '<head><base href="/">');
+  html = html.replace('\nload();\n</' + 'script>', '\n</' + 'script>');
+  html = html.replace("if ('serviceWorker' in navigator)", 'if (false)');
+  frame.onload = checkStyles;
+  frame.srcdoc = html;
+}
+
+function checkStyles()
+{
+  app = frame.contentWindow;
+  doc = frame.contentDocument;
+  app.eval(`mergeKnownItems(); g_active_tab = 'trends'; render();`);
+  check(app.getComputedStyle(doc.querySelector('.trends-values')).display == 'grid', 'trends grid applies');
+  check(app.getComputedStyle(doc.querySelector('.prediction-table caption')).color == app.getComputedStyle(doc.body).color, 'captions use white text');
+  check(app.getComputedStyle(doc.querySelector('.trends-card p.note')).paddingTop == '10px', 'card note padding applies');
+  check(app.getComputedStyle(doc.querySelector('.trends-kcal')).color != app.getComputedStyle(doc.querySelector('.trends-kcal span')).color, 'kcal and gram estimate have distinct colors');
+  Object.defineProperty(app.navigator, 'onLine', {configurable:true, value:false});
+  app.eval(`setSyncFailed('local only / sync failed', new TypeError('Failed to fetch'));`);
+  check(doc.querySelector('[data-sync-network]').textContent.includes('No network'), 'offline guidance visible without expanding');
+  Object.defineProperty(app.navigator, 'onLine', {configurable:true, value:true});
+  Object.defineProperty(app.navigator, 'connection', {configurable:true, value:{type:'cellular'}});
+  app.eval('updateSyncChrome();');
+  check(doc.querySelector('[data-sync-network]').textContent.includes('mobile data'), 'mobile data is identified');
+  Object.defineProperty(app.navigator, 'connection', {configurable:true, value:{}});
+  app.eval('updateSyncChrome();');
+  check(doc.querySelector('[data-sync-network]').textContent.includes('cannot confirm'), 'unknown Wi-Fi status is explicit');
+  app.eval(`
+    setSyncOk();
+    g_active_tab = 'pantry';
+    g_storage_key = 'network-css-regression';
+    g_unsynced_key = g_storage_key + ':unsynced';
+    saveLocalJson(JSON.stringify(makeSavePayload()));
+    protein_storage_url = '/deliberately-missing-sync';
+    render();
+    load();
+  `);
+  edited = doc.getElementById('bodyweight-input');
+  edited.focus();
+  edited.value = '76.5';
+  edited.dispatchEvent(new app.Event('input', {bubbles:true}));
+  setTimeout(checkFailedLoad, 250);
+}
+
+function checkFailedLoad()
+{
+  check(app.eval('g_sync_failed && !g_load_in_flight && g_sync_retry_timer != null'), 'failed initial load schedules recovery');
+  check(edited.isConnected && doc.activeElement == edited && edited.value == '76.5', 'late load failure preserves editor');
+  check(app.eval('bodyweightForDate(g_view_date) == 76.5'), 'late load failure preserves new data');
+  app.eval('clearTimeout(g_input_save_timer); g_input_save_timer = null; clearTimeout(g_sync_retry_timer); g_sync_retry_timer = null;');
+  document.getElementById('result').textContent = 'PASS: mobile trends CSS, offline/cellular/unknown network guidance, initial-load retry, and edit preservation';
+}
+</script>

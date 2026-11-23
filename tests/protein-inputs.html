@@ -241,7 +241,7 @@ function checkLiveDisplays()
   inputField('[data-key="egg"][data-field="price"]', '2.4');
   check(app_document.getElementById('loadout-summary').textContent != cost, 'price updates total cost');
 
-  resetFixture('');
+  resetFixture("g_log[shiftDateISO(g_view_date, -1)] = [{id:'previous-day',item_key:'egg',grams:50,protein_g:6,kcal:70}];");
   inputField('#bodyweight-input', '60.');
   check(app_document.querySelector('.protein-kg-scale strong').textContent == '0.10 g/kg', 'bodyweight updates the ratio without normalizing the input');
   let summary = app_document.getElementById('pantry-nutrition-summary').textContent;

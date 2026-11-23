@@ -848,6 +848,7 @@ let g_sync_error_detail = '';
 let g_sync_error_time = '';
 let g_unsynced_changes = false;
 let g_sync_in_flight = false;
+let g_load_in_flight = false;
 let g_local_revision = 0;
 let g_sync_retry_timer = null;
 let g_authoritative_replace_sync = false;
@@ -5550,19 +5551,31 @@ function storagePayloadFromValue(value)
   return value;
 }
 
+function syncConnectionHint()
+{
+  let connection = navigator.connection;
+  let connection_type = connection ? connection.type : '';
+  if (!navigator.onLine || connection_type == 'none') return 'No network connection. Connect to Wi-Fi on the Pi’s local network.';
+  if (connection_type == 'cellular') return 'Using mobile data. Connect to Wi-Fi on the Pi’s local network to sync.';
+  if (connection_type == 'wifi') return 'Wi-Fi reported connected. Check that this network can reach the Pi.';
+  if (connection_type == 'ethernet') return 'Ethernet reported connected. Check that this network can reach the Pi.';
+  return 'Check Wi-Fi: sync needs access to the Pi’s local network. This browser cannot confirm whether Wi-Fi is connected.';
+}
+
 function syncErrorDetails()
 {
   let endpoint = new URL('/api/storage', document.baseURI).href;
   return 'Time: ' + g_sync_error_time + '\n' +
     'Version: ' + PROTEIN_VERSION + '\n' +
     'Endpoint: ' + endpoint + '\n' +
-    'Browser online: ' + (navigator.onLine ? 'yes' : 'no') + '\n\n' +
+    'Browser online: ' + (navigator.onLine ? 'yes (does not confirm Wi-Fi or Pi access)' : 'no') + '\n' +
+    'Network: ' + syncConnectionHint() + '\n\n' +
     (g_sync_error_detail || g_sync_status);
 }
 
 function renderSyncWarning()
 {
-  return `<details id="sync-status" class="sync-status"><summary><span data-sync-label>${esc(g_sync_status || 'local only / sync failed')}</span><span class="sync-error-hint">tap for error details</span></summary><pre data-sync-error>${esc(syncErrorDetails())}</pre></details>`;
+  return `<details id="sync-status" class="sync-status"><summary><span data-sync-label>${esc(g_sync_status || 'local only / sync failed')}</span><span class="sync-error-hint" data-sync-network>${esc(syncConnectionHint())}</span><span class="sync-error-hint">tap for error details</span></summary><pre data-sync-error>${esc(syncErrorDetails())}</pre></details>`;
 }
 
 function updateSyncChrome()
@@ -5591,6 +5604,7 @@ function updateSyncChrome()
   }
 
   node.querySelector('[data-sync-label]').textContent = g_sync_status || 'local only / sync failed';
+  node.querySelector('[data-sync-network]').textContent = syncConnectionHint();
   node.querySelector('[data-sync-error]').textContent = syncErrorDetails();
 }
 
@@ -6247,13 +6261,13 @@ function scheduleSyncRetry()
   g_sync_retry_timer = setTimeout(function()
   {
     g_sync_retry_timer = null;
-    syncPendingChanges();
+    resumeSync();
   }, 3000);
 }
 
 function syncPendingChanges()
 {
-  if (g_sync_in_flight || !g_unsynced_changes || g_input_save_timer != null) return;
+  if (g_load_in_flight || g_sync_in_flight || !g_unsynced_changes || g_input_save_timer != null) return;
 
   if (!window.storage || !window.storage.get || !window.storage.set)
   {
@@ -6352,7 +6366,9 @@ function saveAuthoritativeReplacement()
 
 function load()
 {
+  if (g_load_in_flight) return;
   g_unsynced_changes = readUnsyncedFlag();
+  let load_revision = g_local_revision;
 
   function applyLoaded(payload)
   {
@@ -6460,8 +6476,16 @@ function load()
 
   if (window.storage && window.storage.get)
   {
+    g_load_in_flight = true;
     window.storage.get(g_storage_key).then(function(result)
     {
+      g_load_in_flight = false;
+      if (load_revision != g_local_revision)
+      {
+        if (result && result.value) mergeLoadedPayload(storagePayloadFromValue(result.value));
+        save();
+        return;
+      }
       let local_payload = readLocal();
 
       if (result && result.value)
@@ -6490,11 +6514,17 @@ function load()
       save();
     }, function failInitialSync(error)
     {
+      g_load_in_flight = false;
       setSyncFailed('local only / sync failed', error);
-      applyLoaded(readLocal());
-      finishLoad();
+      if (load_revision == g_local_revision)
+      {
+        applyLoaded(readLocal());
+        finishLoad();
+      }
+      scheduleSyncRetry();
     }).catch(function(error)
     {
+      g_load_in_flight = false;
       renderStartupError('Could not load protein data', error);
     });
     return;
@@ -9032,7 +9062,6 @@ document.addEventListener('click', function(ev)
       flushPendingInputSave();
       g_active_tab = target.dataset.tab == 'trends' || target.dataset.tab == 'mass' ? target.dataset.tab : 'pantry';
       render();
-      load();
       document.getElementById('tab-top').scrollIntoView({behavior:'instant', block:'start'});
       return;
 
@@ -9566,7 +9595,19 @@ window.addEventListener('beforeunload', function(event)
 function saveInputWhenHidden()
 {
   if (document.visibilityState == 'hidden') flushPendingInputSave();
-  else refreshTodayCalorieWeight();
+  else
+  {
+    refreshTodayCalorieWeight();
+    resumeSync();
+  }
+}
+
+function resumeSync()
+{
+  updateSyncChrome();
+  if (!navigator.onLine || g_load_in_flight || g_sync_in_flight || g_input_save_timer != null) return;
+  if (g_unsynced_changes) syncPendingChanges();
+  else if (g_sync_failed) load();
 }
 
 function refreshTodayCalorieWeight()
@@ -9606,7 +9647,9 @@ window.addEventListener('popstate', function(event)
 });
 
 window.addEventListener('pageshow', armBrowserBackGuard);
-window.addEventListener('online', syncPendingChanges);
+window.addEventListener('online', resumeSync);
+window.addEventListener('offline', updateSyncChrome);
+if (navigator.connection) navigator.connection.addEventListener('change', resumeSync);
 armBrowserBackGuard();
 
 if ('serviceWorker' in navigator)

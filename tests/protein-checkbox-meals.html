@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>Checkbox meal grouping regression</title>
+<output id="result">Running</output>
+<iframe id="app-frame" title="Isolated protein app" style="width:100%;height:800px;border:0"></iframe>
+<script>
+'use strict';
+
+let app_frame = document.getElementById('app-frame');
+let app_window;
+let app_document;
+window.addEventListener('error', reportTestError);
+let request = new XMLHttpRequest();
+request.open('GET', '../protein-loadout.html');
+request.onload = loadApp;
+request.send();
+
+function reportTestError(event)
+{
+  document.getElementById('result').textContent = 'FAIL: ' + event.message;
+}
+
+function check(condition, message)
+{
+  if (!condition) throw new Error(message);
+}
+
+function evaluate(code)
+{
+  return app_window.eval(code);
+}
+
+function loadApp()
+{
+  let html = request.responseText.replace('<head>', '<head><base href="/">');
+  html = html.replace(/<script src="protein-shared-storage.js[^\"]*"><\/script>/, '');
+  html = html.replace('\nload();\n</' + 'script>', '\n</' + 'script>');
+  html = html.replace("if ('serviceWorker' in navigator)", 'if (false)');
+  app_frame.onload = runTests;
+  app_frame.srcdoc = html;
+}
+
+function click(action)
+{
+  let button = app_document.querySelector('[data-a="' + action + '"]');
+  check(button && !button.disabled, 'action available: ' + action);
+  button.click();
+}
+
+function select(id, checked = true)
+{
+  let box = app_document.querySelector('[data-mealentry="' + id + '"]');
+  check(box && !box.disabled, 'selectable logged entry: ' + id);
+  box.checked = checked;
+  box.dispatchEvent(new app_window.Event('change', {bubbles:true}));
+}
+
+function runTests()
+{
+  app_window = app_frame.contentWindow;
+  app_document = app_frame.contentDocument;
+  evaluate(`
+    g_storage_key = 'protein-checkbox-meals-test';
+    g_unsynced_key = g_storage_key + ':unsynced';
+    window.test_writes = 0;
+    saveLocalJson = function captureSave(text)
+    {
+      ++window.test_writes;
+      localStorage.setItem(g_storage_key, text);
+    };
+    syncPendingChanges = function skipSync() {};
+    g_view_date = todayISO();
+    g_logged_foods_open = true;
+    g_scoop_items =
+    [
+      {key:'egg', name:'Egg', scoop_g:50, protein_g:6, kcal:70},
+      {key:'yogurt', name:'Yogurt', scoop_g:100, protein_g:10, kcal:60},
+      {key:'mix', name:'Mix', scoop_g:100, protein_g:10.5, kcal:80, yield_g:200,
+        ingredients:[{item_key:'egg', grams:50}, {item_key:'yogurt', grams:150}]}
+    ];
+    g_log = {[g_view_date]:
+    [
+      {id:'a', item_key:'egg', grams:25, protein_g:3, kcal:35, note:'half serving'},
+      {id:'b', item_key:'egg', grams:50, protein_g:6, kcal:70},
+      {id:'custom', item_key:'custom', grams:null, protein_g:4, kcal:30, note:'Snack estimate'},
+      {id:'untouched', item_key:'yogurt', grams:100, protein_g:10, kcal:60},
+      {id:'deleted', item_key:'egg', grams:999, protein_g:999, kcal:999, deleted_at:'2020-01-01T00:00:00Z'}
+    ]};
+    pushLogEntry('mix', 50, 5.25, 40, 0.5);
+    g_log[g_view_date].at(-1).id = 'recipe';
+    window.original_recipe = JSON.stringify(findLogEntryById('recipe').recipe_snapshot);
+    window.original_items = JSON.stringify(g_scoop_items);
+    window.original_log = JSON.stringify(g_log);
+    window.original_totals = JSON.stringify(dayTotals(g_view_date));
+    render();
+  `);
+  click('meal-new');
+  check(evaluate('g_recipe_draft == null && g_temporary_meal_edit != null'), '+ meal uses checkbox selection');
+  check(app_document.querySelector('[data-mealentry="deleted"]').disabled, 'deleted entries cannot be selected');
+  let first_box = app_document.querySelector('[data-mealentry="a"]');
+  select('a');
+  select('a');
+  select('b');
+  select('b', false);
+  select('b');
+  select('recipe');
+  check(evaluate('g_temporary_meal_edit.entry_ids.length') == 3, 'repeated checkbox events do not duplicate membership');
+  check(first_box.isConnected && evaluate('test_writes') == 0 && evaluate('JSON.stringify(g_log) == original_log'), 'selection preserves controls and makes no data changes');
+  click('meal-done');
+  check(evaluate('g_temporary_meal_edit == null && g_temporary_meals.length == 0'), 'Done removes the selection subtotal');
+  check(evaluate('test_writes') == 1, 'completed grouping saves once');
+  check(evaluate('JSON.stringify(dayTotals(g_view_date)) == original_totals'), 'grouping preserves daily protein, calories, and mass');
+  check(evaluate('logEntryIsBuried(findLogEntryById("a")) && logEntryIsBuried(findLogEntryById("b")) && logEntryIsBuried(findLogEntryById("recipe"))'), 'source entries remain as hidden sync tombstones');
+  check(evaluate('JSON.stringify(findLogEntryById("recipe").recipe_snapshot) == original_recipe'), 'source recipe history is intact');
+  evaluate('window.first_meal = g_log[g_view_date].at(-1);');
+  check(evaluate('first_meal.grams == 125 && first_meal.protein_g == 14.25 && first_meal.kcal == 145 && first_meal.note == "Meal 1"'), 'one meal uses the selected recorded totals');
+  check(evaluate('first_meal.recipe_snapshot.ingredients.length == 3 && first_meal.recipe_snapshot.ingredients[2].ingredients[0].grams == 12.5'), 'ingredient snapshot retains selected sub-recipe details');
+  check(evaluate('JSON.stringify(g_scoop_items) == original_items'), 'grouping does not create pantry recipes');
+  let panel = app_document.querySelector('.logged-recipe-ingredients');
+  panel.querySelector('summary').click();
+  check(panel.open && panel.textContent.includes('half serving') && panel.querySelector('[data-a="recipe-from-log"]'), 'combined meal uses recipe-style expandable details and save action');
+  evaluate('window.checkbox_backup = parseBackupTSV(buildBackupTSV().text);');
+  check(evaluate('checkbox_backup.ok && checkbox_backup.payload.log[g_view_date].at(-1).recipe_snapshot.ingredients.length == 3'), 'backup includes grouped ingredients and source tombstones');
+  evaluate('load();');
+  check(evaluate('JSON.stringify(dayTotals(g_view_date)) == original_totals'), 'reload does not count the source foods again');
+  evaluate('mergeLoadedPayload({log:JSON.parse(original_log)});');
+  check(evaluate('JSON.stringify(dayTotals(g_view_date)) == original_totals'), 'stale sync cannot resurrect grouped source entries');
+  click('meal-new');
+  click('meal-done');
+  check(evaluate('g_log[g_view_date].length') == 7, 'empty Done creates no meal');
+  click('meal-new');
+  select(evaluate('first_meal.id'));
+  select('untouched');
+  click('meal-done');
+  evaluate('window.second_meal = g_log[g_view_date].at(-1);');
+  check(evaluate('second_meal.note') == 'Meal 2', 'finished meals keep increasing numbers');
+  check(evaluate('JSON.stringify(dayTotals(g_view_date)) == original_totals'), 'regrouping meals preserves daily totals');
+  evaluate('openRecipeFromLog(second_meal.id);');
+  check(evaluate('g_recipe_draft.ingredients.length == 3'), 'save as recipe expands unsaved meal wrappers and combines duplicate foods');
+  check(evaluate('g_recipe_draft.ingredients.some(function hasEgg(ingredient) { return ingredient.item_key == "egg" && Number(ingredient.grams) == 75; })'), 'duplicate egg amounts combine');
+  check(evaluate('g_recipe_draft.ingredients.some(function hasMix(ingredient) { return ingredient.item_key == "mix" && Number(ingredient.grams) == 50; })'), 'saved sub-recipe stays a direct ingredient');
+  click('recipe-cancel');
+  click('meal-new');
+  select(evaluate('second_meal.id'));
+  select('custom');
+  click('meal-done');
+  check(evaluate('g_log[g_view_date].at(-1).grams == null'), 'unknown ingredient mass remains unknown');
+  check(evaluate('JSON.stringify(dayTotals(g_view_date)) == original_totals'), 'unknown total mass retains known ingredient mass for daily accounting');
+  check(app_document.querySelector('.logged-recipe-ingredients').textContent.includes('Snack estimate'), 'Custom name is retained in ingredient details');
+  click('meal-new');
+  click('meal-remove');
+  check(evaluate('JSON.stringify(dayTotals(g_view_date)) == original_totals'), 'cancel leaves logs and totals intact');
+  document.getElementById('result').textContent = 'PASS: checkbox selection, combined snapshots, unchanged totals, nested recipes, Custom entries, cancellation, save-as-recipe, backup/reload, and stale sync';
+}
+</script></html>
