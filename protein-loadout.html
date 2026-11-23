@@ -789,6 +789,11 @@ let g_mass_events = {};         /* isoDate -> [whole-body mass accounting events
 let g_daily_activity = {};      /* isoDate -> { steps, ebike_minutes, ebike_km } */
 let g_view_date = todayISO();   /* editing allowed for today, or viewed date in admin mode */
 let g_admin_mode = false;       /* session-only: lets the viewed day behave as editable */
+let g_barcode_test_value = '';
+let g_barcode_test_status = '';
+let g_barcode_test_stream = null;
+let g_barcode_test_timer = null;
+let g_barcode_test_generation = 0;
 let g_fetch_status = {};        /* item_key -> transient status text, not persisted */
 let g_fetch_pending = {};       /* item_key -> true while awaiting in-page overwrite confirmation */
 let g_fetch_context = {};       /* item_key -> which rendered context ('standalone' or a group key) triggered the fetch */
@@ -7533,8 +7538,109 @@ function renderMassSection()
   return h;
 }
 
+/*
+  The browser's camera and barcode APIs needlessly force Promise-based code.
+  This admin test is the approved exception; keep it isolated here.
+*/
+function stopBarcodeTest()
+{
+  ++g_barcode_test_generation;
+  clearTimeout(g_barcode_test_timer);
+  g_barcode_test_timer = null;
+  if (g_barcode_test_stream)
+  {
+    for (let track of g_barcode_test_stream.getTracks()) track.stop();
+    g_barcode_test_stream = null;
+  }
+  let video = document.getElementById('barcode-test-video');
+  if (video) video.srcObject = null;
+}
+
+function setBarcodeTestStatus(message)
+{
+  g_barcode_test_status = message;
+  let node = document.getElementById('barcode-test-status');
+  if (node) node.textContent = message;
+}
+
+function scanBarcodeFrame(detector, generation)
+{
+  let video = document.getElementById('barcode-test-video');
+  if (generation != g_barcode_test_generation || !video || !g_barcode_test_stream) return;
+  if (video.readyState < 2)
+  {
+    g_barcode_test_timer = setTimeout(function waitForCamera() { scanBarcodeFrame(detector, generation); }, 150);
+    return;
+  }
+  detector.detect(video).then(function barcodeDetected(codes)
+  {
+    if (generation != g_barcode_test_generation) return;
+    if (codes.length && codes[0].rawValue)
+    {
+      g_barcode_test_value = codes[0].rawValue;
+      let input = document.getElementById('barcode-test-value');
+      if (input) input.value = g_barcode_test_value;
+      stopBarcodeTest();
+      setBarcodeTestStatus('Barcode captured.');
+      return;
+    }
+    g_barcode_test_timer = setTimeout(function scanNextFrame() { scanBarcodeFrame(detector, generation); }, 150);
+  }, function barcodeDetectionFailed(error)
+  {
+    if (generation != g_barcode_test_generation) return;
+    stopBarcodeTest();
+    setBarcodeTestStatus('Barcode scan failed: ' + error.message);
+  });
+}
+
+function startBarcodeTest()
+{
+  if (!g_admin_mode) return;
+  stopBarcodeTest();
+  if (!window.BarcodeDetector)
+  {
+    setBarcodeTestStatus('This browser does not support barcode scanning.');
+    return;
+  }
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia)
+  {
+    setBarcodeTestStatus('Camera unavailable. Open this site over HTTPS.');
+    return;
+  }
+  let generation = g_barcode_test_generation;
+  let detector = new BarcodeDetector();
+  setBarcodeTestStatus('Opening camera…');
+  navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}}, audio:false}).then(function cameraOpened(stream)
+  {
+    if (generation != g_barcode_test_generation)
+    {
+      for (let track of stream.getTracks()) track.stop();
+      return;
+    }
+    g_barcode_test_stream = stream;
+    let video = document.getElementById('barcode-test-video');
+    if (!video)
+    {
+      stopBarcodeTest();
+      return;
+    }
+    video.srcObject = stream;
+    setBarcodeTestStatus('Point the camera at a barcode.');
+    scanBarcodeFrame(detector, generation);
+  }, function cameraFailed(error)
+  {
+    if (generation != g_barcode_test_generation) return;
+    setBarcodeTestStatus('Camera unavailable: ' + error.message);
+  });
+}
+/*
+  END PROMISE CRAP
+*/
+
 function render(preserve_pantry_position = false)
 {
+  if (g_barcode_test_stream) g_barcode_test_status = 'Camera stopped.';
+  stopBarcodeTest();
   updateAutomaticProteinTarget();
   let app = document.getElementById('app');
   let pantry_top = preserve_pantry_position ? document.querySelector('.pantrytable').getBoundingClientRect().top : 0;
@@ -7554,6 +7660,15 @@ function render(preserve_pantry_position = false)
   <h1>protein_loadout</h1>`;
 
   if (g_sync_failed) h += renderSyncWarning();
+
+  if (g_admin_mode) h += `<div class="addform">
+    <div class="mass-section-head">Barcode camera test</div>
+    <input id="barcode-test-value" type="text" aria-label="Scanned barcode" placeholder="Scanned barcode" value="${esc(g_barcode_test_value)}">
+    <button type="button" class="smallbtn" data-a="barcode-test-start">Scan barcode</button>
+    <button type="button" class="smallbtn" data-a="barcode-test-stop">Stop camera</button>
+    <span id="barcode-test-status" class="hint" role="status">${esc(g_barcode_test_status)}</span>
+    <video id="barcode-test-video" autoplay muted playsinline style="width:100%;max-width:360px"></video>
+  </div>`;
 
   if (g_active_tab != 'mass') h += renderTargetRow();
   h += renderTabBar();
@@ -8793,6 +8908,12 @@ document.addEventListener('input', function(ev)
   let target = ev.target;
   let num;
 
+  if (target.id == 'barcode-test-value')
+  {
+    g_barcode_test_value = target.value;
+    return;
+  }
+
   if (g_recipe_draft && (target.dataset.recipedraft || target.dataset.recipefield))
   {
     if (target.dataset.recipedraft)
@@ -9224,6 +9345,15 @@ document.addEventListener('click', function(ev)
 
   switch (action)
   {
+    case 'barcode-test-start':
+      startBarcodeTest();
+      return;
+
+    case 'barcode-test-stop':
+      stopBarcodeTest();
+      setBarcodeTestStatus('Camera stopped.');
+      return;
+
     case 'sync-retry':
       ev.preventDefault();
       flushPendingInputSave();
@@ -9766,7 +9896,12 @@ window.addEventListener('beforeunload', function(event)
 
 function saveInputWhenHidden()
 {
-  if (document.visibilityState == 'hidden') flushPendingInputSave();
+  if (document.visibilityState == 'hidden')
+  {
+    if (g_barcode_test_stream) setBarcodeTestStatus('Camera stopped.');
+    stopBarcodeTest();
+    flushPendingInputSave();
+  }
   else
   {
     refreshTodayCalorieWeight();
