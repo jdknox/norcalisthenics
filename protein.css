@@ -217,6 +217,10 @@ body.admin-mode #tab-top{scroll-margin-top:calc(58px + env(safe-area-inset-top,0
 .smallbtn[data-a="addex-barcode-stop"]:hover{color:var(--bg);background:var(--coral)}
 .smallbtn[data-a="addex-lookup-off"]{color:var(--green);border-color:var(--green)}
 .smallbtn[data-a="addex-lookup-off"]:hover{color:var(--bg);background:var(--green)}
+.smallbtn[data-a="scoop-add-item-save"],.smallbtn[data-a="scoop-edit-save"]{color:var(--green);border-color:var(--green)}
+.smallbtn[data-a="scoop-add-item-save"]:hover,.smallbtn[data-a="scoop-edit-save"]:hover{color:var(--bg);background:var(--green)}
+.smallbtn[data-a="scoop-add-item-cancel"],.smallbtn[data-a="scoop-edit-cancel"]{color:var(--coral);border-color:var(--coral)}
+.smallbtn[data-a="scoop-add-item-cancel"]:hover,.smallbtn[data-a="scoop-edit-cancel"]:hover{color:var(--bg);background:var(--coral)}
 .admin-toggle.admin-on{color:#1b0f0b;background:var(--coral);border-color:#f0b09c;font-weight:666}
 .datenav{display:flex;align-items:center;gap:10px;margin:0px 0 12px}
 .dateblock{display:block;width:max-content;margin:0 0 12px}
@@ -424,6 +428,10 @@ body.admin-mode #tab-top{scroll-margin-top:calc(58px + env(safe-area-inset-top,0
   font-size:smaller;
 }
 .addform input{width:120px;max-width:100%}
+.addform input[data-adddraft="macro_kcal"],.addform input[data-editdraft="macro_kcal"]{color:var(--blue)}
+.addform input[data-adddraft="macro_protein"],.addform input[data-editdraft="macro_protein"]{color:var(--search-hi)}
+.pantry-serving-protein{color:var(--search-hi)}
+.pantry-serving-kcal{color:var(--blue)}
 .barcode-entry{display:flex;gap:6px;min-width:0;max-width:100%}
 .addform .barcode-entry input{flex:1 1 120px;min-width:0}
 .barcode-entry .smallbtn{flex:none}

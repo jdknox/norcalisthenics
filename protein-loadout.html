@@ -2580,7 +2580,7 @@ function saveAddItemDraft()
   save();
 }
 
-function addItemMacroPreviewText(d)
+function addItemMacroPreviewText(d, colored = false)
 {
   let fields = macroFieldsFromDraft(d);
   let mode = draftMacroMode(d);
@@ -2588,8 +2588,28 @@ function addItemMacroPreviewText(d)
   if (fields.protein_g == null && fields.kcal == null) return 'enter at least one nutrition value';
   if (mode == '100g' && fields.scoop_g == null) return 'enter scoop g to preview this serving';
 
-  return 'serving: ' + (fields.protein_g != null ? fmt1(fields.protein_g) + ' g protein' : '— g protein')
-    + ' / ' + (fields.kcal != null ? fmt1(fields.kcal) + ' kcal' : '— kcal');
+  let protein = fields.protein_g != null ? fmt1(fields.protein_g) + ' g protein' : '— g protein';
+  let kcal = fields.kcal != null ? fmt1(fields.kcal) + ' kcal' : '— kcal';
+  if (colored)
+  {
+    protein = '<span class="pantry-serving-protein">' + protein + '</span>';
+    kcal = '<span class="pantry-serving-kcal">' + kcal + '</span>';
+  }
+  return 'serving: ' + protein + ' / ' + kcal;
+}
+
+function draftMacroRatioText(draft)
+{
+  let protein = numberOrNull(draft.macro_protein);
+  let kcal = numberOrNull(draft.macro_kcal);
+  let ratio = Number.isFinite(protein) && protein > 0 && Number.isFinite(kcal) && kcal >= 0 ? fmtKcalProteinRatio(kcal/protein) : '—';
+  return 'kcal/protein: ' + ratio + ' kcal/g';
+}
+
+function refreshDraftMacroRatio(kind, draft)
+{
+  let node = document.querySelector('[data-macro-ratio="' + kind + '"]');
+  if (node) node.textContent = draftMacroRatioText(draft);
 }
 
 function barcodeStatusHTML(message)
@@ -2637,6 +2657,7 @@ function addEditorNumberText(value)
 
 function refreshDraftMacroFields(kind, draft)
 {
+  refreshDraftMacroRatio(kind, draft);
   let mode = draftMacroMode(draft);
   for (let button of document.querySelectorAll('[data-a="' + kind + '-macro-mode"]'))
   {
@@ -2649,7 +2670,7 @@ function refreshDraftMacroFields(kind, draft)
     let unit = input.parentElement.querySelector('.unitghost');
     if (unit) unit.textContent = mode == '100g' ? '/100g' : field == 'macro_protein' ? 'g' : 'kcal';
   }
-  if (kind == 'add') document.getElementById('addex-macro-preview').textContent = addItemMacroPreviewText(draft);
+  if (kind == 'add') document.getElementById('addex-macro-preview').innerHTML = addItemMacroPreviewText(draft, true);
 }
 
 function lookupOFFForAddItem()
@@ -3330,6 +3351,7 @@ function renderScoopEditRow(item)
         <input type="text" inputmode="decimal" data-editdraft="macro_kcal" placeholder="kcal" value="${esc(d.macro_kcal)}">
         <span class="unitghost" aria-hidden="true">${kcal_unit}</span>
       </span>
+      <span class="hint" data-macro-ratio="edit" style="width:100%">${draftMacroRatioText(d)}</span>
       `;
 
   let fetch_disabled = g_fetch_pending[item.key] ? ' disabled' : '';
@@ -8846,7 +8868,8 @@ function renderScoopSection()
         <input type="text" inputmode="decimal" data-adddraft="macro_kcal" placeholder="kcal" value="${esc(addEditorNumberText(d.macro_kcal))}">
         <span class="unitghost" aria-hidden="true">${kcal_unit}</span>
       </span>
-      <span class="hint" id="addex-macro-preview" style="width:100%">${esc(addItemMacroPreviewText(d))}</span>
+      <span class="hint" id="addex-macro-preview" style="width:100%">${addItemMacroPreviewText(d, true)}</span>
+      <span class="hint" data-macro-ratio="add" style="width:100%">${draftMacroRatioText(d)}</span>
       <button class="smallbtn" data-a="scoop-add-item-save">save</button>
       <button class="smallbtn" data-a="scoop-add-item-cancel">cancel</button>`;
 
@@ -9284,6 +9307,7 @@ document.addEventListener('input', function(ev)
   if (adddraft_field)
   {
     g_scoop_add_draft[adddraft_field] = target.value;
+    refreshDraftMacroRatio('add', g_scoop_add_draft);
     refreshWaterPreview('add', g_scoop_add_draft);
     g_add_item_edit_versions[adddraft_field] = (g_add_item_edit_versions[adddraft_field] || 0) + 1;
     if (adddraft_field == 'barcode')
@@ -9296,7 +9320,7 @@ document.addEventListener('input', function(ev)
     if (adddraft_field == 'tags') updateTagSuggestions(target);
     if (adddraft_field == 'scoop_g' || adddraft_field == 'macro_protein' || adddraft_field == 'macro_kcal')
     {
-      document.getElementById('addex-macro-preview').textContent = addItemMacroPreviewText(g_scoop_add_draft);
+      document.getElementById('addex-macro-preview').innerHTML = addItemMacroPreviewText(g_scoop_add_draft, true);
     }
     return;
   }
@@ -9313,6 +9337,7 @@ document.addEventListener('input', function(ev)
   {
     if (editdraft_field == 'barcode' || editdraft_field == 'macro_protein' || editdraft_field == 'macro_kcal') ++g_edit_lookup_version;
     g_edit_draft[editdraft_field] = target.value;
+    refreshDraftMacroRatio('edit', g_edit_draft);
     refreshWaterPreview('edit', g_edit_draft);
     fitDraftTextarea(target);
     if (editdraft_field == 'name' || editdraft_field == 'brand') return;

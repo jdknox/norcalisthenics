@@ -97,6 +97,16 @@ function runChecks()
   check(doc.querySelector('[data-adddraft="volume"]').value == '240', 'lookup fills volume');
   check(doc.querySelector('[data-adddraft="macro_kcal"]').value == '571.4', 'lookup-generated input has one decimal');
   check(app.eval('g_scoop_add_draft.macro_kcal') == '571.4285714285714', 'display formatting retains calculation precision');
+  app.eval(`
+    let protein_input = document.querySelector('[data-adddraft="macro_protein"]');
+    let kcal_input = document.querySelector('[data-adddraft="macro_kcal"]');
+    protein_input.value = '10';
+    protein_input.dispatchEvent(new Event('input', {bubbles:true}));
+    kcal_input.value = '100';
+    kcal_input.dispatchEvent(new Event('input', {bubbles:true}));
+    if (draftMacroRatioText({macro_protein:'0', macro_kcal:'100'}) != 'kcal/protein: — kcal/g') throw Error('zero-protein ratio');
+  `);
+  check(doc.querySelector('[data-macro-ratio="add"]').textContent == 'kcal/protein: 10.0 kcal/g', 'ratio updates while editing nutrition');
   check(app.eval('test_stopped == 0 && test_writes == 0'), 'capture keeps camera open and does not save');
   check(!doc.getElementById('barcode-add-video').hidden, 'preview remains visible after capture');
   check(doc.getElementById('barcode-add-status').textContent == 'Barcode captured.', 'capture feedback');
