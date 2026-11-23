@@ -791,9 +791,12 @@ let g_view_date = todayISO();   /* editing allowed for today, or viewed date in 
 let g_admin_mode = false;       /* session-only: lets the viewed day behave as editable */
 let g_barcode_test_value = '';
 let g_barcode_test_status = '';
-let g_barcode_test_stream = null;
-let g_barcode_test_timer = null;
-let g_barcode_test_generation = 0;
+let g_barcode_add_status = '';
+let g_barcode_scan_context = 'test';
+let g_barcode_scan_stream = null;
+let g_barcode_scan_pending = false;
+let g_barcode_scan_timer = null;
+let g_barcode_scan_generation = 0;
 let g_fetch_status = {};        /* item_key -> transient status text, not persisted */
 let g_fetch_pending = {};       /* item_key -> true while awaiting in-page overwrite confirmation */
 let g_fetch_context = {};       /* item_key -> which rendered context ('standalone' or a group key) triggered the fetch */
@@ -2531,11 +2534,11 @@ function renderMacroModeControl(kind, mode)
   let hundred_on = mode == '100g' ? ' on' : '';
   let serving_on = mode == 'serving' ? ' on' : '';
 
-  h += `<span class="macromode">
+  h += `<div class="macromode-row"><span class="macromode">
     <span class="macromodelabel">nutrition for</span>
     <button class="macromodebtn${hundred_on}" data-a="${kind}-macro-mode" data-mode="100g" type="button">100g</button>
     <button class="macromodebtn${serving_on}" data-a="${kind}-macro-mode" data-mode="serving" type="button">serving</button>
-  </span>`;
+  </span></div>`;
 
   return h;
 }
@@ -2550,12 +2553,15 @@ function saveAddItemDraft()
   if (waterContentError(d.water_content)) return;
 
   fields = macroFieldsFromDraft(d);
+  let volume = parseVolumeDraft(d.volume || '');
 
   let item = {
     key: uid(),
     barcode: d.barcode.trim() ? d.barcode.trim() : null,
     name: d.name.trim(),
     brand: d.brand.trim(),
+    volume_ml:volume.volume_ml,
+    volume_label:volume.volume_label,
     scoop_g: fields.scoop_g,
     protein_g: fields.protein_g,
     kcal: fields.kcal,
@@ -3282,6 +3288,10 @@ function renderScoopEditRow(item)
     <div class="addform">
       <textarea rows="1" data-editdraft="name" placeholder="name">${esc(d.name)}</textarea>
       <textarea rows="1" data-editdraft="brand" placeholder="brand">${esc(d.brand)}</textarea>
+      <span class="tagwrap">
+        <input type="text" data-editdraft="tags" autocomplete="off" placeholder="tags, comma separated (e.g. Skyr bowl, Snack mix)" value="${esc(d.tags)}">
+        <div class="tagsuggest"></div>
+      </span>
       <input type="text" data-editdraft="barcode" placeholder="barcode" value="${esc(d.barcode)}">
       <input type="text" data-editdraft="volume" autocapitalize="characters" placeholder="volume (mL, or BOWL/CAN)" value="${esc(d.volume)}">
       <span class="unitinput">
@@ -3300,10 +3310,7 @@ function renderScoopEditRow(item)
         <input type="text" inputmode="decimal" data-editdraft="macro_kcal" placeholder="kcal" value="${esc(d.macro_kcal)}">
         <span class="unitghost" aria-hidden="true">${kcal_unit}</span>
       </span>
-      <span class="tagwrap">
-        <input type="text" data-editdraft="tags" autocomplete="off" placeholder="tags, comma separated (e.g. Skyr bowl, Snack mix)" value="${esc(d.tags)}">
-        <div class="tagsuggest"></div>
-      </span>`;
+      `;
 
   let fetch_disabled = g_fetch_pending[item.key] ? ' disabled' : '';
   let fetch_hidden = d.barcode.trim().length > 2 ? '' : ' hidden';
@@ -7540,97 +7547,112 @@ function renderMassSection()
 
 /*
   The browser's camera and barcode APIs needlessly force Promise-based code.
-  This admin test is the approved exception; keep it isolated here.
+  This scanner is the approved exception; keep it isolated here.
 */
-function stopBarcodeTest()
+function stopBarcodeScan()
 {
-  ++g_barcode_test_generation;
-  clearTimeout(g_barcode_test_timer);
-  g_barcode_test_timer = null;
-  if (g_barcode_test_stream)
+  g_barcode_scan_pending = false;
+  ++g_barcode_scan_generation;
+  clearTimeout(g_barcode_scan_timer);
+  g_barcode_scan_timer = null;
+  if (g_barcode_scan_stream)
   {
-    for (let track of g_barcode_test_stream.getTracks()) track.stop();
-    g_barcode_test_stream = null;
+    for (let track of g_barcode_scan_stream.getTracks()) track.stop();
+    g_barcode_scan_stream = null;
   }
-  let video = document.getElementById('barcode-test-video');
-  if (video) video.srcObject = null;
+  let video = document.getElementById('barcode-' + g_barcode_scan_context + '-video');
+  if (video)
+  {
+    video.srcObject = null;
+    video.hidden = true;
+  }
 }
 
-function setBarcodeTestStatus(message)
+function setBarcodeScanStatus(message)
 {
-  g_barcode_test_status = message;
-  let node = document.getElementById('barcode-test-status');
+  if (g_barcode_scan_context == 'add') g_barcode_add_status = message;
+  else g_barcode_test_status = message;
+  let node = document.getElementById('barcode-' + g_barcode_scan_context + '-status');
   if (node) node.textContent = message;
 }
 
 function scanBarcodeFrame(detector, generation)
 {
-  let video = document.getElementById('barcode-test-video');
-  if (generation != g_barcode_test_generation || !video || !g_barcode_test_stream) return;
+  let video = document.getElementById('barcode-' + g_barcode_scan_context + '-video');
+  if (generation != g_barcode_scan_generation || !video || !g_barcode_scan_stream) return;
   if (video.readyState < 2)
   {
-    g_barcode_test_timer = setTimeout(function waitForCamera() { scanBarcodeFrame(detector, generation); }, 150);
+    g_barcode_scan_timer = setTimeout(function waitForCamera() { scanBarcodeFrame(detector, generation); }, 150);
     return;
   }
   detector.detect(video).then(function barcodeDetected(codes)
   {
-    if (generation != g_barcode_test_generation) return;
+    if (generation != g_barcode_scan_generation) return;
     if (codes.length && codes[0].rawValue)
     {
-      g_barcode_test_value = codes[0].rawValue;
-      let input = document.getElementById('barcode-test-value');
-      if (input) input.value = g_barcode_test_value;
-      stopBarcodeTest();
-      setBarcodeTestStatus('Barcode captured.');
+      let input = g_barcode_scan_context == 'add' ? document.querySelector('[data-adddraft="barcode"]') : document.getElementById('barcode-test-value');
+      if (input)
+      {
+        input.value = codes[0].rawValue;
+        input.dispatchEvent(new Event('input', {bubbles:true}));
+      }
+      stopBarcodeScan();
+      setBarcodeScanStatus('Barcode captured.');
       return;
     }
-    g_barcode_test_timer = setTimeout(function scanNextFrame() { scanBarcodeFrame(detector, generation); }, 150);
+    g_barcode_scan_timer = setTimeout(function scanNextFrame() { scanBarcodeFrame(detector, generation); }, 150);
   }, function barcodeDetectionFailed(error)
   {
-    if (generation != g_barcode_test_generation) return;
-    stopBarcodeTest();
-    setBarcodeTestStatus('Barcode scan failed: ' + error.message);
+    if (generation != g_barcode_scan_generation) return;
+    stopBarcodeScan();
+    setBarcodeScanStatus('Barcode scan failed: ' + error.message);
   });
 }
 
-function startBarcodeTest()
+function startBarcodeScan(context)
 {
-  if (!g_admin_mode) return;
-  stopBarcodeTest();
+  if (context == 'test' && !g_admin_mode) return;
+  if (context == 'add' && !g_scoop_add_draft) return;
+  stopBarcodeScan();
+  g_barcode_scan_context = context;
   if (!window.BarcodeDetector)
   {
-    setBarcodeTestStatus('This browser does not support barcode scanning.');
+    setBarcodeScanStatus('This browser does not support barcode scanning.');
     return;
   }
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia)
   {
-    setBarcodeTestStatus('Camera unavailable. Open this site over HTTPS.');
+    setBarcodeScanStatus('Camera unavailable. Open this site over HTTPS.');
     return;
   }
-  let generation = g_barcode_test_generation;
+  let generation = g_barcode_scan_generation;
   let detector = new BarcodeDetector();
-  setBarcodeTestStatus('Opening camera…');
+  setBarcodeScanStatus('Opening camera…');
+  g_barcode_scan_pending = true;
   navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}}, audio:false}).then(function cameraOpened(stream)
   {
-    if (generation != g_barcode_test_generation)
+    if (generation != g_barcode_scan_generation)
     {
       for (let track of stream.getTracks()) track.stop();
       return;
     }
-    g_barcode_test_stream = stream;
-    let video = document.getElementById('barcode-test-video');
+    g_barcode_scan_pending = false;
+    g_barcode_scan_stream = stream;
+    let video = document.getElementById('barcode-' + g_barcode_scan_context + '-video');
     if (!video)
     {
-      stopBarcodeTest();
+      stopBarcodeScan();
       return;
     }
+    video.hidden = false;
     video.srcObject = stream;
-    setBarcodeTestStatus('Point the camera at a barcode.');
+    setBarcodeScanStatus('Point the camera at a barcode.');
     scanBarcodeFrame(detector, generation);
   }, function cameraFailed(error)
   {
-    if (generation != g_barcode_test_generation) return;
-    setBarcodeTestStatus('Camera unavailable: ' + error.message);
+    if (generation != g_barcode_scan_generation) return;
+    g_barcode_scan_pending = false;
+    setBarcodeScanStatus('Camera unavailable: ' + error.message);
   });
 }
 /*
@@ -7639,8 +7661,8 @@ function startBarcodeTest()
 
 function render(preserve_pantry_position = false)
 {
-  if (g_barcode_test_stream) g_barcode_test_status = 'Camera stopped.';
-  stopBarcodeTest();
+  if (g_barcode_scan_stream || g_barcode_scan_pending) setBarcodeScanStatus('Camera stopped.');
+  stopBarcodeScan();
   updateAutomaticProteinTarget();
   let app = document.getElementById('app');
   let pantry_top = preserve_pantry_position ? document.querySelector('.pantrytable').getBoundingClientRect().top : 0;
@@ -7667,7 +7689,7 @@ function render(preserve_pantry_position = false)
     <button type="button" class="smallbtn" data-a="barcode-test-start">Scan barcode</button>
     <button type="button" class="smallbtn" data-a="barcode-test-stop">Stop camera</button>
     <span id="barcode-test-status" class="hint" role="status">${esc(g_barcode_test_status)}</span>
-    <video id="barcode-test-video" autoplay muted playsinline style="width:100%;max-width:360px"></video>
+    <video id="barcode-test-video" hidden autoplay muted playsinline style="width:100%;max-width:360px"></video>
   </div>`;
 
   if (g_active_tab != 'mass') h += renderTargetRow();
@@ -8718,10 +8740,19 @@ function renderScoopSection()
         <input type="text" inputmode="${d.barcode_keyboard ? 'numeric' : 'none'}" data-adddraft="barcode" placeholder="barcode" aria-label="Barcode" value="${esc(d.barcode)}">
         <button type="button" class="smallbtn" data-a="addex-barcode-keyboard" title="Type barcode" aria-label="Type barcode">&#9000;&#65038;</button>
       </span>
+      <button type="button" class="smallbtn" data-a="addex-barcode-scan">Scan barcode</button>
+      <button type="button" class="smallbtn" data-a="addex-barcode-stop">Stop camera</button>
       <button class="smallbtn" data-a="addex-lookup-off">look up on O.F.F.</button>
+      <span id="barcode-add-status" class="hint" role="status" style="flex:0 0 100%">${esc(g_barcode_add_status)}</span>
+      <video id="barcode-add-video" autoplay muted playsinline hidden style="width:100%;max-width:360px"></video>
       <textarea rows="1" data-adddraft="name" placeholder="name">${esc(d.name)}</textarea>
       <textarea rows="1" data-adddraft="brand" placeholder="brand">${esc(d.brand)}</textarea>
-      <span class="tagwrap"><input type="text" data-adddraft="tags" autocomplete="off" placeholder="tags, comma separated" aria-label="Tags" value="${esc(d.tags)}"><span class="tagsuggest"></span></span>
+      <span class="tagwrap">
+        <input type="text" data-adddraft="tags" autocomplete="off"
+          placeholder="tags, comma separated" aria-label="Tags" value="${esc(d.tags)}">
+        <span class="tagsuggest"></span>
+      </span>
+      <input type="text" data-adddraft="volume" autocapitalize="characters" placeholder="volume (mL, or BOWL/CAN)" aria-label="Volume" value="${esc(d.volume || '')}">
       <input type="text" inputmode="decimal" data-adddraft="scoop_g" placeholder="scoop g" value="${esc(d.scoop_g)}">`;
 
     h += renderWaterContentField('add', d);
@@ -9346,12 +9377,12 @@ document.addEventListener('click', function(ev)
   switch (action)
   {
     case 'barcode-test-start':
-      startBarcodeTest();
+      startBarcodeScan('test');
       return;
 
     case 'barcode-test-stop':
-      stopBarcodeTest();
-      setBarcodeTestStatus('Camera stopped.');
+      stopBarcodeScan();
+      setBarcodeScanStatus('Camera stopped.');
       return;
 
     case 'sync-retry':
@@ -9537,12 +9568,22 @@ document.addEventListener('click', function(ev)
       return;
 
     case 'scoop-add-item-open':
-      g_scoop_add_draft = { barcode:'', barcode_keyboard:false, name:'', brand:'', tags:'', scoop_g:'', macro_mode:'100g', macro_protein:'', macro_kcal:'', water_content:'' };
+      g_scoop_add_draft = { barcode:'', barcode_keyboard:false, name:'', brand:'', volume:'', tags:'', scoop_g:'', macro_mode:'100g', macro_protein:'', macro_kcal:'', water_content:'' };
       g_add_item_edit_versions =
       {
       };
       g_add_item_status = '';
+      g_barcode_add_status = '';
       render();
+      return;
+
+    case 'addex-barcode-scan':
+      startBarcodeScan('add');
+      return;
+
+    case 'addex-barcode-stop':
+      stopBarcodeScan();
+      setBarcodeScanStatus('Camera stopped.');
       return;
 
     case 'addex-barcode-keyboard':
@@ -9898,8 +9939,8 @@ function saveInputWhenHidden()
 {
   if (document.visibilityState == 'hidden')
   {
-    if (g_barcode_test_stream) setBarcodeTestStatus('Camera stopped.');
-    stopBarcodeTest();
+    if (g_barcode_scan_stream || g_barcode_scan_pending) setBarcodeScanStatus('Camera stopped.');
+    stopBarcodeScan();
     flushPendingInputSave();
   }
   else

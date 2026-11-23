@@ -1,0 +1,100 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Pantry barcode scanner</title>
+<output id="result">Running</output>
+<iframe id="app"></iframe>
+<script>
+'use strict';
+let frame = document.getElementById('app');
+let app;
+let doc;
+let request = new XMLHttpRequest();
+window.addEventListener('error', reportFailure);
+request.open('GET', '../protein-loadout.html');
+request.onload = loadFixture;
+request.send();
+
+function reportFailure(event)
+{
+  document.getElementById('result').textContent = 'FAIL: ' + event.message;
+}
+
+function check(condition, message)
+{
+  if (!condition) throw new Error(message);
+}
+
+function loadFixture()
+{
+  let html = request.responseText.replace('<head>', '<head><base href="/">');
+  html = html.replace(/<script src="protein-shared-storage.js[^\"]*"><\/script>/, '');
+  html = html.replace('\nload();\n</' + 'script>', '\n</' + 'script>');
+  html = html.replace("if ('serviceWorker' in navigator)", 'if (false)');
+  frame.onload = runChecks;
+  frame.srcdoc = html;
+}
+
+function prepareVideo(id)
+{
+  let video = doc.getElementById(id);
+  Object.defineProperty(video, 'readyState', {configurable:true, value:2});
+  Object.defineProperty(video, 'srcObject', {configurable:true, writable:true, value:null});
+}
+
+function click(action)
+{
+  doc.querySelector('[data-a="' + action + '"]').click();
+}
+
+function runChecks()
+{
+  app = frame.contentWindow;
+  doc = frame.contentDocument;
+  app.eval(`
+    window.test_stopped = 0;
+    window.test_writes = 0;
+    save = function captureSave() { ++test_writes; };
+    window.test_stream = {getTracks:function getTracks() { return [{stop:function stopTrack() { ++test_stopped; }}]; }};
+    window.BarcodeDetector = function testDetector()
+    {
+      return {detect:function detectFrame() { return {then:function receiveDetection(done, fail) { window.detect_done = done; window.detect_fail = fail; }}; }};
+    };
+    Object.defineProperty(navigator, 'mediaDevices', {configurable:true, value:
+      {getUserMedia:function openCamera() { return {then:function receiveCamera(done, fail) { window.camera_done = done; window.camera_fail = fail; }}; }}});
+    g_admin_mode = false;
+    render();
+  `);
+  click('scoop-add-item-open');
+  let barcode = doc.querySelector('[data-adddraft="barcode"]');
+  let name = doc.querySelector('[data-adddraft="name"]');
+  name.value = 'Keep my draft';
+  name.dispatchEvent(new app.Event('input', {bubbles:true}));
+  prepareVideo('barcode-add-video');
+  click('addex-barcode-scan');
+  app.eval('camera_done(test_stream); detect_done([{rawValue:"1234567890123"}]);');
+  check(barcode.value == '1234567890123', 'scan fills existing barcode field');
+  check(app.eval('g_scoop_add_draft.barcode') == barcode.value, 'draft receives barcode');
+  check(name.isConnected && name.value == 'Keep my draft', 'scan preserves other draft fields');
+  check(app.eval('test_stopped == 1 && test_writes == 0'), 'scan stops camera and does not save');
+  check(doc.getElementById('barcode-add-status').textContent == 'Barcode captured.', 'capture feedback');
+  click('addex-barcode-scan');
+  app.eval('camera_done(test_stream); window.late_detection = detect_done;');
+  click('scoop-add-item-cancel');
+  app.eval('late_detection([{rawValue:"wrong"}]);');
+  check(app.eval('g_scoop_add_draft == null && test_stopped == 2'), 'closing form ignores late detections and stops camera');
+  click('scoop-add-item-open');
+  click('addex-barcode-scan');
+  app.eval('window.late_camera = camera_done;');
+  click('addex-barcode-stop');
+  app.eval('late_camera(test_stream);');
+  check(app.eval('test_stopped == 3 && !g_barcode_scan_stream'), 'stopping pending permission closes late stream');
+  click('addex-barcode-scan');
+  app.eval('camera_fail({message:"permission denied"});');
+  check(doc.getElementById('barcode-add-status').textContent.includes('permission denied'), 'permission failure is visible');
+  app.eval('window.BarcodeDetector = undefined;');
+  click('addex-barcode-scan');
+  check(doc.getElementById('barcode-add-status').textContent.includes('does not support'), 'unsupported browser feedback');
+  check(doc.querySelector('[data-adddraft="barcode"]'), 'manual barcode entry remains available');
+  document.getElementById('result').textContent = 'PASS: regular pantry capture, draft preservation, camera cleanup, stale callbacks, permissions, unsupported browsers, and no data writes';
+}
+</script>
