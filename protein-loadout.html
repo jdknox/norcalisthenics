@@ -857,6 +857,7 @@ let g_sync_error_time = '';
 let g_unsynced_changes = false;
 let g_sync_in_flight = false;
 let g_load_in_flight = false;
+let g_tab_sync_pending = false;
 let g_local_revision = 0;
 let g_sync_retry_timer = null;
 let g_sync_retry_count = 0;
@@ -6719,6 +6720,7 @@ function syncPendingChanges()
       clearBodyweightDirtyDates();
       clearDailyActivityDirtyDates();
       setSyncOk();
+      syncAfterTabSwitch();
     });
   }).catch(function(error)
   {
@@ -6774,7 +6776,7 @@ function saveAuthoritativeReplacement()
   save();
 }
 
-function load()
+function load(tab_refresh = false)
 {
   if (g_load_in_flight) return;
   g_unsynced_changes = readUnsyncedFlag();
@@ -6892,6 +6894,11 @@ function load()
     window.storage.get(g_storage_key).then(function(result)
     {
       g_load_in_flight = false;
+      if (tab_refresh && isTextInputFocused())
+      {
+        g_tab_sync_pending = true;
+        return;
+      }
       if (load_revision != g_local_revision)
       {
         if (result && result.value) mergeLoadedPayload(storagePayloadFromValue(result.value));
@@ -6913,6 +6920,9 @@ function load()
         {
           applyLoaded(shared_payload);
           mergeLoadedPayload(local_payload);
+          // Synced local bodyweight records must not replace newer shared values.
+          if (shared_payload.bodyweight_kg != null) g_bodyweight_kg = shared_payload.bodyweight_kg;
+          mergeBodyweightByDate(shared_payload.bodyweight_by_date);
           // Resolve activity before rendering: synced local records cannot override shared values.
           mergeDailyActivityFromSync(shared_payload.daily_activity);
         }
@@ -6928,7 +6938,7 @@ function load()
     {
       g_load_in_flight = false;
       setSyncFailed('local only / sync failed', error);
-      if (load_revision == g_local_revision)
+      if (!tab_refresh && load_revision == g_local_revision)
       {
         applyLoaded(readLocal());
         finishLoad();
@@ -9692,6 +9702,8 @@ document.addEventListener('click', function(ev)
       g_active_tab = target.dataset.tab == 'trends' || target.dataset.tab == 'mass' ? target.dataset.tab : 'pantry';
       render();
       document.getElementById('tab-top').scrollIntoView({behavior:'instant', block:'start'});
+      g_tab_sync_pending = true;
+      syncAfterTabSwitch();
       return;
 
     case 'reset':
@@ -10282,6 +10294,29 @@ function resumeSync()
   if (!navigator.onLine) return;
   retrySync();
 }
+
+function isTextInputFocused()
+{
+  let active = document.activeElement;
+  return active && (active.tagName == 'INPUT' || active.tagName == 'TEXTAREA' || active.isContentEditable);
+}
+
+function syncAfterTabSwitch()
+{
+  if (!g_tab_sync_pending || g_load_in_flight || g_sync_in_flight || g_input_save_timer != null || isTextInputFocused()) return;
+  if (g_unsynced_changes)
+  {
+    syncPendingChanges();
+    return;
+  }
+  g_tab_sync_pending = false;
+  load(true);
+}
+
+document.addEventListener('focusout', function()
+{
+  setTimeout(syncAfterTabSwitch, 0);
+});
 
 function retrySync()
 {
