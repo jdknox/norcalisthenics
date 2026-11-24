@@ -13,6 +13,10 @@ assert f"const PROTEIN_VERSION = '{commit_date}';" in version_html
 message_json = json.dumps(commit_message.strip()).replace('<', '\\u003c')
 assert f'const PROTEIN_COMMIT_MESSAGE = {message_json};' in version_html
 assert 'class="site-version" title="${esc(PROTEIN_COMMIT_MESSAGE)}"' in version_html
+assert '<style id="protein-styles">\n' + server['readTextFile']('protein.css') + '\n</style>' in version_html
+assert '<script id="protein-storage">\n' + server['readTextFile']('protein-shared-storage.js') + '\n</script>' in version_html
+assert '<link rel="stylesheet" href="protein.css' not in version_html
+assert '<script src="protein-shared-storage.js' not in version_html
 
 first_date = '2026-11-06T11:32:42-06:00'
 second_date = '2026-11-06T12:45:03-06:00'

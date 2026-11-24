@@ -10321,8 +10321,59 @@ document.addEventListener('focusout', function()
 function retrySync()
 {
   if (g_load_in_flight || g_sync_in_flight || g_input_save_timer != null) return;
+  if (!window.storage || !window.storage.get || !window.storage.set)
+  {
+    retryMissingAppResources();
+    return;
+  }
   if (g_unsynced_changes) syncPendingChanges();
   else if (g_sync_failed) load();
+}
+
+function retryMissingAppResources()
+{
+  let request = new XMLHttpRequest();
+  g_load_in_flight = true;
+  ++g_sync_retry_count;
+  setSyncFailed('sync code did not load / retrying download');
+
+  let stylesheet = document.querySelector('link[rel="stylesheet"][href^="protein.css"]');
+  if (stylesheet) stylesheet.href = 'protein.css?retry=' + Date.now();
+
+  request.open('GET', 'protein-shared-storage.js?retry=' + Date.now());
+  request.timeout = 10000;
+  request.onload = finishStorageDownload;
+  request.onerror = failStorageDownload;
+  request.ontimeout = failStorageDownload;
+  request.send();
+
+  function finishStorageDownload()
+  {
+    g_load_in_flight = false;
+    if (request.status != 200)
+    {
+      setSyncFailed('sync code download failed', new Error('protein-shared-storage.js: HTTP ' + request.status));
+      scheduleSyncRetry();
+      return;
+    }
+    let script = document.createElement('script');
+    script.textContent = request.responseText;
+    document.head.appendChild(script);
+    if (!window.storage || !window.storage.get || !window.storage.set)
+    {
+      setSyncFailed('sync code could not start', new Error('Downloaded protein-shared-storage.js did not provide shared storage'));
+      return;
+    }
+    retrySync();
+  }
+
+  function failStorageDownload(event)
+  {
+    g_load_in_flight = false;
+    let detail = event.type == 'timeout' ? 'download timed out after 10 seconds' : 'network request failed';
+    setSyncFailed('sync code download failed', new Error('protein-shared-storage.js: ' + detail));
+    scheduleSyncRetry();
+  }
 }
 
 function refreshTodayCalorieWeight()

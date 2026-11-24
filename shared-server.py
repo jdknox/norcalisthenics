@@ -63,6 +63,15 @@ def versionHtmlScripts(html_text):
         message_json = json.dumps(commit_message.strip()).replace('<', '\\u003c')
         html_text = html_text.replace("const PROTEIN_COMMIT_MESSAGE = '';", f'const PROTEIN_COMMIT_MESSAGE = {message_json};')
 
+        # Deliver essential protein resources with the page, so partial asset
+        # failures cannot leave a working UI without styles or sync support.
+        css_start = html_text.index('<link rel="stylesheet" href="protein.css')
+        css_end = html_text.index('>', css_start) + 1
+        css_text = readTextFile('protein.css')
+        html_text = html_text[:css_start] + '<style id="protein-styles">\n' + css_text + '\n</style>' + html_text[css_end:]
+        storage_script = readTextFile('protein-shared-storage.js')
+        html_text = html_text.replace('<script src="protein-shared-storage.js"></script>', '<script id="protein-storage">\n' + storage_script + '\n</script>')
+
     nonce = str(time.time_ns())
     css_start = 'href="protein.css'
     css_index = html_text.find(css_start)
