@@ -804,6 +804,10 @@ let g_fetch_context = {};       /* item_key -> which rendered context ('standalo
 let g_fetch_barcode = {};       /* item_key -> barcode used by a draft-triggered lookup */
 let g_scoop_search_raw = '';
 let g_scoop_add_draft = null;   /* { barcode, name, brand, tags, scoop_g, macro_mode, macro_protein, macro_kcal } while the add-item form is open */
+let g_pantry_link_seen = '';
+let g_pantry_link_pending = null;
+let g_pantry_link_error = '';
+const PANTRY_LINK_ITEM_PREFIX = 'protein-loadout:pending-pantry-item:';
 let g_recipe_draft = null;
 let g_add_item_status = '';     /* transient feedback for the add-item form's O.F.F. lookup */
 let g_last_lookup_debug = null; /* raw response text when the web-search fallback returns something unparseable/unexpected, not persisted */
@@ -2596,6 +2600,138 @@ function renderMacroModeControl(kind, mode)
   return h;
 }
 
+function openAddItemDraft(draft)
+{
+  g_scoop_add_draft = draft;
+  g_add_item_edit_versions = {};
+  g_add_item_status = '';
+  g_barcode_add_status = '';
+  render();
+  scrollBelowTabs(document.getElementById('pantry-add-editor'));
+}
+
+function parsePantryLink(fragment)
+{
+  let field_limits = {v:1, name:180, brand:120, barcode:14, serving_g:24, volume_ml:24, basis:7, protein_g:24, kcal:24, water_pct:24, estimate:1};
+  if (fragment.length > 2048 || !fragment.startsWith('#pantry-add?') || /%(?![0-9a-f]{2})/i.test(fragment)) return null;
+  let values = new URLSearchParams(fragment.slice('#pantry-add?'.length));
+  for (let [field, value] of values)
+  {
+    if (!Object.hasOwn(field_limits, field) || values.getAll(field).length != 1 || value.length > field_limits[field] || /[\u0000-\u001f\u007f\ufffd]/.test(value)) return null;
+  }
+
+  let name = (values.get('name') || '').trim();
+  let barcode = values.get('barcode') || '';
+  let basis = values.get('basis');
+  if (values.get('v') != '1' || (!name && !barcode)) return null;
+  if (values.has('barcode') && !/^(?:\d{8}|\d{12,14})$/.test(barcode)) return null;
+  if (basis != null && basis != 'serving' && basis != '100g') return null;
+  if (!basis && (values.has('protein_g') || values.has('kcal'))) return null;
+  if (values.has('estimate') && values.get('estimate') != '1') return null;
+
+  for (let field of ['serving_g', 'volume_ml', 'protein_g', 'kcal', 'water_pct'])
+  {
+    if (!values.has(field)) continue;
+    let value = values.get(field);
+    let number = Number(value);
+    if (!/^\d+(?:\.\d+)?$/.test(value) || !Number.isFinite(number)) return null;
+    if ((field == 'serving_g' || field == 'volume_ml') && number <= 0) return null;
+    if (field == 'water_pct' && number > 100) return null;
+  }
+
+  return {
+    name:name,
+    brand:(values.get('brand') || '').trim(),
+    barcode:barcode,
+    barcode_keyboard:!!barcode,
+    scoop_g:values.get('serving_g') || '',
+    volume:values.get('volume_ml') || '',
+    tags:'',
+    macro_mode:basis || '100g',
+    macro_protein:values.get('protein_g') || '',
+    macro_kcal:values.get('kcal') || '',
+    water_content:values.get('water_pct') || '',
+    pantry_link:fragment,
+    estimate:values.get('estimate') == '1',
+    confirmed_duplicate_key:''
+  };
+}
+
+function pantryLinkCanOpen()
+{
+  return !g_scoop_add_draft && !g_edit_draft && !g_recipe_draft && !g_scale_draft && !g_mass_entry_draft && !g_mass_edit_draft && !g_group_rename_key;
+}
+
+function openPendingPantryLink()
+{
+  if (!g_pantry_link_pending || !pantryLinkCanOpen()) return;
+  let draft = g_pantry_link_pending;
+  g_pantry_link_pending = null;
+  g_active_tab = 'pantry';
+  openAddItemDraft(draft);
+}
+
+function receivePantryLink()
+{
+  let notice = document.getElementById('pantry-link-notice');
+  if (!notice || g_pantry_link_seen == location.hash) return;
+  g_pantry_link_seen = location.hash;
+  g_pantry_link_pending = null;
+  g_pantry_link_error = '';
+  if (/^#pantry-add(?:\?|$)/.test(location.hash))
+  {
+    g_pantry_link_pending = parsePantryLink(location.hash);
+    if (!g_pantry_link_pending) g_pantry_link_error = 'This pantry link is invalid or uses an unsupported version.';
+  }
+  if (g_pantry_link_pending && pantryLinkCanOpen() && !isTextInputFocused()) openPendingPantryLink();
+  else notice.innerHTML = renderPantryLinkNotice();
+}
+
+function renderPantryLinkNotice()
+{
+  if (g_pantry_link_error) return `<p class="hint" role="status">${esc(g_pantry_link_error)}</p>`;
+  if (!g_pantry_link_pending) return '';
+  if (!pantryLinkCanOpen()) return '<p class="hint" role="status">A pantry link is ready. Finish your current edit to open it.</p>';
+  return '<button type="button" class="smallbtn" data-a="pantry-link-open">Open pantry link</button>';
+}
+
+function closePantryLink(draft)
+{
+  if (!draft.pantry_link || location.hash != draft.pantry_link) return;
+  history.replaceState(history.state, '', location.pathname + location.search);
+  g_pantry_link_seen = '';
+}
+
+function findPantryLinkDuplicate(draft)
+{
+  if (draft.barcode.trim()) return findPantryBarcode(draft.barcode);
+  let name = draft.name.trim().toLowerCase();
+  let brand = draft.brand.trim().toLowerCase();
+  for (let item of g_scoop_items)
+  {
+    if (item.name.trim().toLowerCase() == name && (item.brand || '').trim().toLowerCase() == brand) return item;
+  }
+  return null;
+}
+
+function renderPantryLinkDuplicate(draft)
+{
+  let item = findPantryLinkDuplicate(draft);
+  if (!item) return '';
+  let barcode_match = !!draft.barcode.trim();
+  let match = barcode_match ? 'Barcode already in pantry' : 'Same name and brand in pantry';
+  let save_anyway = barcode_match ? '' : '<button type="button" class="smallbtn" data-a="pantry-link-save-duplicate">Save as a separate item</button>';
+  return `<span class="hint" role="status">${match} · ${esc(item.name)}</span> <button type="button" class="smallbtn" data-a="pantry-link-existing">Open existing item</button> ${save_anyway}`;
+}
+
+function refreshPantryLinkDuplicate()
+{
+  let notice = document.getElementById('pantry-link-duplicate');
+  if (!notice) return;
+  notice.innerHTML = renderPantryLinkDuplicate(g_scoop_add_draft);
+  notice.hidden = !notice.innerHTML;
+}
+
 function saveAddItemDraft(log_drink = false)
 {
   let d = g_scoop_add_draft;
@@ -2604,6 +2740,16 @@ function saveAddItemDraft(log_drink = false)
   if (!d) return;
   if (!d.name.trim()) return;
   if (waterContentError(d.water_content)) return;
+  if (d.pantry_link)
+  {
+    mergePendingPantryLinkItems();
+    let duplicate = findPantryLinkDuplicate(d);
+    if (duplicate && (d.barcode.trim() || d.confirmed_duplicate_key != duplicate.key))
+    {
+      refreshPantryLinkDuplicate();
+      return;
+    }
+  }
   if (log_drink && (!d.barcode.trim() || d.resolved_barcode != d.barcode.trim()))
   {
     g_add_item_status = 'Look up this barcode before confirming.';
@@ -2641,6 +2787,12 @@ function saveAddItemDraft(log_drink = false)
     item.scoop_g_raw = item.scoop_g != null ? String(item.scoop_g) : '';
     item.protein_g_raw = item.protein_g != null ? String(item.protein_g) : '';
     item.kcal_raw = item.kcal != null ? String(item.kcal) : '';
+    if (d.pantry_link && !saveLocalText(PANTRY_LINK_ITEM_PREFIX + item.key, JSON.stringify(item)))
+    {
+      g_add_item_status = 'Could not save this item on this device.';
+      refreshAddItemStatus();
+      return;
+    }
     g_scoop_items.push(item);
   }
   if (log_drink)
@@ -2654,6 +2806,7 @@ function saveAddItemDraft(log_drink = false)
     appendSnapshotWater({name:d.name.trim(), grams:fields.scoop_g, water_content:waterContentValue(d.water_content)}, massTimestampForNewEvent(currentTimeText()), entry.water_sources);
     g_active_tab = 'mass';
   }
+  closePantryLink(d);
   g_scoop_add_draft = null;
   render();
   save();
@@ -2871,6 +3024,7 @@ function lookupOFFForAddItem()
     let estimate = d.drink_mode && !result.scoop_g && Number(result.volume) > 0 && Number(d.scoop_g) == Number(result.volume) ? ' · Amount estimated from mL (1 mL ≈ 1 g).' : '';
     g_add_item_status = formatOFFMatchStatus(result) + estimate;
     refreshAddItemStatus();
+    if (d.pantry_link) refreshPantryLinkDuplicate();
   });
 }
 
@@ -3310,8 +3464,9 @@ function revealPantryItem(item, preferred_context)
   {
     if (row.dataset.pantryKey != item.key || row.dataset.pantryContext != context) continue;
     scrollBelowTabs(row);
-    break;
+    return row;
   }
+  return null;
 }
 
 function saveRecipeItem(draft)
@@ -6744,10 +6899,14 @@ function saveLocalText(key, value)
 {
   try
   {
-    localStorage.setItem(key, value);
+    if (value == null) localStorage.removeItem(key);
+    else localStorage.setItem(key, value);
+    return true;
   }
   catch (e)
-  {}
+  {
+    return false;
+  }
 }
 
 function saveLocalJson(json_text)
@@ -6766,16 +6925,53 @@ function saveUnsyncedFlag(value)
   {}
 }
 
-function readLocalText(key)
+function readLocalStorage()
 {
   try
   {
-    return localStorage.getItem(key);
+    return localStorage;
   }
   catch (e)
   {
     return null;
   }
+}
+
+function readLocalText(key)
+{
+  let storage = readLocalStorage();
+  return storage ? storage.getItem(key) : null;
+}
+
+function readLocalJson(key)
+{
+  try
+  {
+    return JSON.parse(readLocalText(key));
+  }
+  catch (e)
+  {
+    return null;
+  }
+}
+
+function mergePendingPantryLinkItems()
+{
+  let storage = readLocalStorage();
+  let pending_keys = [];
+  let pending_items = [];
+  if (!storage) return pending_keys;
+  // One key per pending item lets two tabs save without overwriting each other's queue.
+  for (let key of Object.keys(storage))
+  {
+    if (!key.startsWith(PANTRY_LINK_ITEM_PREFIX)) continue;
+    let item = readLocalJson(key);
+    if (!item || !item.key || key != PANTRY_LINK_ITEM_PREFIX + item.key) continue;
+    pending_keys.push(key);
+    pending_items.push(item);
+  }
+  if (pending_items.length) mergeScoopItems(pending_items);
+  return pending_keys;
 }
 
 function readUnsyncedFlag()
@@ -6796,7 +6992,9 @@ function scheduleSyncRetry()
 
 function syncPendingChanges()
 {
-  if (g_load_in_flight || g_sync_in_flight || !g_unsynced_changes || g_input_save_timer != null) return;
+  if (g_load_in_flight || g_sync_in_flight || g_input_save_timer != null) return;
+  if (!g_authoritative_replace_sync && mergePendingPantryLinkItems().length) g_unsynced_changes = true;
+  if (!g_unsynced_changes) return;
 
   if (!window.storage || !window.storage.get || !window.storage.set)
   {
@@ -6824,6 +7022,7 @@ function syncPendingChanges()
     if (!result || !result.revision) throw new Error('shared storage does not support safe revision checks');
     if (result.value && !g_authoritative_replace_sync) mergeLoadedPayload(storagePayloadFromValue(result.value));
 
+    let pantry_link_keys = g_authoritative_replace_sync ? [] : mergePendingPantryLinkItems();
     merged_json_text = JSON.stringify(makeSavePayload());
     saveLocalJson(merged_json_text);
     write_revision = g_local_revision;
@@ -6831,6 +7030,7 @@ function syncPendingChanges()
     return window.storage.set(g_storage_key, merged_json_text, result.revision).then(function()
     {
       g_sync_in_flight = false;
+      for (let key of pantry_link_keys) saveLocalText(key, null);
 
       if (write_revision != g_local_revision)
       {
@@ -6867,6 +7067,7 @@ function save()
 {
   clearTimeout(g_input_save_timer);
   g_input_save_timer = null;
+  if (!g_authoritative_replace_sync) mergePendingPantryLinkItems();
   let json_text = JSON.stringify(makeSavePayload());
 
   saveLocalJson(json_text);
@@ -6983,32 +7184,21 @@ function load(tab_refresh = false)
     mergeFavorites(payload.favorites);
   }
 
-  function readLocal()
-  {
-    try
-    {
-      let stored_value = readLocalText(g_storage_key);
-      return stored_value ? JSON.parse(stored_value) : null;
-    }
-    catch (e)
-    {
-      return null;
-    }
-  }
-
   function finishLoad()
   {
+    if (!g_authoritative_replace_sync && mergePendingPantryLinkItems().length) g_unsynced_changes = true;
     mergeKnownItems();
     migrateLogFormat();
     migrateTagsFormat();
     migrateMassEvents();
     render();
+    receivePantryLink();
   }
 
   let showed_cached_data = isCachedProteinPage() && !document.getElementById('app').hasChildNodes();
   if (showed_cached_data)
   {
-    applyLoaded(readLocal());
+    applyLoaded(readLocalJson(g_storage_key));
     finishLoad();
   }
 
@@ -7031,7 +7221,7 @@ function load(tab_refresh = false)
         save();
         return;
       }
-      let local_payload = readLocal();
+      let local_payload = readLocalJson(g_storage_key);
 
       if (result && result.value)
       {
@@ -7066,7 +7256,7 @@ function load(tab_refresh = false)
       setSyncFailed('local only / sync failed', error);
       if (!tab_refresh && !showed_cached_data && load_revision == g_local_revision)
       {
-        applyLoaded(readLocal());
+        applyLoaded(readLocalJson(g_storage_key));
         finishLoad();
       }
       scheduleSyncRetry();
@@ -7078,7 +7268,7 @@ function load(tab_refresh = false)
     return;
   }
 
-  applyLoaded(readLocal());
+  applyLoaded(readLocalJson(g_storage_key));
   finishLoad();
   setSyncFailed('local only / shared storage unavailable');
 }
@@ -8115,6 +8305,7 @@ function render(preserve_pantry_position = false)
 
   h += renderCachedVersionNotice();
   if (g_sync_failed) h += renderSyncWarning();
+  h += `<div id="pantry-link-notice">${renderPantryLinkNotice()}</div>`;
 
   if (g_admin_mode) h += `<div class="addform">
     <div class="mass-section-head">Barcode camera test</div>
@@ -9168,11 +9359,14 @@ function renderScoopSection()
   if (g_scoop_add_draft)
   {
     let d = g_scoop_add_draft;
+    let duplicate = d.pantry_link ? renderPantryLinkDuplicate(d) : '';
     let mode = draftMacroMode(d);
     let protein_unit = mode == '100g' ? '/100g' : 'g';
     let kcal_unit = mode == '100g' ? '/100g' : 'kcal';
 
     h += `<div id="pantry-add-editor" class="addform">
+      ${d.estimate ? '<span class="hint" role="status">Estimated values · review before saving</span>' : ''}
+      ${d.pantry_link ? `<div id="pantry-link-duplicate"${duplicate ? '' : ' hidden'}>${duplicate}</div>` : ''}
       <span class="barcode-entry">
         <input type="text" inputmode="${d.barcode_keyboard ? 'numeric' : 'none'}" data-adddraft="barcode" placeholder="barcode" aria-label="Barcode" value="${esc(d.barcode)}">
         <button type="button" id="barcode-add-toggle" class="smallbtn" data-a="addex-barcode-scan">Scan barcode</button>
@@ -9661,6 +9855,7 @@ document.addEventListener('input', function(ev)
   if (adddraft_field)
   {
     g_scoop_add_draft[adddraft_field] = target.value;
+    if (g_scoop_add_draft.pantry_link && ['barcode', 'name', 'brand'].includes(adddraft_field)) refreshPantryLinkDuplicate();
     refreshDraftMacroRatio('add', g_scoop_add_draft);
     refreshWaterPreview('add', g_scoop_add_draft);
     g_add_item_edit_versions[adddraft_field] = (g_add_item_edit_versions[adddraft_field] || 0) + 1;
@@ -10074,15 +10269,35 @@ document.addEventListener('click', function(ev)
       return;
 
     case 'scoop-add-item-open':
-      g_scoop_add_draft = { barcode:'', barcode_keyboard:false, name:'', brand:'', volume:'', tags:'', scoop_g:'', macro_mode:'100g', macro_protein:'', macro_kcal:'', water_content:'' };
-      g_add_item_edit_versions =
-      {
-      };
-      g_add_item_status = '';
-      g_barcode_add_status = '';
-      render();
-      scrollBelowTabs(document.getElementById('pantry-add-editor'));
+      openAddItemDraft({barcode:'', barcode_keyboard:false, name:'', brand:'', volume:'', tags:'', scoop_g:'', macro_mode:'100g', macro_protein:'', macro_kcal:'', water_content:''});
       return;
+
+    case 'pantry-link-open':
+      openPendingPantryLink();
+      return;
+
+    case 'pantry-link-existing':
+    case 'pantry-link-save-duplicate':
+      {
+        let draft = g_scoop_add_draft;
+        if (!draft || !draft.pantry_link) return;
+        let item = findPantryLinkDuplicate(draft);
+        if (!item) return;
+        if (action == 'pantry-link-save-duplicate')
+        {
+          if (draft.barcode.trim()) return;
+          draft.confirmed_duplicate_key = item.key;
+          saveAddItemDraft();
+          return;
+        }
+        let row = revealPantryItem(item, '');
+        if (!row) return;
+        closePantryLink(draft);
+        g_scoop_add_draft = null;
+        openScoopEdit(item.key, row.dataset.pantryContext);
+        revealPantryItem(item, row.dataset.pantryContext);
+        return;
+      }
 
     case 'drink-scan-open':
       if (!viewDateIsEditable()) return;
@@ -10119,6 +10334,7 @@ document.addEventListener('click', function(ev)
 
     case 'scoop-add-item-cancel':
       if (g_scoop_add_draft && g_scoop_add_draft.drink_mode) g_active_tab = 'mass';
+      if (g_scoop_add_draft) closePantryLink(g_scoop_add_draft);
       g_scoop_add_draft = null;
       render();
       return;
@@ -10514,6 +10730,7 @@ function retrySync()
   }
   if (g_unsynced_changes) syncPendingChanges();
   else if (g_sync_failed) load();
+  else syncPendingChanges();
 }
 
 function retryMissingAppResources()
@@ -10601,6 +10818,7 @@ window.addEventListener('popstate', function(event)
 window.addEventListener('pageshow', armBrowserBackGuard);
 window.addEventListener('online', resumeSync);
 window.addEventListener('offline', updateSyncChrome);
+window.addEventListener('hashchange', receivePantryLink);
 if (navigator.connection) navigator.connection.addEventListener('change', resumeSync);
 armBrowserBackGuard();
 
