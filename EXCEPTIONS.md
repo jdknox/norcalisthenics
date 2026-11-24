@@ -1,3 +1,4 @@
 # Approved website exceptions
 
 - Barcode scanner (admin test and regular add-pantry-item form): use the native Promise-based `navigator.mediaDevices.getUserMedia()` and `BarcodeDetector.detect()` APIs only to obtain camera frames and read barcodes. The user explicitly approved each API in this conversation on 2026-11-23, then requested reuse of the working scanner in the regular add-pantry-item pathway. Keep the Promise-based camera and detection code isolated inside its existing block-comment guards.
+- Protein offline access: use the native Promise-based Service Worker, Cache Storage, and Fetch APIs in `protein-service-worker.js` to retain the last usable protein page and restore it on failed navigation. Scope is limited to the user's explicit request to “restore cache access and don't allow it to be removed again.” Keep pantry storage and sync requests outside the worker's cache.

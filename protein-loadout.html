@@ -19,6 +19,7 @@
 
 const PROTEIN_VERSION = 'unversioned';
 const PROTEIN_COMMIT_MESSAGE = '';
+const PROTEIN_HIGHEST_VERSION_KEY = 'protein-loadout:highest-version';
 
 function esc(value)
 {
@@ -6689,14 +6690,19 @@ function mergeLoadedPayload(payload)
   refreshProteinTarget();
 }
 
-function saveLocalJson(json_text)
+function saveLocalText(key, value)
 {
   try
   {
-    localStorage.setItem(g_storage_key, json_text);
+    localStorage.setItem(key, value);
   }
   catch (e)
   {}
+}
+
+function saveLocalJson(json_text)
+{
+  saveLocalText(g_storage_key, json_text);
 }
 
 function saveUnsyncedFlag(value)
@@ -6710,16 +6716,21 @@ function saveUnsyncedFlag(value)
   {}
 }
 
-function readUnsyncedFlag()
+function readLocalText(key)
 {
   try
   {
-    return localStorage.getItem(g_unsynced_key) == '1';
+    return localStorage.getItem(key);
   }
   catch (e)
   {
-    return false;
+    return null;
   }
+}
+
+function readUnsyncedFlag()
+{
+  return readLocalText(g_unsynced_key) == '1';
 }
 
 function scheduleSyncRetry()
@@ -6924,11 +6935,9 @@ function load(tab_refresh = false)
 
   function readLocal()
   {
-    let stored_value;
-
     try
     {
-      stored_value = localStorage.getItem(g_storage_key);
+      let stored_value = readLocalText(g_storage_key);
       return stored_value ? JSON.parse(stored_value) : null;
     }
     catch (e)
@@ -6944,6 +6953,13 @@ function load(tab_refresh = false)
     migrateTagsFormat();
     migrateMassEvents();
     render();
+  }
+
+  let showed_cached_data = isCachedProteinPage() && !document.getElementById('app').hasChildNodes();
+  if (showed_cached_data)
+  {
+    applyLoaded(readLocal());
+    finishLoad();
   }
 
   if (window.storage && window.storage.get)
@@ -6998,7 +7014,7 @@ function load(tab_refresh = false)
     {
       g_load_in_flight = false;
       setSyncFailed('local only / sync failed', error);
-      if (!tab_refresh && load_revision == g_local_revision)
+      if (!tab_refresh && !showed_cached_data && load_revision == g_local_revision)
       {
         applyLoaded(readLocal());
         finishLoad();
@@ -7023,6 +7039,28 @@ function errorMessage(error)
   return String(error);
 }
 
+function isCachedProteinPage()
+{
+  return document.documentElement && document.documentElement.hasAttribute('data-protein-offline');
+}
+
+function highestProteinVersion()
+{
+  let seen = readLocalText(PROTEIN_HIGHEST_VERSION_KEY);
+  let current_time = Date.parse(PROTEIN_VERSION);
+  if (!Number.isFinite(current_time)) return seen || PROTEIN_VERSION;
+  if (Date.parse(seen) > current_time) return seen;
+  return PROTEIN_VERSION;
+}
+
+function renderCachedVersionNotice()
+{
+  if (!isCachedProteinPage()) return '';
+  let highest = highestProteinVersion();
+  let comparison = Date.parse(highest) > Date.parse(PROTEIN_VERSION) ? 'A newer version was seen on this device.' : 'Matches the newest version seen on this device.';
+  return `<div class="cached-version-status" role="status">Cached copy · ${comparison}<br>Cached version ${esc(PROTEIN_VERSION)}<br>Newest known version ${esc(highest)}</div>`;
+}
+
 function renderStartupError(title, error)
 {
   let app = document.getElementById('app');
@@ -7033,7 +7071,7 @@ function renderStartupError(title, error)
 
   h += `<div class="eyebrow">// daily protein loadout</div>
   <div class="site-version" title="${esc(PROTEIN_COMMIT_MESSAGE)}">version <time datetime="${PROTEIN_VERSION}">${PROTEIN_VERSION}</time></div>
-  <h1>protein_loadout</h1>
+  <h1>protein_loadout</h1>${renderCachedVersionNotice()}
   <div class="startup-error">
     <div class="startup-error-title">${esc(title)}</div>
     <div class="startup-error-message">${esc(message)}</div>
@@ -8020,6 +8058,7 @@ function render(preserve_pantry_position = false)
   <div class="site-version" title="${esc(PROTEIN_COMMIT_MESSAGE)}">version <time datetime="${PROTEIN_VERSION}">${PROTEIN_VERSION}</time></div>
   <h1>protein_loadout</h1>`;
 
+  h += renderCachedVersionNotice();
   if (g_sync_failed) h += renderSyncWarning();
 
   if (g_admin_mode) h += `<div class="addform">
@@ -10500,6 +10539,10 @@ if ('serviceWorker' in navigator)
   navigator.serviceWorker.register('/protein-service-worker.js', { updateViaCache:'none' }).catch(function(){});
 }
 
+if (!isCachedProteinPage() && Number.isFinite(Date.parse(PROTEIN_VERSION)))
+{
+  saveLocalText(PROTEIN_HIGHEST_VERSION_KEY, highestProteinVersion());
+}
 load();
 </script>
 </body>
