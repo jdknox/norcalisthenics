@@ -1168,7 +1168,8 @@ function waterPreviewText(draft, recipe = false)
 function renderWaterContentField(kind, draft)
 {
   let hint = kind == 'recipe' ? 'Optional override; blank estimates water from known ingredients.' : 'Optional percentage of the food mass that is water.';
-  return `<label>Water content (%)<input type="text" inputmode="decimal" data-${kind}draft="water_content" value="${esc(draft.water_content || '')}" placeholder="optional" title="${hint}"></label><button type="button" class="smallbtn" data-a="water-content-full" data-kind="${kind}" title="Set water content to 100%" aria-label="Set water content to 100%">100</button><span class="hint" data-water-preview="${kind}">${esc(waterPreviewText(draft, kind == 'recipe'))}</span>`;
+  let automatic_water = kind == 'recipe' && draft.fill_water;
+  return `<label>Water content (%)<input type="text" inputmode="decimal" data-${kind}draft="water_content" value="${esc(draft.water_content || '')}" placeholder="optional" title="${hint}"${automatic_water ? ' readonly' : ''}></label><button type="button" class="smallbtn" data-a="water-content-full" data-kind="${kind}" title="Set water content to 100%" aria-label="Set water content to 100%"${automatic_water ? ' disabled' : ''}>100</button><span class="hint" data-water-preview="${kind}">${esc(waterPreviewText(draft, kind == 'recipe'))}</span>`;
 }
 
 function refreshWaterPreview(kind, draft)
@@ -2832,6 +2833,7 @@ function openRecipeDraft(item, context = 'standalone')
     scoop_g:item ? String(item.scoop_g) : '',
     tags:item ? itemTags(item).join(', ') : '',
     water_content:item && item.water_content != null ? String(item.water_content) : '',
+    fill_water:!!(item && item.fill_water),
     save_modifications:false,
     ingredients:[]
   };
@@ -2841,7 +2843,7 @@ function openRecipeDraft(item, context = 'standalone')
     {
       g_recipe_draft.ingredients.push({item_key:ingredient.item_key, grams:String(ingredient.grams)});
     }
-    if (item.yield_g == recipeIngredientGrams(g_recipe_draft)) g_recipe_draft.yield_g = '';
+    if (!g_recipe_draft.fill_water && item.yield_g == recipeIngredientGrams(g_recipe_draft)) g_recipe_draft.yield_g = '';
   }
   g_edit_item_key = null;
   g_edit_draft = null;
@@ -2897,6 +2899,7 @@ function openRecipeFromLog(entry_id)
     yield_g:entry.grams != null ? entry.grams : '',
     scoop_g:entry.grams != null ? entry.grams : '',
     water_content:snapshot.water_content,
+    fill_water:snapshot.fill_water,
     tags:[],
     ingredients:ingredients
   });
@@ -2969,6 +2972,11 @@ function recipeIngredientNutrition(ingredient, recipe_key = '')
 
 function recipeIngredientTotals(draft)
 {
+  if (draft.fill_water)
+  {
+    let error = adjustRecipeWater(draft);
+    if (error) return {error:error};
+  }
   let totals = {error:'', grams:0, protein_g:0, kcal:0};
   if (!draft.ingredients.length) return {error:'Add an ingredient.'};
   for (let ingredient of draft.ingredients)
@@ -2996,7 +3004,8 @@ function makeRecipeLogSnapshot(item, grams, protein_g, kcal, ingredient_scale, t
       grams:grams,
       protein_g:protein_g,
       kcal:kcal,
-      water_content:waterContentValue(item.water_content)
+      water_content:waterContentValue(item.water_content),
+      fill_water:!!item.fill_water
     }
   };
   if (!Array.isArray(item.ingredients)) return result;
@@ -3060,11 +3069,21 @@ function fillRecipeWithWater()
 {
   let draft = g_recipe_draft;
   if (!draft) return;
+  let error = adjustRecipeWater(draft);
+  if (error)
+  {
+    document.getElementById('recipe-preview').textContent = error;
+    return;
+  }
+  render();
+}
+
+function adjustRecipeWater(draft)
+{
   let target = Number(draft.yield_g);
   if (!Number.isFinite(target) || target <= 0)
   {
-    document.getElementById('recipe-preview').textContent = 'Enter a positive Override total first.';
-    return;
+    return 'Enter a positive Override total first.';
   }
 
   let water = null;
@@ -3073,15 +3092,13 @@ function fillRecipeWithWater()
     if (item.name.trim().toLowerCase() != 'water' || itemIsArchived(item) || Array.isArray(item.ingredients)) continue;
     if (water)
     {
-      document.getElementById('recipe-preview').textContent = 'More than one active pantry item is named Water. Rename one before filling.';
-      return;
+      return 'More than one active pantry item is named Water. Rename one before filling.';
     }
     water = item;
   }
   if (!water)
   {
-    document.getElementById('recipe-preview').textContent = 'An active pantry item named Water is needed.';
-    return;
+    return 'An active pantry item named Water is needed.';
   }
 
   let other_grams = 0;
@@ -3091,21 +3108,19 @@ function fillRecipeWithWater()
     let grams = Number(ingredient.grams);
     if (!Number.isFinite(grams) || grams < 0)
     {
-      document.getElementById('recipe-preview').textContent = 'Enter non-negative ingredient grams before filling.';
-      return;
+      return 'Enter non-negative ingredient grams before filling.';
     }
     other_grams += grams;
   }
   if (target < other_grams)
   {
-    document.getElementById('recipe-preview').textContent = 'Override total is smaller than the ingredients excluding water.';
-    return;
+    return 'Override total is smaller than the ingredients excluding water.';
   }
 
   // Reuse the pantry Water item and ordinary ingredients; no separate hydration event.
   water.water_content = 100;
   draft.water_content = '';
-  let water_grams = String(round1(target - other_grams));
+  let water_grams = String(Number((target - other_grams).toFixed(6)));
   let water_ingredient = null;
   for (let i = draft.ingredients.length - 1; i >= 0; --i)
   {
@@ -3115,7 +3130,7 @@ function fillRecipeWithWater()
   }
   if (water_ingredient) water_ingredient.grams = water_grams;
   else draft.ingredients.push({item_key:water.key, grams:water_grams});
-  render();
+  return '';
 }
 
 function recipeMassDiffers(draft)
@@ -3142,9 +3157,36 @@ function renderRecipePreview()
 
 function refreshRecipePreview()
 {
-  refreshWaterPreview('recipe', g_recipe_draft);
   document.getElementById('recipe-preview').innerHTML = renderRecipePreview();
   document.getElementById('recipe-total-preview').innerHTML = renderRecipeTotalPreview();
+  refreshWaterPreview('recipe', g_recipe_draft);
+  let water_input = document.querySelector('[data-recipedraft="water_content"]');
+  water_input.readOnly = !!g_recipe_draft.fill_water;
+  if (g_recipe_draft.fill_water) water_input.value = g_recipe_draft.water_content;
+  document.querySelector('[data-a="water-content-full"][data-kind="recipe"]').disabled = !!g_recipe_draft.fill_water;
+  let ingredient_list = document.querySelector('.recipe-ingredients');
+  if (ingredient_list.children.length > g_recipe_draft.ingredients.length)
+  {
+    // Combining duplicate Water rows can change ingredient indexes when enabling the checkbox.
+    let html = '';
+    for (let i = 0; i < g_recipe_draft.ingredients.length; ++i) html += renderRecipeIngredient(g_recipe_draft.ingredients[i], i);
+    ingredient_list.innerHTML = html;
+  }
+  // Update the automatic Water row without replacing the ingredient being typed in.
+  for (let i = 0; i < g_recipe_draft.ingredients.length; ++i)
+  {
+    let ingredient = g_recipe_draft.ingredients[i];
+    let input = document.querySelector(`[data-recipeindex="${i}"][data-recipefield="grams"]`);
+    if (!input)
+    {
+      document.querySelector('.recipe-ingredients').insertAdjacentHTML('beforeend', renderRecipeIngredient(ingredient, i));
+      continue;
+    }
+    let automatic_water = recipeIngredientIsAutomaticWater(ingredient);
+    if (input != document.activeElement) input.value = ingredient.grams;
+    input.readOnly = automatic_water;
+    for (let button of input.closest('.recipe-ingredient').querySelectorAll('button')) button.disabled = automatic_water;
+  }
   let batch_input = document.querySelector('[data-recipedraft="yield_g"]');
   let serving_input = document.querySelector('[data-recipedraft="scoop_g"]');
   let ingredient_g = recipeIngredientGrams(g_recipe_draft);
@@ -3235,6 +3277,7 @@ function saveRecipeItem(draft)
   item.brand = 'knox';
   item.tags = parseTagsInput(draft.tags);
   item.yield_g = nutrition.yield_g;
+  item.fill_water = !!draft.fill_water;
   item.scoop_g = nutrition.scoop_g;
   item.protein_100g = nutrition.protein_100g;
   item.kcal_100g = nutrition.kcal_100g;
@@ -3274,24 +3317,37 @@ function archiveRecipeDraft()
   save();
 }
 
+function recipeIngredientIsAutomaticWater(ingredient)
+{
+  let item = findScoopItem(ingredient.item_key);
+  return g_recipe_draft.fill_water && item && item.name.trim().toLowerCase() == 'water' && !Array.isArray(item.ingredients);
+}
+
+function renderRecipeIngredient(ingredient, index)
+{
+  let item = findScoopItem(ingredient.item_key);
+  let ratio = item ? itemKcalProteinRatio(item) : null;
+  let automatic_water = recipeIngredientIsAutomaticWater(ingredient);
+  let disabled = automatic_water ? ' disabled' : '';
+  return `<div class="recipe-ingredient"><span>${esc(item ? item.name : 'Missing ingredient: ' + ingredient.item_key)}${item && item.brand ? `<span class="recipe-ingredient-brand">${esc(item.brand)}</span>` : ''}</span>
+    <span class="recipe-clear-input"><label class="recipe-amount unitinput"><input aria-label="${esc((item ? item.name : 'Ingredient') + ' grams')}" inputmode="decimal" data-recipeindex="${index}" data-recipefield="grams" value="${esc(ingredient.grams)}"${automatic_water ? ' readonly' : ''}><span class="unitghost">g</span><small class="recipe-ingredient-ratio kcal-protein-ratio" title="kcal per gram of protein">${ratio != null ? fmtKcalProteinRatio(ratio) : '—'} kcal/g</small></label>
+    <button type="button" class="editbtn" data-a="recipe-amount-edit" data-index="${index}" title="Clear and edit ingredient grams" aria-label="Clear and edit ${esc(item ? item.name : 'ingredient')} grams"${disabled}>⌫</button></span>
+    <button class="smallbtn" data-a="recipe-zero" data-index="${index}" title="Set ingredient grams to zero" aria-label="Set ${esc(item ? item.name : 'ingredient')} grams to zero"${disabled}>0</button>
+    <button class="smallbtn" data-a="recipe-remove" data-index="${index}" title="Remove ingredient" aria-label="Remove ingredient"${disabled}>−</button></div>`;
+}
+
 function renderRecipeDraft()
 {
   let draft = g_recipe_draft;
   if (!draft) return '';
+  if (draft.fill_water) adjustRecipeWater(draft);
   let h = `<div class="recipe-editor">
     <div class="mass-section-head">${draft.key ? 'Edit recipe' : 'New recipe'}</div>
     <label>Recipe name<input data-recipedraft="name" value="${esc(draft.name)}"></label>`;
   h += `<div class="recipe-ingredients">`;
   for (let i = 0; i < draft.ingredients.length; ++i)
   {
-    let ingredient = draft.ingredients[i];
-    let item = findScoopItem(ingredient.item_key);
-    let ratio = item ? itemKcalProteinRatio(item) : null;
-    h += `<div class="recipe-ingredient"><span>${esc(item ? item.name : 'Missing ingredient: ' + ingredient.item_key)}${item && item.brand ? `<span class="recipe-ingredient-brand">${esc(item.brand)}</span>` : ''}</span>
-      <span class="recipe-clear-input"><label class="recipe-amount unitinput"><input aria-label="${esc((item ? item.name : 'Ingredient') + ' grams')}" inputmode="decimal" data-recipeindex="${i}" data-recipefield="grams" value="${esc(ingredient.grams)}"><span class="unitghost">g</span><small class="recipe-ingredient-ratio kcal-protein-ratio" title="kcal per gram of protein">${ratio != null ? fmtKcalProteinRatio(ratio) : '—'} kcal/g</small></label>
-      <button type="button" class="editbtn" data-a="recipe-amount-edit" data-index="${i}" title="Clear and edit ingredient grams" aria-label="Clear and edit ${esc(item ? item.name : 'ingredient')} grams">⌫</button></span>
-      <button class="smallbtn" data-a="recipe-zero" data-index="${i}" title="Set ingredient grams to zero" aria-label="Set ${esc(item ? item.name : 'ingredient')} grams to zero">0</button>
-      <button class="smallbtn" data-a="recipe-remove" data-index="${i}" title="Remove ingredient" aria-label="Remove ingredient">−</button></div>`;
+    h += renderRecipeIngredient(draft.ingredients[i], i);
   }
   h += `</div>
     <div class="recipe-ingredient-total"><span>Ingredient total</span>
@@ -3329,10 +3385,13 @@ function renderRecipeDraft()
               value="${esc(draft.yield_g)}">
             <span class="unitghost">g</span>
           </span>
+          <button type="button" class="editbtn" data-a="recipe-copy-serving"
+              title="Copy serving grams to override total" aria-label="Copy serving grams to override total">⧉</button>
           <button type="button" class="editbtn" data-a="recipe-field-clear" data-field="yield_g"
               title="Clear and edit override total" aria-label="Clear and edit override total">⌫</button>
         </span>
       </label>
+      <label class="recipe-save-toggle"><input type="checkbox" data-recipedraft="fill_water"${draft.fill_water ? ' checked' : ''}>Keep total fixed (adjust Water)</label>
       <button type="button" class="smallbtn" data-a="recipe-fill-water" title="Set Water grams to Override total minus the other ingredients">Fill with water</button>
     </div>
     ${renderWaterContentField('recipe', draft)}
@@ -4355,11 +4414,11 @@ function buildBackupTSV()
     pushBackupTsvRow(lines, [food.key, food.name, food.kind, food.unit_grams, food.unit_protein, food.package_grams, food.package_protein, food.daily, food.price, food.package_units], state);
   }
 
-  pushBackupTsvSection(lines, 'pantry_items', ['key', 'name', 'brand', 'barcode', 'scoop_g', 'protein_g', 'kcal', 'protein_100g', 'kcal_100g', 'volume_ml', 'volume_label', 'archived', 'yield_g', 'water_content'], state);
+  pushBackupTsvSection(lines, 'pantry_items', ['key', 'name', 'brand', 'barcode', 'scoop_g', 'protein_g', 'kcal', 'protein_100g', 'kcal_100g', 'volume_ml', 'volume_label', 'archived', 'yield_g', 'water_content', 'fill_water'], state);
   for (let i = 0; i < g_scoop_items.length; ++i)
   {
     let item = g_scoop_items[i];
-    pushBackupTsvRow(lines, [item.key, item.name, item.brand, item.barcode, item.scoop_g, item.protein_g, item.kcal, item.protein_100g, item.kcal_100g, item.volume_ml, item.volume_label, backupTsvBool(item.archived), item.yield_g, item.water_content], state);
+    pushBackupTsvRow(lines, [item.key, item.name, item.brand, item.barcode, item.scoop_g, item.protein_g, item.kcal, item.protein_100g, item.kcal_100g, item.volume_ml, item.volume_label, backupTsvBool(item.archived), item.yield_g, item.water_content, backupTsvBool(item.fill_water)], state);
   }
 
   pushBackupTsvSection(lines, 'recipe_ingredients', ['recipe_key', 'item_key', 'grams'], state);
@@ -5076,6 +5135,7 @@ function parseBackupTSV(text)
       setIfNumber(item, 'volume_ml', row.volume_ml);
       setIfNumber(item, 'yield_g', row.yield_g);
       setIfNumber(item, 'water_content', row.water_content);
+      setIfBool(item, 'fill_water', row.fill_water);
       if (item.yield_g != null) item.ingredients = [];
       setIfBool(item, 'archived', row.archived);
 
@@ -9237,6 +9297,17 @@ document.addEventListener('input', function(ev)
         g_recipe_draft.save_modifications = target.checked;
         return;
       }
+      if (field == 'fill_water')
+      {
+        g_recipe_draft.fill_water = target.checked;
+        if (target.checked && !g_recipe_draft.yield_g.trim())
+        {
+          g_recipe_draft.yield_g = g_recipe_draft.scoop_g.trim() || String(recipeIngredientGrams(g_recipe_draft));
+          document.querySelector('[data-recipedraft="yield_g"]').value = g_recipe_draft.yield_g;
+        }
+        refreshRecipeDisplays();
+        return;
+      }
       g_recipe_draft[field] = target.value;
       if (field == 'tags') updateTagSuggestions(target);
       if (field == 'name' || field == 'tags') return;
@@ -9860,6 +9931,12 @@ document.addEventListener('click', function(ev)
 
     case 'recipe-fill-water':
       fillRecipeWithWater();
+      return;
+
+    case 'recipe-copy-serving':
+      let override_input = document.querySelector('[data-recipedraft="yield_g"]');
+      override_input.value = g_recipe_draft.scoop_g.trim() || String(recipeBatchGrams(g_recipe_draft));
+      override_input.dispatchEvent(new Event('input', {bubbles:true}));
       return;
 
     case 'recipe-amount-edit':
