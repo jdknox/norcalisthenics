@@ -2265,10 +2265,45 @@ function proteinTargetRatioText()
   return (weight > 0 ? fmt2(g_target/weight) : '—') + ' g/kg';
 }
 
-function cutPercentText()
+function cutKcalPerUnit(input_id)
 {
-  let maintenance = targetKcalDay();
-  return (maintenance > 0 ? fmt1(g_cut_kcal/maintenance*100) : '—') + '%';
+  let kcal = 1;
+  if (input_id == 'target-cut-percent') kcal = targetKcalDay()/100;
+  if (input_id == 'target-cut-weight-percent') kcal = bodyweightForDate(todayISO())*g_kcal_per_kg_bodyfat/100/7;
+  return Number.isFinite(kcal) && kcal > 0 ? kcal : 0;
+}
+
+function cutPercentValue(kcal_per_unit)
+{
+  return kcal_per_unit ? fmt1(g_cut_kcal/kcal_per_unit) : '';
+}
+
+function refreshCutKcalRaw()
+{
+  g_cut_kcal_raw = g_cut_kcal ? String(Number(fmt2(g_cut_kcal))) : '';
+}
+
+function cutWeeklyAverageWeightText()
+{
+  let average_kg = calculateMeanLoggedProtein(todayISO(), 7).mean_bodyweight_kg;
+  let estimate_kg = average_kg - 7*g_cut_kcal/g_kcal_per_kg_bodyfat;
+  return estimate_kg > 0 ? fmt1(estimate_kg) + ' kg' : '—';
+}
+
+function refreshCutInputs()
+{
+  let kcal_input = document.getElementById('target-cut-input');
+  if (kcal_input && kcal_input != document.activeElement && kcal_input.value != g_cut_kcal_raw) kcal_input.value = g_cut_kcal_raw;
+  for (let id of ['target-cut-percent', 'target-cut-weight-percent'])
+  {
+    let input = document.getElementById(id);
+    if (!input || input == document.activeElement) continue;
+    let kcal_per_unit = cutKcalPerUnit(id);
+    input.disabled = !kcal_per_unit;
+    input.value = cutPercentValue(kcal_per_unit);
+  }
+  let estimate = document.getElementById('target-cut-weight-estimate');
+  if (estimate) estimate.textContent = cutWeeklyAverageWeightText();
 }
 
 function refreshProteinTarget()
@@ -2282,8 +2317,7 @@ function refreshProteinTarget()
   }
   let ratio = document.getElementById('target-protein-ratio');
   if (ratio) ratio.textContent = proteinTargetRatioText();
-  let cut_percent = document.getElementById('target-cut-percent');
-  if (cut_percent) cut_percent.textContent = cutPercentText();
+  refreshCutInputs();
   refreshNutritionSummary();
   refreshLoadoutSummary();
   refreshTrendsEstimates();
@@ -5722,7 +5756,7 @@ function applyReplaceImport()
   else if (parsed.target_kcal_ratio != null) g_target_kcal_day = g_target*parsed.target_kcal_ratio;
   refreshTargetKcalRaw();
   g_cut_kcal = parsed.cut_kcal != null ? Math.max(0, parsed.cut_kcal) : 0;
-  g_cut_kcal_raw = g_cut_kcal ? String(g_cut_kcal) : '';
+  refreshCutKcalRaw();
 
   if (parsed.bodyweight_kg != null)
   {
@@ -6885,7 +6919,7 @@ function load(tab_refresh = false)
     else if (payload.target_kcal_ratio != null) g_target_kcal_day = g_target*payload.target_kcal_ratio;
     refreshTargetKcalRaw();
     g_cut_kcal = payload.cut_kcal != null ? Math.max(0, payload.cut_kcal) : 0;
-    g_cut_kcal_raw = g_cut_kcal ? String(g_cut_kcal) : '';
+    refreshCutKcalRaw();
 
     if (payload.bodyweight_kg != null)
     {
@@ -7125,6 +7159,8 @@ function renderTabBar()
 function renderTargetRow()
 {
   let h = '';
+  let kcal_per_maintenance_percent = cutKcalPerUnit('target-cut-percent');
+  let kcal_per_weight_percent = cutKcalPerUnit('target-cut-weight-percent');
 
   h += `<div class="targetrow">
     <label>g/day <span class="protein-target-control">
@@ -7138,10 +7174,13 @@ function renderTargetRow()
     </label>
     <label>kcal/day <input type="text" inputmode="decimal" id="target-kcal-input"
       value="${g_target_kcal_raw}"></label>
-    <label>cut <span class="protein-target-control"><input type="text" inputmode="decimal" id="target-cut-input"
-      title="Kcal below maintenance per day" placeholder="0" value="${esc(g_cut_kcal_raw)}">
-      <span id="target-cut-percent" class="protein-target-ratio target-cut-percent">${cutPercentText()}</span></span>
-    </label>
+    <label>cut kcal <input type="text" inputmode="decimal" class="cut-input" id="target-cut-input"
+      title="Kcal below maintenance per day" placeholder="0" value="${esc(g_cut_kcal_raw)}"></label>
+    <label>cut % <input type="text" inputmode="decimal" class="cut-input" id="target-cut-percent"
+      title="Percent below maintenance calories" placeholder="&#8212;" value="${cutPercentValue(kcal_per_maintenance_percent)}"${kcal_per_maintenance_percent ? '' : ' disabled'}></label>
+    <label>BW %/wk <input type="text" inputmode="decimal" class="cut-input" id="target-cut-weight-percent"
+      title="Estimated bodyweight loss as a percent per week" placeholder="&#8212;" value="${cutPercentValue(kcal_per_weight_percent)}"${kcal_per_weight_percent ? '' : ' disabled'}></label>
+    <div class="target-cut-estimate">Est. weekly avg in 1 week: <span id="target-cut-weight-estimate">${cutWeeklyAverageWeightText()}</span></div>
     </div>`;
     /* <button class="reset" data-a="reset">reset to defaults</button> */
 
@@ -9435,11 +9474,15 @@ document.addEventListener('input', function(ev)
     return;
   }
 
-  if (target.id == 'target-cut-input')
+  if (target.classList.contains('cut-input'))
   {
-    g_cut_kcal_raw = target.value;
-    num = Number(target.value);
-    g_cut_kcal = Number.isFinite(num) ? Math.max(0, num) : 0;
+    let kcal_per_unit = cutKcalPerUnit(target.id);
+    if (!kcal_per_unit) return;
+    let kcal = Number(target.value)*kcal_per_unit;
+    if (target.id != 'target-cut-input' && !Number.isFinite(kcal)) return;
+    // Ignore floating-point noise so a conversion landing on a multiple of 10 stays there.
+    g_cut_kcal = Number.isFinite(kcal) && kcal > 0 ? Math.ceil(Number((kcal/10).toPrecision(15)))*10 : 0;
+    refreshCutKcalRaw();
     g_target_manual = false;
     refreshProteinTarget();
     scheduleInputSave();
@@ -9714,6 +9757,13 @@ document.addEventListener('focusin', function(ev)
 document.addEventListener('focusout', function(ev)
 {
   flushPendingInputSave();
+  if (ev.target.id == 'target-cut-input') ev.target.value = g_cut_kcal_raw;
+  else if (ev.target.id == 'target-cut-percent' || ev.target.id == 'target-cut-weight-percent')
+  {
+    let kcal_per_unit = cutKcalPerUnit(ev.target.id);
+    ev.target.value = cutPercentValue(kcal_per_unit);
+    ev.target.disabled = !kcal_per_unit;
+  }
   if (ev.target.dataset && ev.target.dataset.lognote)
   {
     let main = ev.target.closest('.logged-food-main');
