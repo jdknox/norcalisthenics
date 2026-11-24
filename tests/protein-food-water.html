@@ -58,9 +58,10 @@ function runChecks()
       {key:'yogurt', name:'Yogurt', scoop_g:200, protein_g:20, kcal:120, water_content:85},
       {key:'dry', name:'Dry', scoop_g:50, protein_g:5, kcal:100},
       {key:'mix', name:'Mix', scoop_g:100, yield_g:250, protein_g:10, kcal:88,
-        ingredients:[{item_key:'yogurt', grams:200}, {item_key:'dry', grams:50}]},
+        ingredients:[{item_key:'yogurt', grams:200}, {item_key:'water', grams:50}]},
       {key:'nested', name:'Nested', scoop_g:100, yield_g:200, protein_g:10, kcal:88,
-        ingredients:[{item_key:'mix', grams:200}]}
+        ingredients:[{item_key:'mix', grams:200}]},
+      {key:'water', name:'Water', scoop_g:50, protein_g:0, kcal:0, water_content:100}
     ];
     pushLogEntry('yogurt', 200, 20, 120, 1);
     window.first_entry = g_log[g_view_date][0];
@@ -80,14 +81,20 @@ function runChecks()
     g_scoop_items[0].water_content = 85;
     pushLogEntry('nested', 100, 10, 88, 1);
     if (Math.abs(g_log[g_view_date][1].water_sources[0].water_ml - 68) > 0.000001) throw Error('nested recipe serving scale');
+    if (foodWaterEvents(g_view_date)[1].note != 'Changed (Nested)' || foodWaterEvents(g_view_date)[2].note != 'Nested') throw Error('ingredient and Water labels use the outermost recipe');
+    delete g_log[g_view_date][1].water_sources[0].recipe_name;
+    if (foodWaterEvents(g_view_date)[1].note != 'Changed (Nested)') throw Error('old sources use the frozen recipe name');
     g_scoop_items[3].water_content = 50;
     pushLogEntry('nested', 100, 10, 88, 1);
     if (g_log[g_view_date][2].water_sources[0].water_ml != 50) throw Error('recipe override replaces ingredients');
+    if (foodWaterEvents(g_view_date)[3].note != 'Nested') throw Error('recipe override displays one recipe name');
     g_scoop_items[3].water_content = 0;
     pushLogEntry('nested', 100, 10, 88, 1);
     if (g_log[g_view_date][3].water_sources.length) throw Error('explicit zero override');
     pushLogEntry('dry', 50, 5, 100, 1);
     if (g_log[g_view_date][4].water_sources.length) throw Error('unspecified water');
+    pushLogEntry('water', 50, 0, 0, 1);
+    if (foodWaterEvents(g_view_date).at(-1).note != 'Water') throw Error('standalone Water keeps its name');
     let unknown = makeRecipeLogSnapshot(g_scoop_items[2], null, 0, 0, null);
     let sources = [];
     appendSnapshotWater(unknown.snapshot, '', sources);
@@ -114,6 +121,7 @@ function runChecks()
     render();
   `);
   check(Array.from(doc.querySelectorAll('.mass-log .mass-event-detail')).some(function(detail) { return detail.textContent.trim() == '+170 mL · Yogurt'; }), 'hydration source shows volume and item name');
+  check(doc.querySelector('.mass-log').textContent.includes('Changed (Nested)'), 'hydration log shows the ingredient and outermost recipe');
   check(doc.querySelector('.mass-log').textContent.includes('Pantry mass excluding water'), 'food water explains mass accounting');
   app.eval("g_active_tab = 'pantry'; g_flatten_view = true; openScoopEdit('yogurt');");
   inputField('[data-editdraft="water_content"]', '85.');

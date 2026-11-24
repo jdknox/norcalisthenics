@@ -1093,7 +1093,7 @@ function waterContentValue(value)
   return value == null || String(value).trim() == '' ? null : Number(value);
 }
 
-function appendSnapshotWater(snapshot, timestamp, sources)
+function appendSnapshotWater(snapshot, timestamp, sources, recipe_name = '')
 {
   if (snapshot.water_content != null && String(snapshot.water_content).trim() != '')
   {
@@ -1104,13 +1104,22 @@ function appendSnapshotWater(snapshot, timestamp, sources)
     {
       timestamp:timestamp,
       name:snapshot.name,
+      recipe_name:recipe_name,
       grams:Number(grams),
       water_content:percent,
       water_ml:Number(grams)*percent/100
     });
     return;
   }
-  for (let child of snapshot.ingredients || []) appendSnapshotWater(child, timestamp, sources);
+  for (let child of snapshot.ingredients || []) appendSnapshotWater(child, timestamp, sources, recipe_name || snapshot.name);
+}
+
+function foodWaterRecipeName(entry)
+{
+  let snapshot = entry.recipe_snapshot;
+  // Grouped meals also have snapshots, but only recipe snapshots store water_content.
+  if (snapshot && Object.hasOwn(snapshot, 'water_content')) return snapshot.name;
+  return '';
 }
 
 function foodWaterEvents(date)
@@ -1119,11 +1128,18 @@ function foodWaterEvents(date)
   for (let entry of g_log[date] || [])
   {
     if (logEntryIsDeleted(entry)) continue;
+    let entry_recipe_name = foodWaterRecipeName(entry);
     let index = 0;
     for (let source of entry.water_sources || [])
     {
       let ml = Number(source.water_ml);
       if (!(ml > 0)) continue;
+      let name = source.name;
+      let recipe_name = source.recipe_name || entry_recipe_name;
+      if (recipe_name && recipe_name != name)
+      {
+        name = String(name).trim().toLowerCase() == 'water' ? recipe_name : `${name} (${recipe_name})`;
+      }
       events.push(
       {
         id:'food-water:' + entry.id + ':' + index,
@@ -1132,7 +1148,7 @@ function foodWaterEvents(date)
         food_water:true,
         water_volume_ml:ml,
         mass_in_kg:0,
-        note:source.name
+        note:name
       });
       ++index;
     }
@@ -8643,7 +8659,11 @@ function finishMealSelection()
     combined.water_sources = [];
     for (let entry of selected)
     {
-      for (let source of entry.water_sources || []) combined.water_sources.push({...source});
+      let entry_recipe_name = foodWaterRecipeName(entry);
+      for (let source of entry.water_sources || [])
+      {
+        combined.water_sources.push({...source, recipe_name:source.recipe_name || entry_recipe_name});
+      }
     }
     for (let entry of selected)
     {
