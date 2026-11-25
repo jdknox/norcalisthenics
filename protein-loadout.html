@@ -19,6 +19,7 @@
 
 const PROTEIN_VERSION = 'unversioned';
 const PROTEIN_COMMIT_MESSAGE = '';
+const PROTEIN_HIGHEST_VERSION_KEY = 'protein-loadout:highest-version';
 
 function esc(value)
 {
@@ -803,6 +804,10 @@ let g_fetch_context = {};       /* item_key -> which rendered context ('standalo
 let g_fetch_barcode = {};       /* item_key -> barcode used by a draft-triggered lookup */
 let g_scoop_search_raw = '';
 let g_scoop_add_draft = null;   /* { barcode, name, brand, tags, scoop_g, macro_mode, macro_protein, macro_kcal } while the add-item form is open */
+let g_pantry_link_seen = '';
+let g_pantry_link_pending = null;
+let g_pantry_link_error = '';
+const PANTRY_LINK_ITEM_PREFIX = 'protein-loadout:pending-pantry-item:';
 let g_recipe_draft = null;
 let g_add_item_status = '';     /* transient feedback for the add-item form's O.F.F. lookup */
 let g_last_lookup_debug = null; /* raw response text when the web-search fallback returns something unparseable/unexpected, not persisted */
@@ -1092,7 +1097,7 @@ function waterContentValue(value)
   return value == null || String(value).trim() == '' ? null : Number(value);
 }
 
-function appendSnapshotWater(snapshot, timestamp, sources)
+function appendSnapshotWater(snapshot, timestamp, sources, recipe_name = '')
 {
   if (snapshot.water_content != null && String(snapshot.water_content).trim() != '')
   {
@@ -1103,13 +1108,22 @@ function appendSnapshotWater(snapshot, timestamp, sources)
     {
       timestamp:timestamp,
       name:snapshot.name,
+      recipe_name:recipe_name,
       grams:Number(grams),
       water_content:percent,
       water_ml:Number(grams)*percent/100
     });
     return;
   }
-  for (let child of snapshot.ingredients || []) appendSnapshotWater(child, timestamp, sources);
+  for (let child of snapshot.ingredients || []) appendSnapshotWater(child, timestamp, sources, recipe_name || snapshot.name);
+}
+
+function foodWaterRecipeName(entry)
+{
+  let snapshot = entry.recipe_snapshot;
+  // Grouped meals also have snapshots, but only recipe snapshots store water_content.
+  if (snapshot && Object.hasOwn(snapshot, 'water_content')) return snapshot.name;
+  return '';
 }
 
 function foodWaterEvents(date)
@@ -1118,11 +1132,18 @@ function foodWaterEvents(date)
   for (let entry of g_log[date] || [])
   {
     if (logEntryIsDeleted(entry)) continue;
+    let entry_recipe_name = foodWaterRecipeName(entry);
     let index = 0;
     for (let source of entry.water_sources || [])
     {
       let ml = Number(source.water_ml);
       if (!(ml > 0)) continue;
+      let name = source.name;
+      let recipe_name = source.recipe_name || entry_recipe_name;
+      if (recipe_name && recipe_name != name)
+      {
+        name = String(name).trim().toLowerCase() == 'water' ? recipe_name : `${name} (${recipe_name})`;
+      }
       events.push(
       {
         id:'food-water:' + entry.id + ':' + index,
@@ -1131,7 +1152,7 @@ function foodWaterEvents(date)
         food_water:true,
         water_volume_ml:ml,
         mass_in_kg:0,
-        note:source.name
+        note:name
       });
       ++index;
     }
@@ -1168,7 +1189,8 @@ function waterPreviewText(draft, recipe = false)
 function renderWaterContentField(kind, draft)
 {
   let hint = kind == 'recipe' ? 'Optional override; blank estimates water from known ingredients.' : 'Optional percentage of the food mass that is water.';
-  return `<label>Water content (%)<input type="text" inputmode="decimal" data-${kind}draft="water_content" value="${esc(draft.water_content || '')}" placeholder="optional" title="${hint}"></label><button type="button" class="smallbtn" data-a="water-content-full" data-kind="${kind}" title="Set water content to 100%" aria-label="Set water content to 100%">100</button><span class="hint" data-water-preview="${kind}">${esc(waterPreviewText(draft, kind == 'recipe'))}</span>`;
+  let automatic_water = kind == 'recipe' && draft.fill_water;
+  return `<label>Water content (%)<input type="text" inputmode="decimal" data-${kind}draft="water_content" value="${esc(draft.water_content || '')}" placeholder="optional" title="${hint}"${automatic_water ? ' readonly' : ''}></label><button type="button" class="smallbtn" data-a="water-content-full" data-kind="${kind}" title="Set water content to 100%" aria-label="Set water content to 100%"${automatic_water ? ' disabled' : ''}>100</button><span class="hint" data-water-preview="${kind}">${esc(waterPreviewText(draft, kind == 'recipe'))}</span>`;
 }
 
 function refreshWaterPreview(kind, draft)
@@ -2247,10 +2269,45 @@ function proteinTargetRatioText()
   return (weight > 0 ? fmt2(g_target/weight) : '—') + ' g/kg';
 }
 
-function cutPercentText()
+function cutKcalPerUnit(input_id)
 {
-  let maintenance = targetKcalDay();
-  return (maintenance > 0 ? fmt1(g_cut_kcal/maintenance*100) : '—') + '%';
+  let kcal = 1;
+  if (input_id == 'target-cut-percent') kcal = targetKcalDay()/100;
+  if (input_id == 'target-cut-weight-percent') kcal = bodyweightForDate(todayISO())*g_kcal_per_kg_bodyfat/100/7;
+  return Number.isFinite(kcal) && kcal > 0 ? kcal : 0;
+}
+
+function cutPercentValue(kcal_per_unit)
+{
+  return kcal_per_unit ? fmt1(g_cut_kcal/kcal_per_unit) : '';
+}
+
+function refreshCutKcalRaw()
+{
+  g_cut_kcal_raw = g_cut_kcal ? String(Number(fmt2(g_cut_kcal))) : '';
+}
+
+function cutWeeklyAverageWeightText()
+{
+  let average_kg = calculateMeanLoggedProtein(todayISO(), 7).mean_bodyweight_kg;
+  let estimate_kg = average_kg - 7*g_cut_kcal/g_kcal_per_kg_bodyfat;
+  return estimate_kg > 0 ? fmt1(estimate_kg) + ' kg' : '—';
+}
+
+function refreshCutInputs()
+{
+  let kcal_input = document.getElementById('target-cut-input');
+  if (kcal_input && kcal_input != document.activeElement && kcal_input.value != g_cut_kcal_raw) kcal_input.value = g_cut_kcal_raw;
+  for (let id of ['target-cut-percent', 'target-cut-weight-percent'])
+  {
+    let input = document.getElementById(id);
+    if (!input || input == document.activeElement) continue;
+    let kcal_per_unit = cutKcalPerUnit(id);
+    input.disabled = !kcal_per_unit;
+    input.value = cutPercentValue(kcal_per_unit);
+  }
+  let estimate = document.getElementById('target-cut-weight-estimate');
+  if (estimate) estimate.textContent = cutWeeklyAverageWeightText();
 }
 
 function refreshProteinTarget()
@@ -2264,8 +2321,7 @@ function refreshProteinTarget()
   }
   let ratio = document.getElementById('target-protein-ratio');
   if (ratio) ratio.textContent = proteinTargetRatioText();
-  let cut_percent = document.getElementById('target-cut-percent');
-  if (cut_percent) cut_percent.textContent = cutPercentText();
+  refreshCutInputs();
   refreshNutritionSummary();
   refreshLoadoutSummary();
   refreshTrendsEstimates();
@@ -2544,6 +2600,138 @@ function renderMacroModeControl(kind, mode)
   return h;
 }
 
+function openAddItemDraft(draft)
+{
+  g_scoop_add_draft = draft;
+  g_add_item_edit_versions = {};
+  g_add_item_status = '';
+  g_barcode_add_status = '';
+  render();
+  scrollBelowTabs(document.getElementById('pantry-add-editor'));
+}
+
+function parsePantryLink(fragment)
+{
+  let field_limits = {v:1, name:180, brand:120, barcode:14, serving_g:24, volume_ml:24, basis:7, protein_g:24, kcal:24, water_pct:24, estimate:1};
+  if (fragment.length > 2048 || !fragment.startsWith('#pantry-add?') || /%(?![0-9a-f]{2})/i.test(fragment)) return null;
+  let values = new URLSearchParams(fragment.slice('#pantry-add?'.length));
+  for (let [field, value] of values)
+  {
+    if (!Object.hasOwn(field_limits, field) || values.getAll(field).length != 1 || value.length > field_limits[field] || /[\u0000-\u001f\u007f\ufffd]/.test(value)) return null;
+  }
+
+  let name = (values.get('name') || '').trim();
+  let barcode = values.get('barcode') || '';
+  let basis = values.get('basis');
+  if (values.get('v') != '1' || (!name && !barcode)) return null;
+  if (values.has('barcode') && !/^(?:\d{8}|\d{12,14})$/.test(barcode)) return null;
+  if (basis != null && basis != 'serving' && basis != '100g') return null;
+  if (!basis && (values.has('protein_g') || values.has('kcal'))) return null;
+  if (values.has('estimate') && values.get('estimate') != '1') return null;
+
+  for (let field of ['serving_g', 'volume_ml', 'protein_g', 'kcal', 'water_pct'])
+  {
+    if (!values.has(field)) continue;
+    let value = values.get(field);
+    let number = Number(value);
+    if (!/^\d+(?:\.\d+)?$/.test(value) || !Number.isFinite(number)) return null;
+    if ((field == 'serving_g' || field == 'volume_ml') && number <= 0) return null;
+    if (field == 'water_pct' && number > 100) return null;
+  }
+
+  return {
+    name:name,
+    brand:(values.get('brand') || '').trim(),
+    barcode:barcode,
+    barcode_keyboard:!!barcode,
+    scoop_g:values.get('serving_g') || '',
+    volume:values.get('volume_ml') || '',
+    tags:'',
+    macro_mode:basis || '100g',
+    macro_protein:values.get('protein_g') || '',
+    macro_kcal:values.get('kcal') || '',
+    water_content:values.get('water_pct') || '',
+    pantry_link:fragment,
+    estimate:values.get('estimate') == '1',
+    confirmed_duplicate_key:''
+  };
+}
+
+function pantryLinkCanOpen()
+{
+  return !g_scoop_add_draft && !g_edit_draft && !g_recipe_draft && !g_scale_draft && !g_mass_entry_draft && !g_mass_edit_draft && !g_group_rename_key;
+}
+
+function openPendingPantryLink()
+{
+  if (!g_pantry_link_pending || !pantryLinkCanOpen()) return;
+  let draft = g_pantry_link_pending;
+  g_pantry_link_pending = null;
+  g_active_tab = 'pantry';
+  openAddItemDraft(draft);
+}
+
+function receivePantryLink()
+{
+  let notice = document.getElementById('pantry-link-notice');
+  if (!notice || g_pantry_link_seen == location.hash) return;
+  g_pantry_link_seen = location.hash;
+  g_pantry_link_pending = null;
+  g_pantry_link_error = '';
+  if (/^#pantry-add(?:\?|$)/.test(location.hash))
+  {
+    g_pantry_link_pending = parsePantryLink(location.hash);
+    if (!g_pantry_link_pending) g_pantry_link_error = 'This pantry link is invalid or uses an unsupported version.';
+  }
+  if (g_pantry_link_pending && pantryLinkCanOpen() && !isTextInputFocused()) openPendingPantryLink();
+  else notice.innerHTML = renderPantryLinkNotice();
+}
+
+function renderPantryLinkNotice()
+{
+  if (g_pantry_link_error) return `<p class="hint" role="status">${esc(g_pantry_link_error)}</p>`;
+  if (!g_pantry_link_pending) return '';
+  if (!pantryLinkCanOpen()) return '<p class="hint" role="status">A pantry link is ready. Finish your current edit to open it.</p>';
+  return '<button type="button" class="smallbtn" data-a="pantry-link-open">Open pantry link</button>';
+}
+
+function closePantryLink(draft)
+{
+  if (!draft.pantry_link || location.hash != draft.pantry_link) return;
+  history.replaceState(history.state, '', location.pathname + location.search);
+  g_pantry_link_seen = '';
+}
+
+function findPantryLinkDuplicate(draft)
+{
+  if (draft.barcode.trim()) return findPantryBarcode(draft.barcode);
+  let name = draft.name.trim().toLowerCase();
+  let brand = draft.brand.trim().toLowerCase();
+  for (let item of g_scoop_items)
+  {
+    if (item.name.trim().toLowerCase() == name && (item.brand || '').trim().toLowerCase() == brand) return item;
+  }
+  return null;
+}
+
+function renderPantryLinkDuplicate(draft)
+{
+  let item = findPantryLinkDuplicate(draft);
+  if (!item) return '';
+  let barcode_match = !!draft.barcode.trim();
+  let match = barcode_match ? 'Barcode already in pantry' : 'Same name and brand in pantry';
+  let save_anyway = barcode_match ? '' : '<button type="button" class="smallbtn" data-a="pantry-link-save-duplicate">Save as a separate item</button>';
+  return `<span class="hint" role="status">${match} · ${esc(item.name)}</span> <button type="button" class="smallbtn" data-a="pantry-link-existing">Open existing item</button> ${save_anyway}`;
+}
+
+function refreshPantryLinkDuplicate()
+{
+  let notice = document.getElementById('pantry-link-duplicate');
+  if (!notice) return;
+  notice.innerHTML = renderPantryLinkDuplicate(g_scoop_add_draft);
+  notice.hidden = !notice.innerHTML;
+}
+
 function saveAddItemDraft(log_drink = false)
 {
   let d = g_scoop_add_draft;
@@ -2552,6 +2740,16 @@ function saveAddItemDraft(log_drink = false)
   if (!d) return;
   if (!d.name.trim()) return;
   if (waterContentError(d.water_content)) return;
+  if (d.pantry_link)
+  {
+    mergePendingPantryLinkItems();
+    let duplicate = findPantryLinkDuplicate(d);
+    if (duplicate && (d.barcode.trim() || d.confirmed_duplicate_key != duplicate.key))
+    {
+      refreshPantryLinkDuplicate();
+      return;
+    }
+  }
   if (log_drink && (!d.barcode.trim() || d.resolved_barcode != d.barcode.trim()))
   {
     g_add_item_status = 'Look up this barcode before confirming.';
@@ -2589,6 +2787,12 @@ function saveAddItemDraft(log_drink = false)
     item.scoop_g_raw = item.scoop_g != null ? String(item.scoop_g) : '';
     item.protein_g_raw = item.protein_g != null ? String(item.protein_g) : '';
     item.kcal_raw = item.kcal != null ? String(item.kcal) : '';
+    if (d.pantry_link && !saveLocalText(PANTRY_LINK_ITEM_PREFIX + item.key, JSON.stringify(item)))
+    {
+      g_add_item_status = 'Could not save this item on this device.';
+      refreshAddItemStatus();
+      return;
+    }
     g_scoop_items.push(item);
   }
   if (log_drink)
@@ -2602,6 +2806,7 @@ function saveAddItemDraft(log_drink = false)
     appendSnapshotWater({name:d.name.trim(), grams:fields.scoop_g, water_content:waterContentValue(d.water_content)}, massTimestampForNewEvent(currentTimeText()), entry.water_sources);
     g_active_tab = 'mass';
   }
+  closePantryLink(d);
   g_scoop_add_draft = null;
   render();
   save();
@@ -2819,6 +3024,7 @@ function lookupOFFForAddItem()
     let estimate = d.drink_mode && !result.scoop_g && Number(result.volume) > 0 && Number(d.scoop_g) == Number(result.volume) ? ' · Amount estimated from mL (1 mL ≈ 1 g).' : '';
     g_add_item_status = formatOFFMatchStatus(result) + estimate;
     refreshAddItemStatus();
+    if (d.pantry_link) refreshPantryLinkDuplicate();
   });
 }
 
@@ -2832,6 +3038,7 @@ function openRecipeDraft(item, context = 'standalone')
     scoop_g:item ? String(item.scoop_g) : '',
     tags:item ? itemTags(item).join(', ') : '',
     water_content:item && item.water_content != null ? String(item.water_content) : '',
+    fill_water:!!(item && item.fill_water),
     save_modifications:false,
     ingredients:[]
   };
@@ -2841,7 +3048,7 @@ function openRecipeDraft(item, context = 'standalone')
     {
       g_recipe_draft.ingredients.push({item_key:ingredient.item_key, grams:String(ingredient.grams)});
     }
-    if (item.yield_g == recipeIngredientGrams(g_recipe_draft)) g_recipe_draft.yield_g = '';
+    if (!g_recipe_draft.fill_water && item.yield_g == recipeIngredientGrams(g_recipe_draft)) g_recipe_draft.yield_g = '';
   }
   g_edit_item_key = null;
   g_edit_draft = null;
@@ -2897,6 +3104,7 @@ function openRecipeFromLog(entry_id)
     yield_g:entry.grams != null ? entry.grams : '',
     scoop_g:entry.grams != null ? entry.grams : '',
     water_content:snapshot.water_content,
+    fill_water:snapshot.fill_water,
     tags:[],
     ingredients:ingredients
   });
@@ -2969,6 +3177,11 @@ function recipeIngredientNutrition(ingredient, recipe_key = '')
 
 function recipeIngredientTotals(draft)
 {
+  if (draft.fill_water)
+  {
+    let error = adjustRecipeWater(draft);
+    if (error) return {error:error};
+  }
   let totals = {error:'', grams:0, protein_g:0, kcal:0};
   if (!draft.ingredients.length) return {error:'Add an ingredient.'};
   for (let ingredient of draft.ingredients)
@@ -2996,7 +3209,8 @@ function makeRecipeLogSnapshot(item, grams, protein_g, kcal, ingredient_scale, t
       grams:grams,
       protein_g:protein_g,
       kcal:kcal,
-      water_content:waterContentValue(item.water_content)
+      water_content:waterContentValue(item.water_content),
+      fill_water:!!item.fill_water
     }
   };
   if (!Array.isArray(item.ingredients)) return result;
@@ -3060,11 +3274,21 @@ function fillRecipeWithWater()
 {
   let draft = g_recipe_draft;
   if (!draft) return;
+  let error = adjustRecipeWater(draft);
+  if (error)
+  {
+    document.getElementById('recipe-preview').textContent = error;
+    return;
+  }
+  render();
+}
+
+function adjustRecipeWater(draft)
+{
   let target = Number(draft.yield_g);
   if (!Number.isFinite(target) || target <= 0)
   {
-    document.getElementById('recipe-preview').textContent = 'Enter a positive Override total first.';
-    return;
+    return 'Enter a positive Override total first.';
   }
 
   let water = null;
@@ -3073,15 +3297,13 @@ function fillRecipeWithWater()
     if (item.name.trim().toLowerCase() != 'water' || itemIsArchived(item) || Array.isArray(item.ingredients)) continue;
     if (water)
     {
-      document.getElementById('recipe-preview').textContent = 'More than one active pantry item is named Water. Rename one before filling.';
-      return;
+      return 'More than one active pantry item is named Water. Rename one before filling.';
     }
     water = item;
   }
   if (!water)
   {
-    document.getElementById('recipe-preview').textContent = 'An active pantry item named Water is needed.';
-    return;
+    return 'An active pantry item named Water is needed.';
   }
 
   let other_grams = 0;
@@ -3091,21 +3313,19 @@ function fillRecipeWithWater()
     let grams = Number(ingredient.grams);
     if (!Number.isFinite(grams) || grams < 0)
     {
-      document.getElementById('recipe-preview').textContent = 'Enter non-negative ingredient grams before filling.';
-      return;
+      return 'Enter non-negative ingredient grams before filling.';
     }
     other_grams += grams;
   }
   if (target < other_grams)
   {
-    document.getElementById('recipe-preview').textContent = 'Override total is smaller than the ingredients excluding water.';
-    return;
+    return 'Override total is smaller than the ingredients excluding water.';
   }
 
   // Reuse the pantry Water item and ordinary ingredients; no separate hydration event.
   water.water_content = 100;
   draft.water_content = '';
-  let water_grams = String(round1(target - other_grams));
+  let water_grams = String(Number((target - other_grams).toFixed(6)));
   let water_ingredient = null;
   for (let i = draft.ingredients.length - 1; i >= 0; --i)
   {
@@ -3115,7 +3335,7 @@ function fillRecipeWithWater()
   }
   if (water_ingredient) water_ingredient.grams = water_grams;
   else draft.ingredients.push({item_key:water.key, grams:water_grams});
-  render();
+  return '';
 }
 
 function recipeMassDiffers(draft)
@@ -3142,9 +3362,36 @@ function renderRecipePreview()
 
 function refreshRecipePreview()
 {
-  refreshWaterPreview('recipe', g_recipe_draft);
   document.getElementById('recipe-preview').innerHTML = renderRecipePreview();
   document.getElementById('recipe-total-preview').innerHTML = renderRecipeTotalPreview();
+  refreshWaterPreview('recipe', g_recipe_draft);
+  let water_input = document.querySelector('[data-recipedraft="water_content"]');
+  water_input.readOnly = !!g_recipe_draft.fill_water;
+  if (g_recipe_draft.fill_water) water_input.value = g_recipe_draft.water_content;
+  document.querySelector('[data-a="water-content-full"][data-kind="recipe"]').disabled = !!g_recipe_draft.fill_water;
+  let ingredient_list = document.querySelector('.recipe-ingredients');
+  if (ingredient_list.children.length > g_recipe_draft.ingredients.length)
+  {
+    // Combining duplicate Water rows can change ingredient indexes when enabling the checkbox.
+    let html = '';
+    for (let i = 0; i < g_recipe_draft.ingredients.length; ++i) html += renderRecipeIngredient(g_recipe_draft.ingredients[i], i);
+    ingredient_list.innerHTML = html;
+  }
+  // Update the automatic Water row without replacing the ingredient being typed in.
+  for (let i = 0; i < g_recipe_draft.ingredients.length; ++i)
+  {
+    let ingredient = g_recipe_draft.ingredients[i];
+    let input = document.querySelector(`[data-recipeindex="${i}"][data-recipefield="grams"]`);
+    if (!input)
+    {
+      document.querySelector('.recipe-ingredients').insertAdjacentHTML('beforeend', renderRecipeIngredient(ingredient, i));
+      continue;
+    }
+    let automatic_water = recipeIngredientIsAutomaticWater(ingredient);
+    if (input != document.activeElement) input.value = ingredient.grams;
+    input.readOnly = automatic_water;
+    for (let button of input.closest('.recipe-ingredient').querySelectorAll('button')) button.disabled = automatic_water;
+  }
   let batch_input = document.querySelector('[data-recipedraft="yield_g"]');
   let serving_input = document.querySelector('[data-recipedraft="scoop_g"]');
   let ingredient_g = recipeIngredientGrams(g_recipe_draft);
@@ -3217,8 +3464,9 @@ function revealPantryItem(item, preferred_context)
   {
     if (row.dataset.pantryKey != item.key || row.dataset.pantryContext != context) continue;
     scrollBelowTabs(row);
-    break;
+    return row;
   }
+  return null;
 }
 
 function saveRecipeItem(draft)
@@ -3235,6 +3483,7 @@ function saveRecipeItem(draft)
   item.brand = 'knox';
   item.tags = parseTagsInput(draft.tags);
   item.yield_g = nutrition.yield_g;
+  item.fill_water = !!draft.fill_water;
   item.scoop_g = nutrition.scoop_g;
   item.protein_100g = nutrition.protein_100g;
   item.kcal_100g = nutrition.kcal_100g;
@@ -3274,24 +3523,37 @@ function archiveRecipeDraft()
   save();
 }
 
+function recipeIngredientIsAutomaticWater(ingredient)
+{
+  let item = findScoopItem(ingredient.item_key);
+  return g_recipe_draft.fill_water && item && item.name.trim().toLowerCase() == 'water' && !Array.isArray(item.ingredients);
+}
+
+function renderRecipeIngredient(ingredient, index)
+{
+  let item = findScoopItem(ingredient.item_key);
+  let ratio = item ? itemKcalProteinRatio(item) : null;
+  let automatic_water = recipeIngredientIsAutomaticWater(ingredient);
+  let disabled = automatic_water ? ' disabled' : '';
+  return `<div class="recipe-ingredient"><span>${esc(item ? item.name : 'Missing ingredient: ' + ingredient.item_key)}${item && item.brand ? `<span class="recipe-ingredient-brand">${esc(item.brand)}</span>` : ''}</span>
+    <span class="recipe-clear-input"><label class="recipe-amount unitinput"><input aria-label="${esc((item ? item.name : 'Ingredient') + ' grams')}" inputmode="decimal" data-recipeindex="${index}" data-recipefield="grams" value="${esc(ingredient.grams)}"${automatic_water ? ' readonly' : ''}><span class="unitghost">g</span><small class="recipe-ingredient-ratio kcal-protein-ratio" title="kcal per gram of protein">${ratio != null ? fmtKcalProteinRatio(ratio) : '—'} kcal/g</small></label>
+    <button type="button" class="editbtn" data-a="recipe-amount-edit" data-index="${index}" title="Clear and edit ingredient grams" aria-label="Clear and edit ${esc(item ? item.name : 'ingredient')} grams"${disabled}>⌫</button></span>
+    <button class="smallbtn" data-a="recipe-zero" data-index="${index}" title="Set ingredient grams to zero" aria-label="Set ${esc(item ? item.name : 'ingredient')} grams to zero"${disabled}>0</button>
+    <button class="smallbtn" data-a="recipe-remove" data-index="${index}" title="Remove ingredient" aria-label="Remove ingredient"${disabled}>−</button></div>`;
+}
+
 function renderRecipeDraft()
 {
   let draft = g_recipe_draft;
   if (!draft) return '';
+  if (draft.fill_water) adjustRecipeWater(draft);
   let h = `<div class="recipe-editor">
     <div class="mass-section-head">${draft.key ? 'Edit recipe' : 'New recipe'}</div>
     <label>Recipe name<input data-recipedraft="name" value="${esc(draft.name)}"></label>`;
   h += `<div class="recipe-ingredients">`;
   for (let i = 0; i < draft.ingredients.length; ++i)
   {
-    let ingredient = draft.ingredients[i];
-    let item = findScoopItem(ingredient.item_key);
-    let ratio = item ? itemKcalProteinRatio(item) : null;
-    h += `<div class="recipe-ingredient"><span>${esc(item ? item.name : 'Missing ingredient: ' + ingredient.item_key)}${item && item.brand ? `<span class="recipe-ingredient-brand">${esc(item.brand)}</span>` : ''}</span>
-      <span class="recipe-clear-input"><label class="recipe-amount unitinput"><input aria-label="${esc((item ? item.name : 'Ingredient') + ' grams')}" inputmode="decimal" data-recipeindex="${i}" data-recipefield="grams" value="${esc(ingredient.grams)}"><span class="unitghost">g</span><small class="recipe-ingredient-ratio kcal-protein-ratio" title="kcal per gram of protein">${ratio != null ? fmtKcalProteinRatio(ratio) : '—'} kcal/g</small></label>
-      <button type="button" class="editbtn" data-a="recipe-amount-edit" data-index="${i}" title="Clear and edit ingredient grams" aria-label="Clear and edit ${esc(item ? item.name : 'ingredient')} grams">⌫</button></span>
-      <button class="smallbtn" data-a="recipe-zero" data-index="${i}" title="Set ingredient grams to zero" aria-label="Set ${esc(item ? item.name : 'ingredient')} grams to zero">0</button>
-      <button class="smallbtn" data-a="recipe-remove" data-index="${i}" title="Remove ingredient" aria-label="Remove ingredient">−</button></div>`;
+    h += renderRecipeIngredient(draft.ingredients[i], i);
   }
   h += `</div>
     <div class="recipe-ingredient-total"><span>Ingredient total</span>
@@ -3329,10 +3591,13 @@ function renderRecipeDraft()
               value="${esc(draft.yield_g)}">
             <span class="unitghost">g</span>
           </span>
+          <button type="button" class="editbtn" data-a="recipe-copy-serving"
+              title="Copy serving grams to override total" aria-label="Copy serving grams to override total">⧉</button>
           <button type="button" class="editbtn" data-a="recipe-field-clear" data-field="yield_g"
               title="Clear and edit override total" aria-label="Clear and edit override total">⌫</button>
         </span>
       </label>
+      <label class="recipe-save-toggle"><input type="checkbox" data-recipedraft="fill_water"${draft.fill_water ? ' checked' : ''}>Keep total fixed (adjust Water)</label>
       <button type="button" class="smallbtn" data-a="recipe-fill-water" title="Set Water grams to Override total minus the other ingredients">Fill with water</button>
     </div>
     ${renderWaterContentField('recipe', draft)}
@@ -4355,11 +4620,11 @@ function buildBackupTSV()
     pushBackupTsvRow(lines, [food.key, food.name, food.kind, food.unit_grams, food.unit_protein, food.package_grams, food.package_protein, food.daily, food.price, food.package_units], state);
   }
 
-  pushBackupTsvSection(lines, 'pantry_items', ['key', 'name', 'brand', 'barcode', 'scoop_g', 'protein_g', 'kcal', 'protein_100g', 'kcal_100g', 'volume_ml', 'volume_label', 'archived', 'yield_g', 'water_content'], state);
+  pushBackupTsvSection(lines, 'pantry_items', ['key', 'name', 'brand', 'barcode', 'scoop_g', 'protein_g', 'kcal', 'protein_100g', 'kcal_100g', 'volume_ml', 'volume_label', 'archived', 'yield_g', 'water_content', 'fill_water'], state);
   for (let i = 0; i < g_scoop_items.length; ++i)
   {
     let item = g_scoop_items[i];
-    pushBackupTsvRow(lines, [item.key, item.name, item.brand, item.barcode, item.scoop_g, item.protein_g, item.kcal, item.protein_100g, item.kcal_100g, item.volume_ml, item.volume_label, backupTsvBool(item.archived), item.yield_g, item.water_content], state);
+    pushBackupTsvRow(lines, [item.key, item.name, item.brand, item.barcode, item.scoop_g, item.protein_g, item.kcal, item.protein_100g, item.kcal_100g, item.volume_ml, item.volume_label, backupTsvBool(item.archived), item.yield_g, item.water_content, backupTsvBool(item.fill_water)], state);
   }
 
   pushBackupTsvSection(lines, 'recipe_ingredients', ['recipe_key', 'item_key', 'grams'], state);
@@ -5076,6 +5341,7 @@ function parseBackupTSV(text)
       setIfNumber(item, 'volume_ml', row.volume_ml);
       setIfNumber(item, 'yield_g', row.yield_g);
       setIfNumber(item, 'water_content', row.water_content);
+      setIfBool(item, 'fill_water', row.fill_water);
       if (item.yield_g != null) item.ingredients = [];
       setIfBool(item, 'archived', row.archived);
 
@@ -5645,7 +5911,7 @@ function applyReplaceImport()
   else if (parsed.target_kcal_ratio != null) g_target_kcal_day = g_target*parsed.target_kcal_ratio;
   refreshTargetKcalRaw();
   g_cut_kcal = parsed.cut_kcal != null ? Math.max(0, parsed.cut_kcal) : 0;
-  g_cut_kcal_raw = g_cut_kcal ? String(g_cut_kcal) : '';
+  refreshCutKcalRaw();
 
   if (parsed.bodyweight_kg != null)
   {
@@ -6629,14 +6895,23 @@ function mergeLoadedPayload(payload)
   refreshProteinTarget();
 }
 
-function saveLocalJson(json_text)
+function saveLocalText(key, value)
 {
   try
   {
-    localStorage.setItem(g_storage_key, json_text);
+    if (value == null) localStorage.removeItem(key);
+    else localStorage.setItem(key, value);
+    return true;
   }
   catch (e)
-  {}
+  {
+    return false;
+  }
+}
+
+function saveLocalJson(json_text)
+{
+  saveLocalText(g_storage_key, json_text);
 }
 
 function saveUnsyncedFlag(value)
@@ -6650,16 +6925,58 @@ function saveUnsyncedFlag(value)
   {}
 }
 
-function readUnsyncedFlag()
+function readLocalStorage()
 {
   try
   {
-    return localStorage.getItem(g_unsynced_key) == '1';
+    return localStorage;
   }
   catch (e)
   {
-    return false;
+    return null;
   }
+}
+
+function readLocalText(key)
+{
+  let storage = readLocalStorage();
+  return storage ? storage.getItem(key) : null;
+}
+
+function readLocalJson(key)
+{
+  try
+  {
+    return JSON.parse(readLocalText(key));
+  }
+  catch (e)
+  {
+    return null;
+  }
+}
+
+function mergePendingPantryLinkItems()
+{
+  let storage = readLocalStorage();
+  let pending_keys = [];
+  let pending_items = [];
+  if (!storage) return pending_keys;
+  // One key per pending item lets two tabs save without overwriting each other's queue.
+  for (let key of Object.keys(storage))
+  {
+    if (!key.startsWith(PANTRY_LINK_ITEM_PREFIX)) continue;
+    let item = readLocalJson(key);
+    if (!item || !item.key || key != PANTRY_LINK_ITEM_PREFIX + item.key) continue;
+    pending_keys.push(key);
+    pending_items.push(item);
+  }
+  if (pending_items.length) mergeScoopItems(pending_items);
+  return pending_keys;
+}
+
+function readUnsyncedFlag()
+{
+  return readLocalText(g_unsynced_key) == '1';
 }
 
 function scheduleSyncRetry()
@@ -6675,7 +6992,9 @@ function scheduleSyncRetry()
 
 function syncPendingChanges()
 {
-  if (g_load_in_flight || g_sync_in_flight || !g_unsynced_changes || g_input_save_timer != null) return;
+  if (g_load_in_flight || g_sync_in_flight || g_input_save_timer != null) return;
+  if (!g_authoritative_replace_sync && mergePendingPantryLinkItems().length) g_unsynced_changes = true;
+  if (!g_unsynced_changes) return;
 
   if (!window.storage || !window.storage.get || !window.storage.set)
   {
@@ -6703,6 +7022,7 @@ function syncPendingChanges()
     if (!result || !result.revision) throw new Error('shared storage does not support safe revision checks');
     if (result.value && !g_authoritative_replace_sync) mergeLoadedPayload(storagePayloadFromValue(result.value));
 
+    let pantry_link_keys = g_authoritative_replace_sync ? [] : mergePendingPantryLinkItems();
     merged_json_text = JSON.stringify(makeSavePayload());
     saveLocalJson(merged_json_text);
     write_revision = g_local_revision;
@@ -6710,6 +7030,7 @@ function syncPendingChanges()
     return window.storage.set(g_storage_key, merged_json_text, result.revision).then(function()
     {
       g_sync_in_flight = false;
+      for (let key of pantry_link_keys) saveLocalText(key, null);
 
       if (write_revision != g_local_revision)
       {
@@ -6746,6 +7067,7 @@ function save()
 {
   clearTimeout(g_input_save_timer);
   g_input_save_timer = null;
+  if (!g_authoritative_replace_sync) mergePendingPantryLinkItems();
   let json_text = JSON.stringify(makeSavePayload());
 
   saveLocalJson(json_text);
@@ -6798,7 +7120,7 @@ function load(tab_refresh = false)
     else if (payload.target_kcal_ratio != null) g_target_kcal_day = g_target*payload.target_kcal_ratio;
     refreshTargetKcalRaw();
     g_cut_kcal = payload.cut_kcal != null ? Math.max(0, payload.cut_kcal) : 0;
-    g_cut_kcal_raw = g_cut_kcal ? String(g_cut_kcal) : '';
+    refreshCutKcalRaw();
 
     if (payload.bodyweight_kg != null)
     {
@@ -6862,28 +7184,22 @@ function load(tab_refresh = false)
     mergeFavorites(payload.favorites);
   }
 
-  function readLocal()
-  {
-    let stored_value;
-
-    try
-    {
-      stored_value = localStorage.getItem(g_storage_key);
-      return stored_value ? JSON.parse(stored_value) : null;
-    }
-    catch (e)
-    {
-      return null;
-    }
-  }
-
   function finishLoad()
   {
+    if (!g_authoritative_replace_sync && mergePendingPantryLinkItems().length) g_unsynced_changes = true;
     mergeKnownItems();
     migrateLogFormat();
     migrateTagsFormat();
     migrateMassEvents();
     render();
+    receivePantryLink();
+  }
+
+  let showed_cached_data = isCachedProteinPage() && !document.getElementById('app').hasChildNodes();
+  if (showed_cached_data)
+  {
+    applyLoaded(readLocalJson(g_storage_key));
+    finishLoad();
   }
 
   if (window.storage && window.storage.get)
@@ -6905,7 +7221,7 @@ function load(tab_refresh = false)
         save();
         return;
       }
-      let local_payload = readLocal();
+      let local_payload = readLocalJson(g_storage_key);
 
       if (result && result.value)
       {
@@ -6938,9 +7254,9 @@ function load(tab_refresh = false)
     {
       g_load_in_flight = false;
       setSyncFailed('local only / sync failed', error);
-      if (!tab_refresh && load_revision == g_local_revision)
+      if (!tab_refresh && !showed_cached_data && load_revision == g_local_revision)
       {
-        applyLoaded(readLocal());
+        applyLoaded(readLocalJson(g_storage_key));
         finishLoad();
       }
       scheduleSyncRetry();
@@ -6952,7 +7268,7 @@ function load(tab_refresh = false)
     return;
   }
 
-  applyLoaded(readLocal());
+  applyLoaded(readLocalJson(g_storage_key));
   finishLoad();
   setSyncFailed('local only / shared storage unavailable');
 }
@@ -6961,6 +7277,28 @@ function errorMessage(error)
 {
   if (error && error.message) return error.message;
   return String(error);
+}
+
+function isCachedProteinPage()
+{
+  return document.documentElement && document.documentElement.hasAttribute('data-protein-offline');
+}
+
+function highestProteinVersion()
+{
+  let seen = readLocalText(PROTEIN_HIGHEST_VERSION_KEY);
+  let current_time = Date.parse(PROTEIN_VERSION);
+  if (!Number.isFinite(current_time)) return seen || PROTEIN_VERSION;
+  if (Date.parse(seen) > current_time) return seen;
+  return PROTEIN_VERSION;
+}
+
+function renderCachedVersionNotice()
+{
+  if (!isCachedProteinPage()) return '';
+  let highest = highestProteinVersion();
+  let comparison = Date.parse(highest) > Date.parse(PROTEIN_VERSION) ? 'A newer version was seen on this device.' : 'Matches the newest version seen on this device.';
+  return `<div class="cached-version-status" role="status">Cached copy · ${comparison}<br>Cached version ${esc(PROTEIN_VERSION)}<br>Newest known version ${esc(highest)}</div>`;
 }
 
 function renderStartupError(title, error)
@@ -6973,7 +7311,7 @@ function renderStartupError(title, error)
 
   h += `<div class="eyebrow">// daily protein loadout</div>
   <div class="site-version" title="${esc(PROTEIN_COMMIT_MESSAGE)}">version <time datetime="${PROTEIN_VERSION}">${PROTEIN_VERSION}</time></div>
-  <h1>protein_loadout</h1>
+  <h1>protein_loadout</h1>${renderCachedVersionNotice()}
   <div class="startup-error">
     <div class="startup-error-title">${esc(title)}</div>
     <div class="startup-error-message">${esc(message)}</div>
@@ -7011,6 +7349,8 @@ function renderTabBar()
 function renderTargetRow()
 {
   let h = '';
+  let kcal_per_maintenance_percent = cutKcalPerUnit('target-cut-percent');
+  let kcal_per_weight_percent = cutKcalPerUnit('target-cut-weight-percent');
 
   h += `<div class="targetrow">
     <label>g/day <span class="protein-target-control">
@@ -7024,10 +7364,13 @@ function renderTargetRow()
     </label>
     <label>kcal/day <input type="text" inputmode="decimal" id="target-kcal-input"
       value="${g_target_kcal_raw}"></label>
-    <label>cut <span class="protein-target-control"><input type="text" inputmode="decimal" id="target-cut-input"
-      title="Kcal below maintenance per day" placeholder="0" value="${esc(g_cut_kcal_raw)}">
-      <span id="target-cut-percent" class="protein-target-ratio target-cut-percent">${cutPercentText()}</span></span>
-    </label>
+    <label>cut kcal <input type="text" inputmode="decimal" class="cut-input" id="target-cut-input"
+      title="Kcal below maintenance per day" placeholder="0" value="${esc(g_cut_kcal_raw)}"></label>
+    <label>cut % <input type="text" inputmode="decimal" class="cut-input" id="target-cut-percent"
+      title="Percent below maintenance calories" placeholder="&#8212;" value="${cutPercentValue(kcal_per_maintenance_percent)}"${kcal_per_maintenance_percent ? '' : ' disabled'}></label>
+    <label>BW %/wk <input type="text" inputmode="decimal" class="cut-input" id="target-cut-weight-percent"
+      title="Estimated bodyweight loss as a percent per week" placeholder="&#8212;" value="${cutPercentValue(kcal_per_weight_percent)}"${kcal_per_weight_percent ? '' : ' disabled'}></label>
+    <div class="target-cut-estimate">Est. weekly avg in 1 week: <span id="target-cut-weight-estimate">${cutWeeklyAverageWeightText()}</span></div>
     </div>`;
     /* <button class="reset" data-a="reset">reset to defaults</button> */
 
@@ -7960,7 +8303,9 @@ function render(preserve_pantry_position = false)
   <div class="site-version" title="${esc(PROTEIN_COMMIT_MESSAGE)}">version <time datetime="${PROTEIN_VERSION}">${PROTEIN_VERSION}</time></div>
   <h1>protein_loadout</h1>`;
 
+  h += renderCachedVersionNotice();
   if (g_sync_failed) h += renderSyncWarning();
+  h += `<div id="pantry-link-notice">${renderPantryLinkNotice()}</div>`;
 
   if (g_admin_mode) h += `<div class="addform">
     <div class="mass-section-head">Barcode camera test</div>
@@ -8544,7 +8889,11 @@ function finishMealSelection()
     combined.water_sources = [];
     for (let entry of selected)
     {
-      for (let source of entry.water_sources || []) combined.water_sources.push({...source});
+      let entry_recipe_name = foodWaterRecipeName(entry);
+      for (let source of entry.water_sources || [])
+      {
+        combined.water_sources.push({...source, recipe_name:source.recipe_name || entry_recipe_name});
+      }
     }
     for (let entry of selected)
     {
@@ -9010,11 +9359,14 @@ function renderScoopSection()
   if (g_scoop_add_draft)
   {
     let d = g_scoop_add_draft;
+    let duplicate = d.pantry_link ? renderPantryLinkDuplicate(d) : '';
     let mode = draftMacroMode(d);
     let protein_unit = mode == '100g' ? '/100g' : 'g';
     let kcal_unit = mode == '100g' ? '/100g' : 'kcal';
 
     h += `<div id="pantry-add-editor" class="addform">
+      ${d.estimate ? '<span class="hint" role="status">Estimated values · review before saving</span>' : ''}
+      ${d.pantry_link ? `<div id="pantry-link-duplicate"${duplicate ? '' : ' hidden'}>${duplicate}</div>` : ''}
       <span class="barcode-entry">
         <input type="text" inputmode="${d.barcode_keyboard ? 'numeric' : 'none'}" data-adddraft="barcode" placeholder="barcode" aria-label="Barcode" value="${esc(d.barcode)}">
         <button type="button" id="barcode-add-toggle" class="smallbtn" data-a="addex-barcode-scan">Scan barcode</button>
@@ -9237,6 +9589,17 @@ document.addEventListener('input', function(ev)
         g_recipe_draft.save_modifications = target.checked;
         return;
       }
+      if (field == 'fill_water')
+      {
+        g_recipe_draft.fill_water = target.checked;
+        if (target.checked && !g_recipe_draft.yield_g.trim())
+        {
+          g_recipe_draft.yield_g = g_recipe_draft.scoop_g.trim() || String(recipeIngredientGrams(g_recipe_draft));
+          document.querySelector('[data-recipedraft="yield_g"]').value = g_recipe_draft.yield_g;
+        }
+        refreshRecipeDisplays();
+        return;
+      }
       g_recipe_draft[field] = target.value;
       if (field == 'tags') updateTagSuggestions(target);
       if (field == 'name' || field == 'tags') return;
@@ -9305,11 +9668,15 @@ document.addEventListener('input', function(ev)
     return;
   }
 
-  if (target.id == 'target-cut-input')
+  if (target.classList.contains('cut-input'))
   {
-    g_cut_kcal_raw = target.value;
-    num = Number(target.value);
-    g_cut_kcal = Number.isFinite(num) ? Math.max(0, num) : 0;
+    let kcal_per_unit = cutKcalPerUnit(target.id);
+    if (!kcal_per_unit) return;
+    let kcal = Number(target.value)*kcal_per_unit;
+    if (target.id != 'target-cut-input' && !Number.isFinite(kcal)) return;
+    // Ignore floating-point noise so a conversion landing on a multiple of 10 stays there.
+    g_cut_kcal = Number.isFinite(kcal) && kcal > 0 ? Math.ceil(Number((kcal/10).toPrecision(15)))*10 : 0;
+    refreshCutKcalRaw();
     g_target_manual = false;
     refreshProteinTarget();
     scheduleInputSave();
@@ -9488,6 +9855,7 @@ document.addEventListener('input', function(ev)
   if (adddraft_field)
   {
     g_scoop_add_draft[adddraft_field] = target.value;
+    if (g_scoop_add_draft.pantry_link && ['barcode', 'name', 'brand'].includes(adddraft_field)) refreshPantryLinkDuplicate();
     refreshDraftMacroRatio('add', g_scoop_add_draft);
     refreshWaterPreview('add', g_scoop_add_draft);
     g_add_item_edit_versions[adddraft_field] = (g_add_item_edit_versions[adddraft_field] || 0) + 1;
@@ -9584,6 +9952,13 @@ document.addEventListener('focusin', function(ev)
 document.addEventListener('focusout', function(ev)
 {
   flushPendingInputSave();
+  if (ev.target.id == 'target-cut-input') ev.target.value = g_cut_kcal_raw;
+  else if (ev.target.id == 'target-cut-percent' || ev.target.id == 'target-cut-weight-percent')
+  {
+    let kcal_per_unit = cutKcalPerUnit(ev.target.id);
+    ev.target.value = cutPercentValue(kcal_per_unit);
+    ev.target.disabled = !kcal_per_unit;
+  }
   if (ev.target.dataset && ev.target.dataset.lognote)
   {
     let main = ev.target.closest('.logged-food-main');
@@ -9862,6 +10237,12 @@ document.addEventListener('click', function(ev)
       fillRecipeWithWater();
       return;
 
+    case 'recipe-copy-serving':
+      let override_input = document.querySelector('[data-recipedraft="yield_g"]');
+      override_input.value = g_recipe_draft.scoop_g.trim() || String(recipeBatchGrams(g_recipe_draft));
+      override_input.dispatchEvent(new Event('input', {bubbles:true}));
+      return;
+
     case 'recipe-amount-edit':
     case 'recipe-field-clear':
       let ingredient_input = target.dataset.field ? document.querySelector(`[data-recipedraft="${target.dataset.field}"]`) : document.querySelector(`[data-recipeindex="${target.dataset.index}"][data-recipefield="grams"]`);
@@ -9888,15 +10269,35 @@ document.addEventListener('click', function(ev)
       return;
 
     case 'scoop-add-item-open':
-      g_scoop_add_draft = { barcode:'', barcode_keyboard:false, name:'', brand:'', volume:'', tags:'', scoop_g:'', macro_mode:'100g', macro_protein:'', macro_kcal:'', water_content:'' };
-      g_add_item_edit_versions =
-      {
-      };
-      g_add_item_status = '';
-      g_barcode_add_status = '';
-      render();
-      scrollBelowTabs(document.getElementById('pantry-add-editor'));
+      openAddItemDraft({barcode:'', barcode_keyboard:false, name:'', brand:'', volume:'', tags:'', scoop_g:'', macro_mode:'100g', macro_protein:'', macro_kcal:'', water_content:''});
       return;
+
+    case 'pantry-link-open':
+      openPendingPantryLink();
+      return;
+
+    case 'pantry-link-existing':
+    case 'pantry-link-save-duplicate':
+      {
+        let draft = g_scoop_add_draft;
+        if (!draft || !draft.pantry_link) return;
+        let item = findPantryLinkDuplicate(draft);
+        if (!item) return;
+        if (action == 'pantry-link-save-duplicate')
+        {
+          if (draft.barcode.trim()) return;
+          draft.confirmed_duplicate_key = item.key;
+          saveAddItemDraft();
+          return;
+        }
+        let row = revealPantryItem(item, '');
+        if (!row) return;
+        closePantryLink(draft);
+        g_scoop_add_draft = null;
+        openScoopEdit(item.key, row.dataset.pantryContext);
+        revealPantryItem(item, row.dataset.pantryContext);
+        return;
+      }
 
     case 'drink-scan-open':
       if (!viewDateIsEditable()) return;
@@ -9933,6 +10334,7 @@ document.addEventListener('click', function(ev)
 
     case 'scoop-add-item-cancel':
       if (g_scoop_add_draft && g_scoop_add_draft.drink_mode) g_active_tab = 'mass';
+      if (g_scoop_add_draft) closePantryLink(g_scoop_add_draft);
       g_scoop_add_draft = null;
       render();
       return;
@@ -10328,6 +10730,7 @@ function retrySync()
   }
   if (g_unsynced_changes) syncPendingChanges();
   else if (g_sync_failed) load();
+  else syncPendingChanges();
 }
 
 function retryMissingAppResources()
@@ -10415,6 +10818,7 @@ window.addEventListener('popstate', function(event)
 window.addEventListener('pageshow', armBrowserBackGuard);
 window.addEventListener('online', resumeSync);
 window.addEventListener('offline', updateSyncChrome);
+window.addEventListener('hashchange', receivePantryLink);
 if (navigator.connection) navigator.connection.addEventListener('change', resumeSync);
 armBrowserBackGuard();
 
@@ -10423,6 +10827,10 @@ if ('serviceWorker' in navigator)
   navigator.serviceWorker.register('/protein-service-worker.js', { updateViaCache:'none' }).catch(function(){});
 }
 
+if (!isCachedProteinPage() && Number.isFinite(Date.parse(PROTEIN_VERSION)))
+{
+  saveLocalText(PROTEIN_HIGHEST_VERSION_KEY, highestProteinVersion());
+}
 load();
 </script>
 </body>

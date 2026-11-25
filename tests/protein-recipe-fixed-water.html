@@ -1,0 +1,128 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Fixed recipe total with automatic water</title>
+<output id="result">Running</output><iframe id="app"></iframe>
+<script>
+'use strict';
+let frame = document.getElementById('app');
+let app;
+let doc;
+let request = new XMLHttpRequest();
+window.addEventListener('error', reportFailure);
+request.open('GET', '../protein-loadout.html');
+request.onload = loadFixture;
+request.send();
+
+function reportFailure(event)
+{
+  document.getElementById('result').textContent = 'FAIL: ' + event.message;
+}
+
+function check(value, message)
+{
+  if (!value) throw Error(message);
+}
+
+function loadFixture()
+{
+  let html = request.responseText.replace('<head>', '<head><base href="/">');
+  html = html.replace(/<script src="protein-shared-storage.js[^"]*"><\/script>/, '');
+  html = html.replace('\nload();\n</' + 'script>', '\n</' + 'script>');
+  html = html.replace("if ('serviceWorker' in navigator)", 'if (false)');
+  frame.onload = runChecks;
+  frame.srcdoc = html;
+}
+
+function edit(selector, value)
+{
+  let input = doc.querySelector(selector);
+  input.focus();
+  input.value = value;
+  input.setSelectionRange(value.length, value.length);
+  input.dispatchEvent(new app.Event('input', {bubbles:true}));
+  return input;
+}
+
+function runChecks()
+{
+  app = frame.contentWindow;
+  doc = frame.contentDocument;
+  app.eval(`
+    window.test_writes = 0;
+    window.test_renders = 0;
+    window.original_render = render;
+    render = function countRender() { ++test_renders; original_render(); };
+    save = function captureSave() { ++test_writes; };
+    g_view_date = todayISO(); g_active_tab = 'pantry'; g_log = {}; g_mass_events = {};
+    g_scoop_items = [
+      {key:'barley', name:'Barley', scoop_g:5, protein_g:1, kcal:20},
+      {key:'milk', name:'Condensed milk', scoop_g:25, protein_g:2, kcal:80, water_content:30},
+      {key:'water', name:'Water', scoop_g:100, protein_g:0, kcal:0}
+    ];
+    openRecipeDraft(null);
+    g_recipe_draft.name = 'HK tea';
+    g_recipe_draft.ingredients = [{item_key:'barley', grams:'5'}, {item_key:'milk', grams:'25'}];
+    g_recipe_draft.scoop_g = '260';
+    render();
+    test_renders = 0;
+  `);
+  doc.querySelector('[data-a="recipe-copy-serving"]').click();
+  check(app.eval('g_recipe_draft.yield_g') == '260', 'copy transfers serving grams to override total');
+  let toggle = doc.querySelector('[data-recipedraft="fill_water"]');
+  toggle.focus();
+  toggle.click();
+  check(toggle.isConnected && doc.activeElement == toggle, 'enabling fixed total preserves checkbox focus');
+  check(app.eval("g_recipe_draft.fill_water && g_recipe_draft.ingredients[2].grams == '230'"), 'checkbox adds balancing Water');
+  check(doc.querySelector('[data-recipeindex="2"]').readOnly && doc.querySelector('[data-a="recipe-remove"][data-index="2"]').disabled, 'automatic Water is visibly managed');
+  check(doc.querySelector('[data-recipedraft="water_content"]').readOnly, 'automatic ingredient water cannot be masked by a percentage override');
+
+  let field = edit('[data-recipeindex="1"]', '50.');
+  check(field.isConnected && doc.activeElement == field && field.value == '50.' && field.selectionStart == 3, 'typing preserves field identity, raw text and caret');
+  check(app.eval("g_recipe_draft.ingredients[2].grams == '205' && recipeIngredientGrams(g_recipe_draft) == 260"), 'more milk displaces Water');
+  edit('[data-recipeindex="1"]', '25.25');
+  check(app.eval("g_recipe_draft.ingredients[2].grams == '229.75' && recipeIngredientGrams(g_recipe_draft) == 260"), 'fractional ingredient mass keeps the exact target');
+  edit('[data-recipedraft="yield_g"]', '300');
+  check(app.eval("g_recipe_draft.ingredients[2].grams == '269.75'"), 'changing the target adjusts Water');
+  edit('[data-recipedraft="scoop_g"]', '350');
+  check(app.eval("g_recipe_draft.yield_g == '300'"), 'later serving changes do not silently move the fixed target');
+  doc.querySelector('[data-a="recipe-copy-serving"]').click();
+  check(app.eval("g_recipe_draft.yield_g == '350' && recipeIngredientGrams(g_recipe_draft) == 350"), 'explicit copy updates the fixed target');
+  toggle.click();
+  edit('[data-recipeindex="1"]', '40');
+  check(app.eval("!g_recipe_draft.fill_water && g_recipe_draft.ingredients[2].grams == '319.75'"), 'unchecking restores manual water amounts');
+  check(!doc.querySelector('[data-recipeindex="2"]').readOnly, 'unchecking restores Water editing');
+  toggle.click();
+  check(app.eval("g_recipe_draft.ingredients[2].grams == '305'"), 'reenabling recalculates the remainder');
+  check(app.eval('test_renders == 0 && test_writes == 0'), 'copy, checkbox and typing never rebuild the page or save');
+
+  edit('[data-recipeindex="1"]', '400');
+  check(doc.getElementById('recipe-preview').textContent.includes('smaller'), 'ingredients above target show an error');
+  doc.querySelector('[data-a="recipe-log"]').click();
+  doc.querySelector('[data-a="recipe-save"]').click();
+  check(app.eval('g_recipe_draft != null && !g_log[g_view_date] && test_writes == 0'), 'invalid fixed total cannot be saved or logged');
+  edit('[data-recipeindex="1"]', '25');
+  edit('[data-recipedraft="yield_g"]', '260');
+  doc.querySelector('[data-a="recipe-zero"][data-index="1"]').click();
+  check(app.eval("g_recipe_draft.ingredients[2].grams == '255'"), 'zeroing an ingredient adds Water');
+  edit('[data-recipeindex="1"]', '25');
+  app.eval("addRecipeIngredient('milk', 5); render();");
+  check(app.eval("g_recipe_draft.ingredients[2].grams == '225' && recipeIngredientGrams(g_recipe_draft) == 260"), 'pantry additions adjust Water');
+  doc.querySelector('[data-a="recipe-remove"][data-index="0"]').click();
+  check(app.eval("g_recipe_draft.ingredients[1].grams == '230' && recipeIngredientGrams(g_recipe_draft) == 260"), 'removing another ingredient adds Water');
+
+  app.eval(`window.saved_recipe = saveRecipeItem(g_recipe_draft);`);
+  check(app.eval('saved_recipe.fill_water && saved_recipe.yield_g == 260'), 'saved recipe retains fixed-total mode');
+  check(app.eval('parseBackupTSV(buildBackupTSV().text).payload.scoop_items.at(-1).fill_water'), 'TSV backup retains fixed-total mode');
+  check(app.eval('JSON.parse(JSON.stringify(makeSavePayload())).scoop_items.at(-1).fill_water'), 'JSON sync retains fixed-total mode');
+  app.eval('openRecipeDraft(saved_recipe); render();');
+  check(app.eval("g_recipe_draft.fill_water && g_recipe_draft.yield_g == '260'"), 'reopening retains the explicit target even when it equals the ingredients');
+  edit('[data-recipeindex="0"]', '50');
+  check(app.eval("g_recipe_draft.ingredients[1].grams == '210'"), 'reopened recipe still balances Water');
+  doc.querySelector('[data-a="recipe-log"]').click();
+  check(app.eval('dayTotals(g_view_date).grams == 260'), 'logged meal keeps fixed total mass');
+  check(app.eval('Math.abs(computeMassLedger(g_view_date).totals.water_in_ml - 225) < 0.000001'), 'hydration includes adjusted Water and milk moisture without double counting');
+  app.eval('openRecipeFromLog(g_log[g_view_date][0].id); render();');
+  check(app.eval("g_recipe_draft.fill_water && g_recipe_draft.yield_g == '260'"), 'save-as-recipe retains fixed total from the historical meal');
+  document.getElementById('result').textContent = 'PASS: copy serving, automatic Water, fractional mass, focus/caret, no typing saves/renders, invalid totals, additions/removals, persistence, backups and hydration';
+}
+</script>

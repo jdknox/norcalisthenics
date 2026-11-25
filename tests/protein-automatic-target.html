@@ -74,7 +74,8 @@ function checkTarget(grams, ratio, manual)
 
 function checkCutPercent(percent)
 {
-  check(app_document.getElementById('target-cut-percent').textContent.trim() == percent, 'expected cut percentage: ' + percent);
+  let input = app_document.getElementById('target-cut-percent');
+  check(input.value == percent && input.disabled == !percent, 'expected cut percentage: ' + percent);
 }
 
 function runTests()
@@ -112,21 +113,21 @@ function runTests()
     render();
   `);
   checkTarget(120, '1.50', false);
-  checkCutPercent('0.0%');
+  checkCutPercent('0.0');
   check(app_window.getComputedStyle(app_document.getElementById('target-cut-percent')).color ==
         app_window.getComputedStyle(app_document.getElementById('target-cut-input')).color, 'cut percentage uses the cut input color');
   edit('target-cut-input', '480');
   checkTarget(132, '1.65', false);
-  checkCutPercent('20.0%');
+  checkCutPercent('20.0');
   edit('target-cut-input', '960');
   checkTarget(144, '1.80', false);
-  checkCutPercent('40.0%');
+  checkCutPercent('40.0');
   edit('target-cut-input', '1440');
   checkTarget(156, '1.95', false);
-  checkCutPercent('60.0%');
+  checkCutPercent('60.0');
   edit('target-cut-input', '2400');
   checkTarget(180, '2.25', false);
-  checkCutPercent('100.0%');
+  checkCutPercent('100.0');
   edit('target-cut-input', '960.');
   checkTarget(144, '1.80', false);
 
@@ -140,7 +141,7 @@ function runTests()
   checkTarget(155, '1.88', true);
   edit('target-kcal-input', '4800');
   checkTarget(155, '1.88', true);
-  checkCutPercent('20.0%');
+  checkCutPercent('20.0');
   edit('target-cut-input', '960');
   checkTarget(137, '1.66', false);
   check(app_window.getComputedStyle(target).outlineStyle == 'none', 'cut resets normal outline');
@@ -154,7 +155,7 @@ function runTests()
   checkTarget(135, '1.50', false);
   edit('target-kcal-input', '');
   checkTarget(135, '1.50', false);
-  checkCutPercent('—%');
+  checkCutPercent('');
   edit('target-kcal-input', '2400');
 
   evaluate('g_view_date = shiftDateISO(todayISO(), -1); g_admin_mode = true; render();');
@@ -195,6 +196,51 @@ function runTests()
   evaluate('localStorage.setItem(g_storage_key, ' + JSON.stringify(JSON.stringify(automatic)) + '); load();');
   checkTarget(143, '1.51', false);
   check(evaluate('JSON.stringify(g_log) == original_log'), 'target automation leaves logged food data intact');
-  document.getElementById('result').textContent = 'PASS: ' + checks + ' checks for linear extrapolation, bodyweight, overrides, yellow readout/outline, input preservation, sync merges, reload, and backup/import';
+
+  edit('bodyweight-input', '80');
+  edit('target-kcal-input', '2500');
+  evaluate('for (let d = 1; d <= 6; ++d) g_bodyweight_by_date[shiftDateISO(todayISO(), -d)] = 82;');
+  let predictions = evaluate('JSON.stringify(bodyCompositionProjection().predictions)');
+  let kcal_cut = app_document.getElementById('target-cut-input');
+  let weight_cut = app_document.getElementById('target-cut-weight-percent');
+  let weight_estimate = app_document.getElementById('target-cut-weight-estimate');
+  edit('target-cut-percent', '4.4');
+  check(kcal_cut.value == '110', 'floating-point noise does not round an exact multiple up again');
+  edit('target-cut-percent', '4.41');
+  check(kcal_cut.value == '120', 'maintenance percentage rounds the cut up');
+  edit('target-cut-percent', '20.');
+  check(kcal_cut.value == '500' && weight_cut.value == '0.6', 'maintenance percentage updates both other inputs');
+  check(weight_estimate.textContent == '81.3 kg', 'one-week estimate starts from the weekly average, not today\'s weight');
+  check(evaluate('dailyKcalBudget() == 2000 && remainingKcalProteinRatio({kcal:0, protein:0}) == 2000/g_target'), 'calorie budget and remaining ratio use the cut');
+  check(evaluate('JSON.stringify(bodyCompositionProjection().predictions)') == predictions, 'predictions use full maintenance');
+  edit('target-cut-weight-percent', '0.50');
+  check(kcal_cut.value == '440', 'weekly weight percentage updates kcal cut');
+  checkCutPercent('17.6');
+  edit('target-cut-input', '391.');
+  check(evaluate('g_cut_kcal') == 400, 'direct kcal edits round the cut up');
+  checkCutPercent('16.0');
+  check(weight_cut.value == '0.5', 'kcal cut updates weight percentage');
+
+  edit('target-cut-weight-percent', '0.123456');
+  check(evaluate('g_cut_kcal') == 110 && kcal_cut.value == '110', 'weekly weight percentage rounds the cut up');
+  check(weight_estimate.textContent == '81.6 kg', 'estimate updates from the rounded cut without a render');
+  edit('target-kcal-input', '');
+  checkCutPercent('');
+  edit('bodyweight-input', '');
+  check(weight_cut.disabled && weight_cut.value == '', 'missing bodyweight disables the weekly percentage');
+  edit('target-kcal-input', '2000');
+  checkCutPercent('5.5');
+  edit('bodyweight-input', '100');
+  check(!weight_cut.disabled && weight_cut.value == '0.1', 'restoring bodyweight refreshes and enables the weekly percentage');
+  check(evaluate('g_cut_kcal') == 110, 'baseline changes do not alter the cut');
+  evaluate('flushPendingInputSave(); load();');
+  check(evaluate('g_cut_kcal') == 110 && app_document.getElementById('target-cut-input').value == '110', 'reload preserves the rounded cut');
+  let cut_backup = evaluate('parseBackupTSV(buildBackupTSV().text)');
+  check(cut_backup.ok && cut_backup.payload.cut_kcal == 110, 'existing backup field preserves the rounded cut');
+  evaluate('g_bodyweight_kg = 0; g_bodyweight_by_date = {}; refreshProteinTarget();');
+  check(app_document.getElementById('target-cut-weight-estimate').textContent == '—', 'estimate is unavailable without a weight baseline');
+  let target_row = app_document.querySelector('.targetrow');
+  check(target_row.scrollWidth <= target_row.clientWidth, 'target controls wrap without horizontal overflow');
+  document.getElementById('result').textContent = 'PASS: ' + checks + ' checks for targets, linked cut inputs, predictions, input preservation, sync, reload, and backup/import';
 }
 </script></html>
