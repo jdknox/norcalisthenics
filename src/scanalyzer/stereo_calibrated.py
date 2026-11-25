@@ -40,7 +40,9 @@ def loadCalib(path, image_size):
     if calib_size != image_size:
         print(f'{path} is for {calib_size[0]}x{calib_size[1]}, image is {image_size[0]}x{image_size[1]}')
         sys.exit(1)
-    return K, dist
+    fisheye_node = fs.getNode('fisheye_model')
+    fisheye = False if fisheye_node.empty() else bool(int(fisheye_node.real()))
+    return K, dist, fisheye
 
 
 def matchFeatures(gray_a, gray_b):
@@ -62,7 +64,9 @@ def matchFeatures(gray_a, gray_b):
     return len(kp_a), len(kp_b), np.float64(pts_a), np.float64(pts_b)
 
 
-def normalize(pts, K, dist):
+def normalize(pts, K, dist, fisheye):
+    if fisheye:
+        return cv2.fisheye.undistortPoints(pts.reshape(-1, 1, 2).astype(np.float64), K, dist).reshape(-1, 2)
     return cv2.undistortPoints(pts.reshape(-1, 1, 2), K, dist).reshape(-1, 2)
 
 
@@ -93,8 +97,12 @@ def triangulate(R, t, norm_a, norm_b):
     return (homog[:3]/homog[3]).T
 
 
-def reprojectionPx(X, K, dist, R, t, pts):
-    projected, unused = cv2.projectPoints(X, cv2.Rodrigues(R)[0], t, K, dist)
+def reprojectionPx(X, K, dist, R, t, pts, fisheye):
+    rvec = cv2.Rodrigues(R)[0]
+    if fisheye:
+        projected, unused = cv2.fisheye.projectPoints(X.reshape(1, -1, 3).astype(np.float64), rvec, t, K, dist)
+    else:
+        projected, unused = cv2.projectPoints(X, rvec, t, K, dist)
     return np.linalg.norm(projected.reshape(-1, 2) - pts, axis=1)
 
 
@@ -158,10 +166,11 @@ gray_a = cv2.imread(path_a, cv2.IMREAD_GRAYSCALE)
 gray_b = cv2.imread(path_b, cv2.IMREAD_GRAYSCALE)
 size_a = (gray_a.shape[1], gray_a.shape[0])
 size_b = (gray_b.shape[1], gray_b.shape[0])
-Ka, dist_a = loadCalib(calib_path_a, size_a)
-Kb, dist_b = loadCalib(calib_path_b, size_b)
+Ka, dist_a, fisheye_a = loadCalib(calib_path_a, size_a)
+Kb, dist_b, fisheye_b = loadCalib(calib_path_b, size_b)
 mean_focal = (Ka[0, 0] + Ka[1, 1] + Kb[0, 0] + Kb[1, 1])/4
-print(f'A {path_a} {size_a[0]}x{size_a[1]} f={Ka[0, 0]:.0f}   B {path_b} {size_b[0]}x{size_b[1]} f={Kb[0, 0]:.0f}')
+print(f'A {path_a} {size_a[0]}x{size_a[1]} f={Ka[0, 0]:.0f} fisheye={fisheye_a}   '
+      f'B {path_b} {size_b[0]}x{size_b[1]} f={Kb[0, 0]:.0f} fisheye={fisheye_b}')
 
 # --- overlap ---
 n_kp_a, n_kp_b, pts_a, pts_b = matchFeatures(gray_a, gray_b)
@@ -170,8 +179,8 @@ print(f'ratio matches    {len(pts_a)}')
 if len(pts_a) < 8:
     print('too few matches for an essential matrix')
     sys.exit(1)
-norm_a = normalize(pts_a, Ka, dist_a)
-norm_b = normalize(pts_b, Kb, dist_b)
+norm_a = normalize(pts_a, Ka, dist_a, fisheye_a)
+norm_b = normalize(pts_b, Kb, dist_b, fisheye_b)
 E, mask = cv2.findEssentialMat(norm_a, norm_b, np.eye(3), cv2.RANSAC, 0.999, RANSAC_PX/mean_focal)
 inlier = mask.ravel() == 1
 in_a = pts_a[inlier]
@@ -188,8 +197,8 @@ n_front, R, t, pose_mask = cv2.recoverPose(E, in_norm_a, in_norm_b, np.eye(3))
 angle = math.degrees(math.acos(max(-1.0, min(1.0, (np.trace(R) - 1)/2))))
 print(f'relative pose    rotation {angle:.1f} deg, {n_front}/{len(in_a)} points in front of both cameras')
 X = triangulate(R, t, in_norm_a, in_norm_b)
-reproj_a = reprojectionPx(X, Ka, dist_a, np.eye(3), np.zeros((3, 1)), in_a)
-reproj_b = reprojectionPx(X, Kb, dist_b, R, t, in_b)
+reproj_a = reprojectionPx(X, Ka, dist_a, np.eye(3), np.zeros((3, 1)), in_a, fisheye_a)
+reproj_b = reprojectionPx(X, Kb, dist_b, R, t, in_b, fisheye_b)
 print(f'reprojection     A median {np.median(reproj_a):.2f} px  B median {np.median(reproj_b):.2f} px')
 
 # --- scale from the eyes ---
@@ -201,8 +210,8 @@ print(f'wrote            {out_prefix}_matches.png')
 if eyes_a is None or eyes_b is None:
     print('no person found in one of the images; no metric scale')
     sys.exit(0)
-eye_norm_a = normalize(eyes_a, Ka, dist_a)
-eye_norm_b = normalize(eyes_b, Kb, dist_b)
+eye_norm_a = normalize(eyes_a, Ka, dist_a, fisheye_a)
+eye_norm_b = normalize(eyes_b, Kb, dist_b, fisheye_b)
 print(f'eye scores       A {eye_scores_a[0]:.2f} {eye_scores_a[1]:.2f}  B {eye_scores_b[0]:.2f} {eye_scores_b[1]:.2f}')
 eye_epipolar = sampsonNormalized(E, eye_norm_a, eye_norm_b)*mean_focal
 print(f'eye epipolar err L {eye_epipolar[0]:.1f} px  R {eye_epipolar[1]:.1f} px')

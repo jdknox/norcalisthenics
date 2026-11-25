@@ -36,7 +36,15 @@ def loadCalib(path):
         sys.exit(1)
     K = fs.getNode('camera_matrix').mat()
     dist = fs.getNode('distortion_coefficients').mat().ravel()
-    return K, dist
+    fisheye_node = fs.getNode('fisheye_model')
+    fisheye = False if fisheye_node.empty() else bool(int(fisheye_node.real()))
+    return K, dist, fisheye
+
+
+def undistortNormalized(pts, K, dist, fisheye):
+    if fisheye:
+        return cv2.fisheye.undistortPoints(pts.reshape(-1, 1, 2).astype(np.float64), K, dist).reshape(-1, 2)
+    return cv2.undistortPoints(pts.reshape(-1, 1, 2), K, dist).reshape(-1, 2)
 
 
 def parseSeed(text):
@@ -82,10 +90,10 @@ def findEdges(gray, seed_x, row_0, row_1):
     return np.float64(left_pts), np.float64(right_pts)
 
 
-def tangentPlane(pts, K, dist, inside_px):
+def tangentPlane(pts, K, dist, inside_px, fisheye):
     # fit a line to undistorted edge points; return the unit plane normal pointing
     # toward the cylinder, plus the line-fit residual RMS in pixels
-    norm = cv2.undistortPoints(pts.reshape(-1, 1, 2), K, dist).reshape(-1, 2)
+    norm = undistortNormalized(pts, K, dist, fisheye)
     centroid = norm.mean(axis=0)
     centered = norm - centroid
     unused_u, s, vt = np.linalg.svd(centered, full_matrices=False)
@@ -93,7 +101,7 @@ def tangentPlane(pts, K, dist, inside_px):
     residual_px = np.sqrt(np.mean((centered @ line_normal)**2))*K[0, 0]
     plane = np.array([line_normal[0], line_normal[1], -line_normal @ centroid])
     plane = plane/np.linalg.norm(plane)
-    inside_norm = cv2.undistortPoints(np.float64([[inside_px]]), K, dist).reshape(2)
+    inside_norm = undistortNormalized(np.float64([[inside_px]]), K, dist, fisheye).reshape(2)
     if plane @ np.array([inside_norm[0], inside_norm[1], 1.0]) < 0:
         plane = -plane
     return plane, residual_px
@@ -112,10 +120,10 @@ if len(sys.argv) < 9:
     print('usage: python3 bottle_width.py IMG_A CALIB_A.yml SEED_A IMG_B CALIB_B.yml SEED_B STEREO.yml OUT_PREFIX')
     sys.exit(1)
 gray_a = cv2.imread(sys.argv[1], cv2.IMREAD_GRAYSCALE)
-Ka, dist_a = loadCalib(sys.argv[2])
+Ka, dist_a, fisheye_a = loadCalib(sys.argv[2])
 seed_a = parseSeed(sys.argv[3])
 gray_b = cv2.imread(sys.argv[4], cv2.IMREAD_GRAYSCALE)
-Kb, dist_b = loadCalib(sys.argv[5])
+Kb, dist_b, fisheye_b = loadCalib(sys.argv[5])
 seed_b = parseSeed(sys.argv[6])
 stereo = cv2.FileStorage(sys.argv[7], cv2.FILE_STORAGE_READ)
 R = stereo.getNode('R').mat()
@@ -131,10 +139,10 @@ print(f'pixel width      A {np.median(right_a[:, 0] - left_a[:, 0]):.1f} px  B {
 
 mid_a = (seed_a[0], (seed_a[1] + seed_a[2])/2)
 mid_b = (seed_b[0], (seed_b[1] + seed_b[2])/2)
-plane_al, res_al = tangentPlane(left_a, Ka, dist_a, mid_a)
-plane_ar, res_ar = tangentPlane(right_a, Ka, dist_a, mid_a)
-plane_bl, res_bl = tangentPlane(left_b, Kb, dist_b, mid_b)
-plane_br, res_br = tangentPlane(right_b, Kb, dist_b, mid_b)
+plane_al, res_al = tangentPlane(left_a, Ka, dist_a, mid_a, fisheye_a)
+plane_ar, res_ar = tangentPlane(right_a, Ka, dist_a, mid_a, fisheye_a)
+plane_bl, res_bl = tangentPlane(left_b, Kb, dist_b, mid_b, fisheye_b)
+plane_br, res_br = tangentPlane(right_b, Kb, dist_b, mid_b, fisheye_b)
 print(f'edge line fit    A left {res_al:.2f} right {res_ar:.2f} px   B left {res_bl:.2f} right {res_br:.2f} px  (RMS off a straight line)')
 
 # camera B planes in camera A's frame: n_B.(R X + T) = 0  ->  (R^T n_B).X + n_B.T = 0
