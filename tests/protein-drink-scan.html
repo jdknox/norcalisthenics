@@ -1,0 +1,90 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Scan and log drinks</title>
+<output id="result">Running</output><iframe id="app"></iframe>
+<script>
+'use strict';
+let frame = document.getElementById('app');
+let request = new XMLHttpRequest();
+window.addEventListener('error', reportFailure);
+request.open('GET', '../protein-loadout.html');
+request.onload = loadFixture;
+request.send();
+function reportFailure(event)
+{
+  document.getElementById('result').textContent = 'FAIL: ' + event.message;
+}
+function check(value, message)
+{
+  if (!value) throw Error(message);
+}
+function loadFixture()
+{
+  let html = request.responseText.replace('<head>', '<head><base href="/">');
+  html = html.replace(/<script src="protein-shared-storage.js[^\"]*"><\/script>/, '');
+  html = html.replace('\nload();\n</' + 'script>', '\n</' + 'script>');
+  html = html.replace("if ('serviceWorker' in navigator)", 'if (false)');
+  frame.onload = runChecks;
+  frame.srcdoc = html;
+}
+function simulateScan(app, code)
+{
+  app.test_scan_code = code;
+  app.eval(`
+    let video = document.getElementById('barcode-add-video');
+    Object.defineProperty(video, 'readyState', {configurable:true, value:2});
+    g_barcode_scan_stream = {getTracks:function testTracks() { return []; }};
+    scanBarcodeFrame({detect:function testDetect()
+    {
+      return {then:function testDetection(done) { done([{rawValue:test_scan_code}]); }};
+    }}, g_barcode_scan_generation);
+  `);
+}
+function runChecks()
+{
+  let app = frame.contentWindow;
+  let doc = frame.contentDocument;
+  app.eval(`
+    window.test_saves = 0;
+    save = function testSave() { ++test_saves; };
+    window.test_lookups = 0;
+    fetchOFFProduct = function testLookup(barcode, callback) { ++test_lookups; window.test_callback = callback; };
+    g_view_date = todayISO(); g_active_tab = 'mass'; g_log = {}; g_mass_events = {}; g_scoop_items = [];
+    g_recipe_draft = null;
+    window.BarcodeDetector = undefined;
+    render();
+  `);
+  doc.querySelector('[data-a="drink-scan-open"]').click();
+  check(app.eval("g_scoop_add_draft.drink_mode && g_scoop_add_draft.water_content == '100'"), 'new drink defaults to 100%');
+  let barcode = doc.querySelector('[data-adddraft="barcode"]');
+  simulateScan(app, '123');
+  check(app.eval('test_lookups == 1'), 'new barcode automatically starts external lookup');
+  app.eval("test_callback({found:true, source:'off', name:'Apple juice', brand:'Brand', volume:240, protein_100g:0, kcal_100g:40});");
+  check(doc.querySelector('[data-adddraft="scoop_g"]').value == '240', 'volume estimates mass');
+  check(doc.querySelector('#addex-lookup-status').textContent.includes('1 mL ≈ 1 g'), 'estimate is disclosed');
+  doc.querySelector('[data-a="drink-confirm"]').click();
+  check(app.eval("g_active_tab == 'mass' && g_scoop_items.length == 1 && g_log[g_view_date].length == 1 && test_saves == 1"), 'new drink saves and logs once');
+  check(app.eval('computeMassLedger(g_view_date).totals.water_in_ml == 240'), 'water logged');
+  doc.querySelector('[data-a="drink-scan-open"]').click();
+  barcode = doc.querySelector('[data-adddraft="barcode"]');
+  simulateScan(app, '123');
+  check(app.eval('test_lookups == 1'), 'existing pantry item skips external lookup');
+  check(doc.querySelector('[data-adddraft="name"]').value == 'Apple juice', 'existing item shown for review');
+  let amount = doc.querySelector('[data-adddraft="scoop_g"]');
+  amount.value = '120'; amount.dispatchEvent(new app.Event('input', {bubbles:true}));
+  doc.querySelector('[data-a="drink-confirm"]').click();
+  check(app.eval('g_scoop_items.length == 1 && g_log[g_view_date].length == 2 && computeMassLedger(g_view_date).totals.water_in_ml == 360'), 'existing drink reused and logged once');
+  check(app.eval('g_log[g_view_date][1].kcal == 48'), 'existing drink nutrition scales with amount');
+  doc.querySelector('[data-a="drink-scan-open"]').click();
+  barcode = doc.querySelector('[data-adddraft="barcode"]');
+  barcode.value = '123'; barcode.dispatchEvent(new app.InputEvent('input', {bubbles:true, inputType:'insertFromPaste'}));
+  check(doc.querySelector('[data-adddraft="name"]').value == 'Apple juice', 'pasted barcode automatically matches pantry item');
+  barcode.value = '456'; barcode.dispatchEvent(new app.Event('input', {bubbles:true}));
+  check(!doc.querySelector('[data-adddraft="name"]').value, 'rescan clears prior product');
+  doc.querySelector('[data-a="drink-confirm"]').click();
+  check(app.eval('g_log[g_view_date].length == 2'), 'cannot confirm stale barcode');
+  doc.querySelector('[data-a="scoop-add-item-cancel"]').click();
+  check(app.eval("g_active_tab == 'mass' && g_scoop_items.length == 1 && g_log[g_view_date].length == 2"), 'cancel returns to hydration without changes');
+  document.getElementById('result').textContent = 'PASS: drink defaults, lookup, estimate, pantry reuse, hydration, rescan, and cancel';
+}
+</script>

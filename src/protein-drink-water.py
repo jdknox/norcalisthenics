@@ -55,10 +55,8 @@ def drinkDisposition(item):
         return '', ''
     if item.get('ingredients'):
         return 'deferred', 'Recipe: use its actual ingredients and added water; do not apply a plain-drink percentage.'
-    if re.search(r'\b(milk|cream|creama|scm|em|latte|shake|kefir|lassi|protein|powder|syrup|condensed|evaporated)\b', name):
-        return 'deferred', 'Milk, cream, protein, powder or concentrated mix: outside this first simple-drink batch.'
-    if re.search(r'\b(hk|thai|chai)\b', name.replace('.', '')):
-        return 'deferred', 'Milk/sweetened tea: composition needs review; not equivalent to plain brewed tea.'
+    if re.search(r'\b(protein|powder|syrup|condensed|evaporated)\b', name):
+        return 'deferred', 'Concentrated ingredient or mix: use its composition rather than a finished-drink estimate.'
     return 'candidate', 'Needs a matching composition reference; no percentage inferred from kcal alone.'
 
 

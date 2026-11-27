@@ -1,0 +1,100 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Missing protein resources recovery</title>
+<output id="result">Running</output>
+<iframe id="app-frame" title="Isolated protein app"></iframe>
+<script>
+'use strict';
+
+let frame = document.getElementById('app-frame');
+let app;
+let doc;
+let field;
+let polls = 0;
+window.addEventListener('error', reportFailure);
+let request = new XMLHttpRequest();
+request.open('GET', '../protein-loadout.html');
+request.onload = loadFixture;
+request.send();
+
+function reportFailure(event)
+{
+  document.getElementById('result').textContent = 'FAIL: ' + event.message;
+}
+
+function check(condition, message)
+{
+  if (!condition) throw new Error(message);
+}
+
+function loadFixture()
+{
+  check(request.status == 200, 'load app source');
+  let html = request.responseText.replace('<head>', '<head><base href="/">');
+  html = html.replace(/<script src="protein-shared-storage.js[^"]*"><\/script>/, '');
+  html = html.replace(/<script id="protein-storage">[\s\S]*?<\/script>/, '');
+  html = html.replace('\nload();\n</' + 'script>', '\n</' + 'script>');
+  html = html.replace("if ('serviceWorker' in navigator)", 'if (false)');
+  frame.onload = runTests;
+  frame.srcdoc = html;
+}
+
+function runTests()
+{
+  app = frame.contentWindow;
+  doc = frame.contentDocument;
+  app.eval(`
+    saveLocalJson = function ignoreLocalSave() {};
+    saveUnsyncedFlag = function ignoreFlag() {};
+    scheduleSyncRetry = function ignoreAutomaticRetry() {};
+    g_storage_key = 'missing-resource-regression';
+    g_unsynced_changes = true;
+    mergeKnownItems();
+    setBodyweightForDate(g_view_date, 77.5, '77.50');
+    render();
+    setSyncFailed('local only / shared storage unavailable');
+  `);
+  check(!app.storage, 'fixture starts without storage adapter');
+  field = doc.getElementById('bodyweight-input');
+  field.focus();
+  field.setSelectionRange(2, 2);
+  doc.querySelector('base').href = '/deliberately-missing/';
+  doc.querySelector('[data-a="sync-retry"]').click();
+  check(app.eval('g_sync_retry_count == 1 && g_load_in_flight'), 'retry immediately counts and starts the missing download');
+  check(doc.querySelector('[data-sync-retries]').textContent.includes('syncing'), 'retry progress is visible');
+  setTimeout(checkFailedDownload, 50);
+}
+
+function checkFailedDownload()
+{
+  check(++polls < 100, 'missing download completes');
+  if (app.eval('g_load_in_flight'))
+  {
+    setTimeout(checkFailedDownload, 50);
+    return;
+  }
+  check(!app.storage, 'failed download does not install an adapter');
+  check(doc.querySelector('[data-sync-error]').textContent.includes('HTTP 404'), 'missing file is identified');
+  check(field.isConnected && doc.activeElement == field && field.value == '77.50' && field.selectionStart == 2, 'failed retry preserves data, focus and caret');
+  doc.querySelector('base').href = '/';
+  doc.querySelector('[data-a="sync-retry"]').click();
+  polls = 0;
+  setTimeout(checkRecoveredDownload, 50);
+}
+
+function checkRecoveredDownload()
+{
+  check(++polls < 100, 'resource recovery completes');
+  if (app.eval('g_load_in_flight || g_sync_in_flight'))
+  {
+    setTimeout(checkRecoveredDownload, 50);
+    return;
+  }
+  check(app.storage && app.storage.get && app.storage.set, 'retry installs the real storage adapter');
+  check(app.eval('g_sync_retry_count >= 2'), 'further attempts are counted');
+  check(!app.eval('g_sync_error_detail').includes('protein-shared-storage.js:'), 'retry advances from resource recovery to actual server sync');
+  check(app.eval('bodyweightForDate(g_view_date) == 77.5'), 'local bodyweight survives recovery');
+  check(field.isConnected && doc.activeElement == field && field.selectionStart == 2, 'resource recovery does not rebuild the page or disturb typing');
+  document.getElementById('result').textContent = 'PASS: missing adapter retry, visible count/progress, HTTP failure details, real resource recovery, server sync attempt, and preserved local edits/focus';
+}
+</script>

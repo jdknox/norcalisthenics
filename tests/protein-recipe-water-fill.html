@@ -1,0 +1,79 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Fill recipe with water</title>
+<output id="result">Running</output><iframe id="app"></iframe>
+<script>
+'use strict';
+let frame = document.getElementById('app');
+let request = new XMLHttpRequest();
+window.addEventListener('error', reportFailure);
+request.open('GET', '../protein-loadout.html');
+request.onload = loadFixture;
+request.send();
+function reportFailure(event)
+{
+  document.getElementById('result').textContent = 'FAIL: ' + event.message;
+}
+function check(value, message)
+{
+  if (!value) throw Error(message);
+}
+function loadFixture()
+{
+  let html = request.responseText.replace('<head>', '<head><base href="/">');
+  html = html.replace(/<script src="protein-shared-storage.js[^\"]*"><\/script>/, '');
+  html = html.replace('\nload();\n</' + 'script>', '\n</' + 'script>');
+  html = html.replace("if ('serviceWorker' in navigator)", 'if (false)');
+  frame.onload = runChecks;
+  frame.srcdoc = html;
+}
+function runChecks()
+{
+  let app = frame.contentWindow;
+  let doc = frame.contentDocument;
+  app.eval(`
+    window.test_writes = 0;
+    save = function captureSave() { ++test_writes; };
+    g_view_date = todayISO(); g_active_tab = 'pantry'; g_log = {}; g_mass_events = {};
+    g_scoop_items = [
+      {key:'barley', name:'Barley', scoop_g:5, protein_g:1, kcal:20},
+      {key:'milk', name:'Condensed milk', scoop_g:25, protein_g:2, kcal:80, water_content:30},
+      {key:'water', name:'Water', scoop_g:100, protein_g:0, kcal:0}
+    ];
+    openRecipeDraft(null);
+    g_recipe_draft.name = 'HK tea';
+    g_recipe_draft.ingredients = [{item_key:'barley', grams:'5'}, {item_key:'milk', grams:'25'}];
+    g_recipe_draft.yield_g = '260';
+    g_recipe_draft.water_content = '80';
+    render();
+  `);
+  doc.querySelector('[data-a="recipe-fill-water"]').click();
+  check(app.eval('g_scoop_items.length == 3 && g_recipe_draft.ingredients.length == 3'), 'reuses pantry Water');
+  check(app.eval('g_recipe_draft.ingredients[2].grams') == '230', '260 minus 30 gives 230 g water');
+  check(app.eval("g_recipe_draft.water_content == '' && findScoopItem('water').water_content == 100"), 'ingredient moisture replaces manual percentage override');
+  check(app.eval('recipeIngredientGrams(g_recipe_draft) == 260 && test_writes == 0'), 'fills physical ingredient mass without saving');
+  doc.querySelector('[data-a="recipe-fill-water"]').click();
+  check(app.eval("g_recipe_draft.ingredients.length == 3 && g_recipe_draft.ingredients[2].grams == '230'"), 'repeat fill is idempotent');
+  app.eval("g_recipe_draft.ingredients[1].grams = '50'; render();");
+  doc.querySelector('[data-a="recipe-fill-water"]').click();
+  check(app.eval("g_recipe_draft.ingredients[2].grams == '205' && recipeIngredientGrams(g_recipe_draft) == 260"), 'changed ingredients displace water');
+  app.eval("g_recipe_draft.yield_g = '20'; render();");
+  doc.querySelector('[data-a="recipe-fill-water"]').click();
+  check(doc.querySelector('#recipe-preview').textContent.includes('smaller'), 'negative remainder rejected');
+  check(app.eval("g_recipe_draft.ingredients[2].grams == '205'"), 'failed fill keeps amounts');
+  app.eval("g_recipe_draft.yield_g = '55'; render();");
+  doc.querySelector('[data-a="recipe-fill-water"]').click();
+  check(app.eval("g_recipe_draft.ingredients[2].grams == '0'"), 'zero remainder supported');
+  app.eval("g_recipe_draft.yield_g = ''; render();");
+  doc.querySelector('[data-a="recipe-fill-water"]').click();
+  check(doc.querySelector('#recipe-preview').textContent.includes('positive'), 'blank target rejected');
+  app.eval("g_recipe_draft.yield_g = '260'; render();");
+  doc.querySelector('[data-a="recipe-fill-water"]').click();
+  doc.querySelector('[data-a="recipe-log"]').click();
+  check(app.eval('g_log[g_view_date].length == 1 && dayTotals(g_view_date).grams == 260'), 'quick meal logs all 260 g');
+  check(app.eval('Math.abs(computeMassLedger(g_view_date).totals.water_in_ml - 220) < 0.000001'), 'hydration includes 205 g added water plus 15 g milk water');
+  check(app.eval('computeMassLedger(g_view_date).totals.total_mass_in_kg == 0.26'), 'total mass counted once');
+  check(app.eval("parseBackupTSV(buildBackupTSV().text).payload.scoop_items[2].water_content == 100"), 'water configuration survives backup');
+  document.getElementById('result').textContent = 'PASS: existing Water reuse, repeat fill, changed ingredients, invalid targets, logging, hydration, and backup';
+}
+</script>
