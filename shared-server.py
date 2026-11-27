@@ -16,7 +16,9 @@ import subprocess
 import threading
 import time
 import urllib.parse
+from datetime import datetime
 from decimal import Decimal, ROUND_HALF_UP
+from zoneinfo import ZoneInfo
 
 
 default_host = '0.0.0.0'
@@ -114,10 +116,12 @@ def writeHtml(handler, path):
     handler.wfile.write(body)
 
 
-def writePlainText(handler, code, text, content_type):
+def writePlainText(handler, code, text, content_type, download_filename=''):
     body = text.encode('utf-8')
     handler.send_response(code)
     handler.send_header('Content-Type', content_type)
+    if download_filename:
+        handler.send_header('Content-Disposition', f'attachment; filename="{download_filename}"')
     body = compressResponseBody(handler, body)
     handler.send_header('Content-Length', str(len(body)))
     noCacheHeaders(handler)
@@ -399,7 +403,9 @@ class WorkoutHandler(http.server.SimpleHTTPRequestHandler):
             if isinstance(payload, str):
                 payload = parseStorageValue(payload)
             text = buildProteinBodyweightKcalCSV(payload or {})
-            return writePlainText(self, 200, text, 'text/csv; charset=utf-8')
+            date = datetime.now(ZoneInfo('America/Mexico_City')).date().isoformat()
+            filename = f'protein-bodyweight-kcal-{date}.csv'
+            return writePlainText(self, 200, text, 'text/csv; charset=utf-8', filename)
 
         if path == '/api/storage':
             query = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)

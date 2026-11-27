@@ -7,6 +7,8 @@ import runpy
 import subprocess
 import sys
 import tempfile
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 
 PATH = '/api/protein-bodyweight-kcal.csv'
@@ -71,6 +73,8 @@ def main(chrome):
     connection.request('GET', PATH)
     response = connection.getresponse()
     assert response.status == 200 and response.getheader('Content-Type') == 'text/csv; charset=utf-8'
+    date = datetime.now(ZoneInfo('America/Mexico_City')).date().isoformat()
+    assert response.getheader('Content-Disposition') == f'attachment; filename="protein-bodyweight-kcal-{date}.csv"'
     assert 'no-store' in response.getheader('Cache-Control')
     assert response.read().decode() == expected
     connection.request('PUT', PATH, '{}')
