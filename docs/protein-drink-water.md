@@ -13,14 +13,13 @@ database, send updates, deploy code, or touch the workout storage. SSH, HTTP,
 or malformed-response failures stop the command rather than substituting local
 data. JSON records the live revision and fetch time; TSV is for visual review.
 
-`candidates` contains simple-drink possibilities; `deferred` contains milk,
-cream, protein, concentrated mixes and recipes that need separate work. Archived
-items are skipped. This first batch includes juice as requested, even when its
-actual water content is substantially below 100%. It does not use a numerical
-"nearly all water" cutoff.
+`candidates` contains drinks including milk, kefir, lassi, and restaurant milk
+teas. `deferred` contains concentrated mixes and recipes that need separate work.
+Archived items are skipped. The report includes juice and other drinks even when
+their water content is substantially below 100%.
 
 The small reference table is [protein-drink-water-estimates.tsv](../data/protein-drink-water-estimates.tsv).
-Sources were checked on 2026-11-23. Percentages are grams of water per 100 grams
+Sources were checked on 2026-11-23 and 2026-11-25. Percentages are grams of water per 100 grams
 of finished drink. Apple juice is about 88.24%, not 99.6%; dissolved sugar is
 part of the remaining mass. Serving water is `scoop_g * water_percent / 100`.
 The report retains the reference precision in JSON and shows one decimal in TSV.
@@ -31,6 +30,11 @@ proxy for Lakewood and Barsotti juice. ITO EN confirms its Bold green tea contai
 purified water, green tea and ascorbic acid; the proposed percentage comes from
 the generic unsweetened bottled green-tea reference. Plain Water uses an explicit
 100% operational estimate that ignores trace minerals.
+Restaurant milk teas and lattes use broad USDA drink proxies. Their real water
+content can vary substantially with sugar, dairy, ice and preparation, so treat
+those values as rough estimates. The existing Clover kefir estimate uses a
+comparable low-fat plain kefir. The mango lassi value is an external estimate,
+not a laboratory measurement of the user's exact package.
 
 Estimates match reviewed item IDs plus their exact name, brand and barcode.
 Renamed or replaced products and new drinks stay unestimated until reviewed.
