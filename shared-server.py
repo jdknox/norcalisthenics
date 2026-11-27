@@ -3,16 +3,20 @@
 # > [!WARNING]
 # > ⚠️ **AI-gerenated Code:**
 
-import http.server
+import csv
 import glob
 import gzip
 import hashlib
+import http.server
+import io
 import json
+import math
 import os
 import subprocess
 import threading
 import time
 import urllib.parse
+from decimal import Decimal, ROUND_HALF_UP
 
 
 default_host = '0.0.0.0'
@@ -170,6 +174,14 @@ def readSharedStorageFile():
     return json.loads(text)
 
 
+def readSharedStorageValue(key):
+    storage_lock.acquire()
+    try:
+        return readSharedStorageFile().get(key)
+    finally:
+        storage_lock.release()
+
+
 def writeSharedStorageFile(data):
     text = json.dumps(data, indent=2, sort_keys=True) + '\n'
     writeStorageFile(shared_storage_file, text)
@@ -192,6 +204,151 @@ def storageRevision(value):
 
 def parseStorageValue(text):
     return json.loads(text)
+
+
+def roundProteinExportNumber(value):
+    whole = math.floor(value)
+    return whole + int(value - whole >= 0.5)
+
+
+def formatProteinExportNumber(value, places):
+    # Match JavaScript toFixed, including ties on the stored binary value.
+    return str(Decimal.from_float(float(value or 0)).quantize(Decimal(1).scaleb(-places), rounding=ROUND_HALF_UP))
+
+
+def knownIngredientGrams(snapshot):
+    grams = snapshot.get('grams')
+    if grams != None:
+        return float(grams or 0)
+
+    grams = 0.0
+    for ingredient in snapshot.get('ingredients') or []:
+        grams += knownIngredientGrams(ingredient)
+    return grams
+
+
+def proteinLogEntries(day, pantry_items):
+    if isinstance(day, list):
+        return day
+
+    entries = []
+    for key, count in day.items():
+        item = pantry_items.get(key, {})
+        for _ in range(math.ceil(float(count or 0))):
+            entries.append({'grams': item.get('scoop_g'), 'kcal': item.get('kcal')})
+    return entries
+
+
+def proteinMassEventSortKey(event, date):
+    timestamp = event.get('timestamp') or '00:00'
+    if 'T' in timestamp:
+        return timestamp[:16]
+    return date + 'T' + timestamp[:5]
+
+
+def buildProteinBodyweightKcalCSV(payload):
+    bodyweights = payload.get('bodyweight_by_date') or {}
+    log = payload.get('log') or {}
+    mass_events = payload.get('mass_events') or {}
+    daily_activity = payload.get('daily_activity') or {}
+    pantry_items = {}
+    for item in payload.get('scoop_items') or []:
+        pantry_items.setdefault(item['key'], item)
+
+    deleted_log_ids = set()
+    for key, deleted in (payload.get('deleted_log_entry_ids') or {}).items():
+        if deleted:
+            deleted_log_ids.add(key)
+    for key, record in (payload.get('deleted_log_entries') or {}).items():
+        if record and record.get('date') and (record.get('entry') or {}).get('id'):
+            deleted_log_ids.add(key)
+    deleted_mass_ids = payload.get('deleted_mass_event_ids') or {}
+
+    output = io.StringIO()
+    writer = csv.writer(output, lineterminator='\n')
+    writer.writerow(['date', 'body_mass_kg', 'daily_kcal', 'water_in_kg', 'mass_in_kg', 'steps', 'ebike_minutes', 'ebike_km'])
+
+    for date in sorted(bodyweights.keys() | log.keys() | mass_events.keys() | daily_activity.keys()):
+        bodyweight_kg = bodyweights.get(date)
+        if bodyweight_kg != None:
+            bodyweight_kg = float(bodyweight_kg or 0)
+
+        events = []
+        for event in mass_events.get(date) or []:
+            if event.get('deleted_at') or float(event.get('delete_count') or 0) > 0 or deleted_mass_ids.get(event.get('id')):
+                continue
+            events.append(event)
+
+        kcal = 0.0
+        pantry_grams = 0.0
+        for entry in proteinLogEntries(log.get(date) or [], pantry_items):
+            if entry.get('deleted_at') or float(entry.get('delete_count') or 0) > 0 or entry.get('id') in deleted_log_ids:
+                continue
+            kcal += float(entry.get('kcal') or 0)
+            grams = entry.get('grams')
+            if grams != None:
+                pantry_grams += float(grams or 0)
+            elif entry.get('recipe_snapshot'):
+                pantry_grams += knownIngredientGrams(entry['recipe_snapshot'])
+
+            for source in entry.get('water_sources') or []:
+                volume_ml = float(source.get('water_ml') or 0)
+                if volume_ml > 0:
+                    events.append({
+                        'event_type': 'water', 'timestamp': source.get('timestamp'),
+                        'water_volume_ml': volume_ml, 'mass_in_kg': 0, 'food_water': True
+                    })
+
+        pantry_kg = pantry_grams/1000
+        water_in_ml = 0.0
+        water_kg = 0.0
+        food_water_kg = 0.0
+        manual_food_kg = 0.0
+        events.sort(key=lambda event: proteinMassEventSortKey(event, date))
+        for event in events:
+            event_type = event.get('event_type')
+            if event_type == 'water':
+                volume_ml = float(event.get('water_volume_ml') or 0)
+                if event.get('food_water'):
+                    food_water_kg += volume_ml/1000
+                else:
+                    volume_ml = roundProteinExportNumber(volume_ml)
+                mass_kg = event.get('mass_in_kg')
+                mass_kg = volume_ml/1000 if mass_kg == None else float(mass_kg or 0)
+                water_kg += mass_kg
+                water_in_ml += volume_ml or roundProteinExportNumber(mass_kg*1000)
+            elif event_type == 'food_mass':
+                manual_food_kg += roundProteinExportNumber(float(event.get('mass_in_kg') or 0)*1000)/1000
+            elif event_type in ('checkpoint_weight', 'pre_meal_weight', 'post_meal_weight', 'post_restroom_weight'):
+                weight_kg = event.get('body_mass_kg')
+                if weight_kg != None:
+                    weight_kg = roundProteinExportNumber(float(weight_kg or 0)*100)/100
+                    if bodyweight_kg == None or weight_kg < bodyweight_kg:
+                        bodyweight_kg = weight_kg
+
+        activity = daily_activity.get(date) or {}
+        steps = roundProteinExportNumber(float(activity.get('steps') or 0))
+        ebike_minutes = roundProteinExportNumber(float(activity.get('ebike_minutes') or 0))
+        ebike_km = roundProteinExportNumber(float(activity.get('ebike_km') or 0)*100)/100
+        # Paired meal deltas only affect row inclusion, and those days already have a weigh-in.
+        total_mass_g = roundProteinExportNumber((water_kg + manual_food_kg + pantry_kg)*1000)
+        if bodyweight_kg == None and kcal <= 0 and not (water_in_ml or total_mass_g or steps or ebike_minutes or ebike_km):
+            continue
+
+        water_kg += food_water_kg
+        pantry_kg -= food_water_kg
+        writer.writerow([
+            date,
+            formatProteinExportNumber(bodyweight_kg, 2) if bodyweight_kg != None else '',
+            formatProteinExportNumber(kcal, 0),
+            formatProteinExportNumber(water_kg, 3) if water_kg else '',
+            formatProteinExportNumber(pantry_kg, 3) if pantry_kg else '',
+            steps or '',
+            ebike_minutes or '',
+            formatProteinExportNumber(ebike_km, 2) if ebike_km else ''
+        ])
+
+    return output.getvalue()
 
 
 def validStorageKey(key):
@@ -237,20 +394,22 @@ class WorkoutHandler(http.server.SimpleHTTPRequestHandler):
             text = readStorageFile(library_file)
             return writePlainText(self, 200, text, 'text/tab-separated-values; charset=utf-8')
 
+        if path == '/api/protein-bodyweight-kcal.csv':
+            payload = readSharedStorageValue('protein-loadout:v1')
+            if isinstance(payload, str):
+                payload = parseStorageValue(payload)
+            text = buildProteinBodyweightKcalCSV(payload or {})
+            return writePlainText(self, 200, text, 'text/csv; charset=utf-8')
+
         if path == '/api/storage':
             query = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
             key = query.get('key', [''])[0]
             if not validStorageKey(key):
                 return writeJsonText(self, 400, {'error': 'invalid key'})
 
-            storage_lock.acquire()
-            try:
-                data = readSharedStorageFile()
-                stored_value = data.get(key, None)
-                value = storageResponseValue(stored_value)
-                revision = storageRevision(stored_value)
-            finally:
-                storage_lock.release()
+            stored_value = readSharedStorageValue(key)
+            value = storageResponseValue(stored_value)
+            revision = storageRevision(stored_value)
             return writeJsonText(self, 200, {'value': value, 'revision': revision})
 
         return http.server.SimpleHTTPRequestHandler.do_GET(self)

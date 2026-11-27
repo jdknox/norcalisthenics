@@ -2016,7 +2016,7 @@ function computeMassLedger(date)
     assumed_water_loss_kg:0,
     first_mass_kg:null,
     latest_mass_kg:null,
-    min_mass_kg:1000,
+    min_mass_kg:null,
     mass_change_kg:null,
     checkpoint_count:0
   };
@@ -2097,7 +2097,7 @@ function computeMassLedger(date)
       ++totals.checkpoint_count;
       if (totals.first_mass_kg == null) { totals.first_mass_kg = body_mass; }
       totals.latest_mass_kg = body_mass;
-      if (body_mass < totals.min_mass_kg) { totals.min_mass_kg = body_mass; }
+      if (totals.min_mass_kg == null || body_mass < totals.min_mass_kg) { totals.min_mass_kg = body_mass; }
     }
 
     event_info[event.id] = info;
@@ -5004,9 +5004,14 @@ function buildBodyweightKcalCSV()
     let bodyweight_kg = g_bodyweight_by_date[date];
     let totals = dayTotals(date);
     let mass_summary = massSummaryForDate(date);
+    let lowest_weigh_in_kg = mass_summary.min_mass_kg;
     let has_mass_data = mass_summary.checkpoint_count || mass_summary.water_in_ml || mass_summary.total_mass_in_g || mass_summary.steps || mass_summary.ebike_minutes || mass_summary.ebike_km;
 
-    if (bodyweight_kg == null) bodyweight_kg = mass_summary.last_mass_kg;
+    if (bodyweight_kg != null) bodyweight_kg = Number(bodyweight_kg);
+    if (lowest_weigh_in_kg != null && (bodyweight_kg == null || lowest_weigh_in_kg < bodyweight_kg))
+    {
+      bodyweight_kg = lowest_weigh_in_kg;
+    }
     if (bodyweight_kg == null && totals.kcal <= 0 && !has_mass_data) continue;
 
     let line =  csvCell(date)
